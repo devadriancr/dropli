@@ -24,6 +24,8 @@ class ProjectSetup extends Command
     protected $steps = [
         ['Migraciones', 'migrate', []],
         ['Ejecutando CustomerSeeder', 'db:seed', ['--class' => 'CustomerSeeder']],
+        ['Ejecutando ShiftSeeder', 'db:seed', ['--class' => 'ShiftSeeder']],
+        ['Ejecutando StatusesSeeder', 'db:seed', ['--class' => 'StatusesSeeder']],
         ['Obteniendo información del proyecto', 'info:project', []],
         ['Ejecutando ProjectPrefixSeeder', 'db:seed', ['--class' => 'ProjectPrefixSeeder']],
         ['Obteniendo información del item class', 'infor:item-class', []],
