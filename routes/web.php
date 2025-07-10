@@ -15,3 +15,5 @@ Route::middleware([
         return view('home');
     })->name('home');
 });
+
+Route::resource('production-plans', App\Http\Controllers\ProductionPlanController::class);

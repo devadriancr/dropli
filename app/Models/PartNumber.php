@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PartNumber extends Model
 {
@@ -50,6 +51,22 @@ class PartNumber extends Model
     public function projects(): BelongsToMany
     {
         return $this->belongsToMany(Project::class, 'part_number_project', 'part_number_id', 'project_id');
+    }
+
+    /**
+     *
+     */
+    public function productionPlans(): HasMany
+    {
+        return $this->hasMany(ProductionPlan::class, 'part_number_id');
+    }
+
+    /**
+     *
+     */
+    public function productionRecords(): HasMany
+    {
+        return $this->hasMany(ProductionRecord::class, 'part_number_id');
     }
 
     public function nextProcesses()

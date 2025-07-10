@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductionPlan extends Model
 {
@@ -27,7 +28,17 @@ class ProductionPlan extends Model
 
     public function status(): BelongsTo
     {
-        return $this->belongsTo(Status::class);
+        return $this->belongsTo(Status::class, 'status_id');
+    }
+
+    public function partNumber(): BelongsTo
+    {
+        return $this->belongsTo(PartNumber::class, 'part_number_id');
+    }
+
+    public function productionRecords(): HasMany
+    {
+        return $this->hasMany(ProductionRecord::class, 'production_plan_id');
     }
 
     public static function store(
@@ -53,5 +64,4 @@ class ProductionPlan extends Model
             ]);
         }
     }
-
 }

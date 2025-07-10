@@ -18,4 +18,9 @@ class Status extends Model
     {
         return $this->hasMany(ProductionPlan::class);
     }
+
+    public function productionRecords(): HasMany
+{
+    return $this->hasMany(ProductionRecord::class, 'status_id');
+}
 }
