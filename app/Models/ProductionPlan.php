@@ -29,4 +29,29 @@ class ProductionPlan extends Model
     {
         return $this->belongsTo(Status::class);
     }
+
+    public static function store(
+        $shopOrderNumber = null,
+        $partNumberId,
+        $plannedQuantity,
+        $plannedDate,
+        $shiftId = null,
+    ) {
+        $status = Status::where('label', 'LIKE', 'Pendiente')->first();
+
+        $productionPlan = ProductionPlan::query()->where([['part_number_id', $partNumberId], ['planned_quantity', $plannedQuantity], ['planned_date', $plannedDate], ['shift_id', $shiftId]])->first();
+
+        if ($productionPlan === null) {
+            return ProductionPlan::create([
+                'shop_order_number' => $shopOrderNumber,
+                'part_number_id' => $partNumberId,
+                'planned_quantity' => $plannedQuantity,
+                'planned_date' => $plannedDate,
+                'shift_id' => $shiftId,
+                'status_id' => $status->id,
+                'synced_to_infor' => false,
+            ]);
+        }
+    }
+
 }

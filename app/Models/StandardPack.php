@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StandardPack extends Model
 {
@@ -10,8 +11,8 @@ class StandardPack extends Model
         'name'
     ];
 
-//    public function partNumbers(): HasMany
-//    {
-//        return $this->hasMany(PartNumber::class);
-//    }
+   public function partNumbers(): HasMany
+   {
+       return $this->hasMany(PartNumber::class);
+   }
 }

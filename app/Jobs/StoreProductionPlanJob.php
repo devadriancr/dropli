@@ -52,10 +52,10 @@ StoreProductionPlanJob implements ShouldQueue
         }
 
         $existingRecord = ProductionPlan::where([
+            'shop_order_number' => $this->shop_order_number,
             'part_number_id' => $partNumber->id,
             'planned_date' => $this->planned_date,
             'shift_id' => $shift->id,
-            'shop_order_number' => $this->shop_order_number
         ])->first();
 
         if ($existingRecord) {
@@ -66,6 +66,6 @@ StoreProductionPlanJob implements ShouldQueue
             return;
         }
 
-        ProductionPlan::store($partNumber->id, intval($this->planned_quantity), $this->planned_date, $shift->id, $this->shop_order_number);
+        ProductionPlan::store($this->shop_order_number, $partNumber->id, intval($this->planned_quantity), $this->planned_date, $shift->id);
     }
 }

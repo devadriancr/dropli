@@ -37,8 +37,6 @@ class GetProductionPlanJob implements ShouldQueue
             ->pluck('part_numbers.number')
             ->toArray();
 
-        dd($partNumbers);
-
         $productionPlans = FSO::query()
             ->select(
                 'SORD as shop_order_number',

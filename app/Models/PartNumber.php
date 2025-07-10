@@ -15,6 +15,8 @@ class PartNumber extends Model
         'efficiency',
         'item_class_id',
         'work_center_id',
+        'standard_pack_id',
+        'standard_pack_quantity',
         'is_obsolete',
     ];
 
@@ -23,7 +25,7 @@ class PartNumber extends Model
      */
     public function itemClass(): BelongsTo
     {
-        return $this->belongsTo(ItemClass::class);
+        return $this->belongsTo(ItemClass::class, 'item_class_id');
     }
 
     /**
@@ -32,6 +34,14 @@ class PartNumber extends Model
     public function workCenter(): BelongsTo
     {
         return $this->belongsTo(WorkCenter::class, 'work_center_id');
+    }
+
+    /**
+     *
+     */
+    public function standardPack(): BelongsTo
+    {
+        return $this->belongsTo(StandardPack::class, 'standard_pack_id');
     }
 
     /**
