@@ -1,9 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Plan de Producción')
+@section('title', 'Prefijos de Proyecto')
 
 @section('content_header')
-    <h1>{{ __('Plan de Producción') }}</h1>
+    <h1>{{ __('Prefijos de Proyecto') }}</h1>
 @stop
 
 @section('content')
@@ -13,13 +13,13 @@
             <div class="d-flex justify-content-between align-items-center">
                 <!-- Buscador -->
                 <div class="search-box">
-                    <form method="GET" action="{{ route('production-plans.index') }}">
+                    <form method="GET" action="{{ route('project-prefixes.index') }}">
                         <div class="input-group">
                             <input
                                 type="text"
                                 name="search"
                                 class="form-control border-end-0"
-                                placeholder="Buscar órdenes, números de parte, fechas..."
+                                placeholder="Buscar..."
                                 aria-label="Buscar"
                                 value="{{ $search ?? '' }}"
                             >
@@ -38,47 +38,26 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Orden') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Parte') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha Planeada') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Turno Planeado') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad Planeada') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Estado') }}</th>
-                            {{-- <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Acciones') }}</th> --}}
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Modelo') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Código') }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($productionPlans as $productionPlan)
+                        @forelse ($projectPrefixes as $projectPrefix)
                             <tr class="border-light-subtle">
-                                <td class="py-3 small">{{ $productionPlan->shop_order_number }}</td>
-                                <td class="py-3 small">{{ $productionPlan->partNumber->number }}</td>
-                                <td class="py-3 small">{{ $productionPlan->planned_date }}</td>
-                                <td class="py-3 small">{{ $productionPlan->shift->abbreviation }}</td>
-                                <td class="py-3 small">{{ $productionPlan->planned_quantity }}</td>
                                 <td class="py-3">
-                                    <span class="badge-status bg-primary bg-opacity-10 text-primary">{{ $productionPlan->status->label }}</span>
+                                    <span class="badge-status bg-primary bg-opacity-10 text-primary">{{ $projectPrefix->project->model }}</span>
                                 </td>
-                                <!-- <td class="py-3">
-                                    <div class="d-flex">
-                                        <a href="#" class="action-btn text-primary me-3">
-                                            <i class="fas fa-edit"></i>
-                                            <span class="ms-2">Actualizar</span>
-                                        </a>
-                                        <a href="#" class="action-btn text-danger">
-                                            <i class="fas fa-trash"></i>
-                                            <span class="ms-2">Eliminar</span>
-                                        </a>
-                                    </div>
-                                </td> -->
+                                <td class="py-3 small">{{ $projectPrefix->prefix_code }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4">
+                                <td colspan="2" class="text-center py-4">
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                                         <span class="text-secondary">No se encontraron resultados</span>
                                         @if(!empty($search))
-                                            <a href="{{ route('production-plans.index') }}"
+                                            <a href="{{ route('project-prefixes.index') }}"
                                                class="btn btn-sm btn-link mt-2">
                                                 Limpiar búsqueda
                                             </a>
@@ -93,27 +72,27 @@
         </div>
 
         <!-- Pie de página con paginación -->
-        @if ($productionPlans->hasPages() || $productionPlans->total() > 0)
+        @if ($projectPrefixes->hasPages() || $projectPrefixes->total() > 0)
             <div class="card-footer bg-white border-0 py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <!-- Información de resultados -->
                     <div class="text-muted small">
-                        Mostrando {{ $productionPlans->firstItem() }} a {{ $productionPlans->lastItem() }} de
-                        {{ $productionPlans->total() }} resultados
+                        Mostrando {{ $projectPrefixes->firstItem() }} a {{ $projectPrefixes->lastItem() }} de
+                        {{ $projectPrefixes->total() }} resultados
                     </div>
 
                     <!-- Controles de paginación -->
-                    @if ($productionPlans->hasPages())
+                    @if ($projectPrefixes->hasPages())
                         <nav aria-label="Page navigation">
                             <ul class="pagination mb-0">
                                 {{-- Previous Page Link --}}
-                                @if ($productionPlans->onFirstPage())
+                                @if ($projectPrefixes->onFirstPage())
                                     <li class="page-item disabled">
                                         <span class="page-link" aria-hidden="true">&laquo;</span>
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $productionPlans->previousPageUrl() }}" rel="prev"
+                                        <a class="page-link" href="{{ $projectPrefixes->previousPageUrl() }}" rel="prev"
                                             aria-label="Previous">
                                             &laquo;
                                         </a>
@@ -121,8 +100,8 @@
                                 @endif
 
                                 {{-- Pagination Elements --}}
-                                @foreach ($productionPlans->getUrlRange(1, $productionPlans->lastPage()) as $page => $url)
-                                    @if ($page == $productionPlans->currentPage())
+                                @foreach ($projectPrefixes->getUrlRange(1, $projectPrefixes->lastPage()) as $page => $url)
+                                    @if ($page == $projectPrefixes->currentPage())
                                         <li class="page-item active" aria-current="page">
                                             <span class="page-link">{{ $page }}</span>
                                         </li>
@@ -134,9 +113,9 @@
                                 @endforeach
 
                                 {{-- Next Page Link --}}
-                                @if ($productionPlans->hasMorePages())
+                                @if ($projectPrefixes->hasMorePages())
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $productionPlans->nextPageUrl() }}" rel="next"
+                                        <a class="page-link" href="{{ $projectPrefixes->nextPageUrl() }}" rel="next"
                                             aria-label="Next">
                                             &raquo;
                                         </a>

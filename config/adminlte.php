@@ -14,9 +14,9 @@ return [
     |
     */
 
-    'title' => 'AdminLTE 3',
+    'title' => 'Dropli',
     'title_prefix' => '',
-    'title_postfix' => '',
+    'title_postfix' => ' | YKM',
 
     /*
     |--------------------------------------------------------------------------
@@ -110,7 +110,7 @@ return [
     */
 
     'preloader' => [
-        'enabled' => true,
+        'enabled' => false,
         'mode' => 'fullscreen',
         'img' => [
             'path' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
@@ -300,25 +300,59 @@ return [
 
     'menu' => [
         // Navbar items:
-        [
-            'type' => 'navbar-search',
-            'text' => 'search',
-            'topnav_right' => true,
-        ],
-        [
-            'type' => 'fullscreen-widget',
-            'topnav_right' => true,
-        ],
+        // [
+        //     'type' => 'navbar-search',
+        //     'text' => 'search',
+        //     'topnav_right' => true,
+        // ],
+        // [
+        //     'type' => 'fullscreen-widget',
+        //     'topnav_right' => true,
+        // ],
 
         // Sidebar items:
+        // [
+        //     'type' => 'sidebar-menu-search',
+        //     'text' => 'search',
+        // ],
+        // [
+        //     'text' => 'blog',
+        //     'url' => 'admin/blog',
+        //     'can' => 'manage-blog',
+        // ],
         [
-            'type' => 'sidebar-menu-search',
-            'text' => 'search',
+            'header' => 'ADMINISTRACIÓN',
         ],
         [
-            'text' => 'blog',
-            'url' => 'admin/blog',
-            'can' => 'manage-blog',
+            'text' => 'Clientes',
+            'route' => 'customers.index',
+            'icon' => 'fas fa-fw fa-users',
+        ],
+        [
+            'text' => 'Proyectos',
+            'route' => 'projects.index',
+            'icon' => 'fas fa-fw fa-project-diagram',
+        ],
+        [
+            'text' => 'Prefijos de Proyecto',
+            'route' => 'project-prefixes.index',
+            'icon' => 'fas fa-fw fa-tags',
+        ],
+
+        [
+            'text' => 'Clases de Ítems',
+            'route' => 'item-classes.index',
+            'icon' => 'fas fa-fw fa-box',
+        ],
+        [
+            'text' => 'Paquetes Estándar',
+            'route' => 'standard-packs.index',
+            'icon' => 'fas fa-fw fa-cubes',
+        ],
+        [
+            'text' => 'Plan de Producción',
+            'route' => 'production-plans.index',
+            'icon' => 'fas fa-fw fa-calendar-alt',
         ],
         [
             'text' => 'pages',

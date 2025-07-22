@@ -16,4 +16,9 @@ Route::middleware([
     })->name('home');
 });
 
+Route::resource('customers', App\Http\Controllers\CustomerController::class);
+Route::resource('projects', App\Http\Controllers\ProjectController::class);
+Route::resource('project-prefixes', App\Http\Controllers\ProjectPrefixController::class);
+Route::resource('item-classes', App\Http\Controllers\ItemClassController::class);
+Route::resource('standard-packs', App\Http\Controllers\StandardPackController::class);
 Route::resource('production-plans', App\Http\Controllers\ProductionPlanController::class);
