@@ -365,6 +365,12 @@ return [
             'icon' => 'fas fa-fw fa-industry',
         ],
         [
+            'text' => 'Números de Parte',
+            'route' => 'part-numbers.index',
+            'icon' => 'fas fa-fw fa-shapes',
+        ],
+
+        [
             'text' => 'Plan de Producción',
             'route' => 'production-plans.index',
             'icon' => 'fas fa-fw fa-calendar-alt',

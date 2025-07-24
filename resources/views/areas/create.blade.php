@@ -47,6 +47,35 @@
                     @enderror
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary">{{ __('Centros de Trabajo') }}</label>
+                    <div class="work-centers-container">
+                        <div class="row">
+                            @forelse($workCenters as $workCenter)
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="work_centers[]"
+                                               id="work_center_{{ $workCenter->id }}"
+                                               value="{{ $workCenter->id }}"
+                                               {{ old('work_centers') && in_array($workCenter->id, old('work_centers')) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="work_center_{{ $workCenter->id }}">
+                                            <span class="fw-bold">{{ $workCenter->number }}</span> - {{ $workCenter->name }}
+                                        </label>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="col-12">
+                                    <p class="text-muted">{{ __('No hay work centers disponibles') }}</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                    @error('work_centers')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('areas.index') }}" class="btn btn-outline-secondary rounded-3">
                         <i class="fas fa-times me-2"></i> {{ __('Cancelar') }}
@@ -172,7 +201,7 @@
 
         .btn i {
             font-size: 0.9rem !important;
-            margin-right: 0.5rem !important; /* Espaciado entre icono y texto */
+            margin-right: 0.5rem !important;
         }
 
         .gap-2 {
@@ -199,6 +228,45 @@
         ::placeholder {
             color: #6c757d !important;
             opacity: 0.7;
+        }
+
+        /* Estilos para el contenedor de work centers */
+        .work-centers-container {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .work-centers-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .work-centers-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .work-centers-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .work-centers-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Estilos para los checkboxes */
+        .form-check-input:checked {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        .form-check-label {
+            cursor: pointer;
+            user-select: none;
         }
     </style>
 @stop
@@ -230,6 +298,18 @@
             @if($errors->has('department_id'))
                 $('#department_id').next('.select2-container').find('.select2-selection').addClass('is-invalid');
             @endif
+
+            // Seleccionar/deseleccionar todos
+            $('#select-all-workcenters').change(function() {
+                $('input[name="work_centers[]"]').prop('checked', $(this).prop('checked'));
+            });
+
+            // Desmarcar "seleccionar todos" si se desmarca algún checkbox individual
+            $('input[name="work_centers[]"]').change(function() {
+                if (!$(this).prop('checked')) {
+                    $('#select-all-workcenters').prop('checked', false);
+                }
+            });
         });
     </script>
 @stop

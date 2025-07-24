@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use App\Models\Department;
+use App\Models\WorkCenter;
 use Illuminate\Http\Request;
 
 class AreaController extends Controller
@@ -42,8 +43,12 @@ class AreaController extends Controller
     public function create()
     {
         $departments = Department::orderBy('name')->get();
+        $workCenters = WorkCenter::whereNull('area_id')->orderBy('number')->get();
 
-        return view('areas.create')->with('departments', $departments);
+        return view('areas.create')->with([
+            'departments' => $departments,
+            'workCenters' => $workCenters
+        ]);
     }
 
     /**
@@ -55,9 +60,17 @@ class AreaController extends Controller
             'department_id' => 'required|exists:departments,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
+            'work_centers' => 'nullable|array',
+            'work_centers.*' => 'exists:work_centers,id'
         ]);
 
-        Area::create($request->all());
+        $area = Area::create($request->only(['department_id', 'name', 'description']));
+
+        // Asignar work centers seleccionados
+        if ($request->has('work_centers')) {
+            WorkCenter::whereIn('id', $request->work_centers)
+                ->update(['area_id' => $area->id]);
+        }
 
         return redirect()->route('areas.index')
             ->with('success', 'Área creada exitosamente.');
@@ -77,10 +90,17 @@ class AreaController extends Controller
     public function edit(Area $area)
     {
         $departments = Department::orderBy('name')->get();
+        $assignedWorkCenters = $area->workCenters()->pluck('id')->toArray();
+        $workCenters = WorkCenter::whereNull('area_id')
+            ->orWhereIn('id', $assignedWorkCenters)
+            ->orderBy('number')
+            ->get();
 
         return view('areas.edit')->with([
             'area' => $area,
-            'departments' => $departments
+            'departments' => $departments,
+            'workCenters' => $workCenters,
+            'assignedWorkCenters' => $assignedWorkCenters
         ]);
     }
 
@@ -93,9 +113,21 @@ class AreaController extends Controller
             'department_id' => 'required|exists:departments,id',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
+            'work_centers' => 'nullable|array',
+            'work_centers.*' => 'exists:work_centers,id'
         ]);
 
-        $area->update($request->all());
+        $area->update($request->only(['department_id', 'name', 'description']));
+
+        // Primero, desasignar todos los work centers de esta área
+        WorkCenter::where('area_id', $area->id)
+            ->update(['area_id' => null]);
+
+        // Luego asignar los nuevos work centers seleccionados
+        if ($request->has('work_centers')) {
+            WorkCenter::whereIn('id', $request->work_centers)
+                ->update(['area_id' => $area->id]);
+        }
 
         return redirect()->route('areas.index')
             ->with('success', 'Área actualizada exitosamente.');
@@ -107,12 +139,16 @@ class AreaController extends Controller
     public function destroy(Area $area)
     {
         try {
+            // Desasignar work centers antes de eliminar el área
+            WorkCenter::where('area_id', $area->id)
+                ->update(['area_id' => null]);
+
             $area->delete();
             return redirect()->route('areas.index')
                 ->with('success', 'Área eliminada exitosamente.');
         } catch (\Illuminate\Database\QueryException $e) {
             return redirect()->route('areas.index')
-                ->with('error', 'No se puede eliminar el área porque está asociada a uno o más centros de trabajo.');
+                ->with('error', 'No se puede eliminar el área porque está asociada a otros registros.');
         }
     }
 }
