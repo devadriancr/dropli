@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Area;
+use App\Models\Department;
 use Illuminate\Http\Request;
 
 class AreaController extends Controller
@@ -29,7 +30,10 @@ class AreaController extends Controller
             ->orderBy('name')
             ->paginate();
 
-        return view('areas.index', compact('areas'));
+        return view('areas.index')->with([
+            'areas' => $areas,
+            'search' => $search,
+        ]);
     }
 
     /**
@@ -37,7 +41,9 @@ class AreaController extends Controller
      */
     public function create()
     {
-        //
+        $departments = Department::orderBy('name')->get();
+
+        return view('areas.create')->with('departments', $departments);
     }
 
     /**
@@ -45,7 +51,16 @@ class AreaController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'department_id' => 'required|exists:departments,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        Area::create($request->all());
+
+        return redirect()->route('areas.index')
+            ->with('success', 'Área creada exitosamente.');
     }
 
     /**
@@ -53,30 +68,51 @@ class AreaController extends Controller
      */
     public function show(string $id)
     {
-        //
+        // Puedes implementar esto si necesitas una vista detallada
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Area $area)
     {
-        //
+        $departments = Department::orderBy('name')->get();
+
+        return view('areas.edit')->with([
+            'area' => $area,
+            'departments' => $departments
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Area $area)
     {
-        //
+        $request->validate([
+            'department_id' => 'required|exists:departments,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $area->update($request->all());
+
+        return redirect()->route('areas.index')
+            ->with('success', 'Área actualizada exitosamente.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Area $area)
     {
-        //
+        try {
+            $area->delete();
+            return redirect()->route('areas.index')
+                ->with('success', 'Área eliminada exitosamente.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('areas.index')
+                ->with('error', 'No se puede eliminar el área porque está asociada a uno o más centros de trabajo.');
+        }
     }
 }

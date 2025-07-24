@@ -359,11 +359,17 @@ return [
             'route' => 'areas.index',
             'icon' => 'fas fa-fw fa-map-marker-alt',
         ],
+                [
+            'text' => 'Centros de Trabajo',
+            'route' => 'work-centers.index',
+            'icon' => 'fas fa-fw fa-industry',
+        ],
         [
             'text' => 'Plan de Producción',
             'route' => 'production-plans.index',
             'icon' => 'fas fa-fw fa-calendar-alt',
         ],
+
         // [
         //     'text' => 'pages',
         //     'url' => 'admin/pages',
@@ -494,7 +500,7 @@ return [
             ],
         ],
         'Select2' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',
@@ -504,27 +510,27 @@ return [
                 [
                     'type' => 'css',
                     'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.css',
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css',
                 ],
             ],
         ],
         'Chartjs' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',
                     'asset' => false,
-                    'location' => '//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.0/Chart.bundle.min.js',
+                    'location' => '//cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js',
                 ],
             ],
         ],
         'Sweetalert2' => [
-            'active' => false,
+            'active' => true,
             'files' => [
                 [
                     'type' => 'js',
                     'asset' => false,
-                    'location' => '//cdn.jsdelivr.net/npm/sweetalert2@8',
+                    'location' => '//cdn.jsdelivr.net/npm/sweetalert2@11',
                 ],
             ],
         ],

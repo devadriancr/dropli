@@ -1,20 +1,20 @@
 @extends('adminlte::page')
 
-@section('title', 'Áreas')
+@section('title', 'Centros de Trabajo')
 
 @section('content_header')
-    <h1>{{ __('Áreas') }}</h1>
+    <h1>{{ __('Centros de Trabajo') }}</h1>
 @stop
 
 @section('content')
-    @if(session('success'))
+    @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    @if(session('error'))
+    @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -27,7 +27,7 @@
             <div class="d-flex justify-content-between align-items-center">
                 <!-- Buscador -->
                 <div class="search-box">
-                    <form method="GET" action="{{ route('areas.index') }}">
+                    <form method="GET" action="{{ route('work-centers.index') }}">
                         <div class="input-group">
                             <input type="text" name="search" class="form-control border-end-0" placeholder="Buscar..."
                                 aria-label="Buscar" value="{{ $search ?? '' }}">
@@ -37,12 +37,6 @@
                         </div>
                     </form>
                 </div>
-
-                <!-- Botón Agregar con espaciado corregido -->
-                <a href="{{ route('areas.create') }}" class="btn btn-primary rounded-3">
-                    <i class="fas fa-plus me-2"></i>
-                    <span>Agregar nuevo</span>
-                </a>
             </div>
         </div>
 
@@ -52,45 +46,29 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Departamento') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Nombre de Área') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Descripción') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Acciones') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Área') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Nombre') }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($areas as $area)
+                        @forelse ($workCenters as $workCenter)
                             <tr class="border-light-subtle">
                                 <td class="py-3">
-                                    <span class="badge-status bg-primary bg-opacity-10 text-primary">{{ $area->department->name ?? 'Sin Departamento' }}</span>
+                                    <span
+                                        class="badge-status bg-primary bg-opacity-10 text-secondary">{{ $workCenter->area->name ?? '-' }}</span>
                                 </td>
-                                <td class="py-3 small">{{ $area->name ?? '-' }}</td>
-                                <td class="py-3 small">{{ $area->description ?? '-' }}</td>
-                                <td class="py-3">
-                                    <div class="d-flex gap-2">
-                                        <a href="{{ route('areas.edit', $area) }}" class="btn btn-sm btn-outline-primary rounded-3">
-                                            <i class="fas fa-edit me-2"></i>
-                                            <span>Actualizar</span>
-                                        </a>
-                                        <form action="{{ route('areas.destroy', $area) }}" method="POST" style="display:inline;" class="delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
-                                                <i class="fas fa-trash me-2"></i>
-                                                <span>Eliminar</span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
+                                <td class="py-3 small">{{ $workCenter->number }}</td>
+                                <td class="py-3 small">{{ $workCenter->name }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-4">
+                                <td colspan="3" class="text-center py-4">
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                                         <span class="text-secondary">No se encontraron resultados</span>
                                         @if (!empty($search))
-                                            <a href="{{ route('areas.index') }}" class="btn btn-sm btn-link mt-2">
+                                            <a href="{{ route('work-centers.index') }}" class="btn btn-sm btn-link mt-2">
                                                 Limpiar búsqueda
                                             </a>
                                         @endif
@@ -104,27 +82,27 @@
         </div>
 
         <!-- Pie de página con paginación -->
-        @if ($areas->hasPages() || $areas->total() > 0)
+        @if ($workCenters->hasPages() || $workCenters->total() > 0)
             <div class="card-footer bg-white border-0 py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <!-- Información de resultados -->
                     <div class="text-muted small">
-                        Mostrando {{ $areas->firstItem() }} a {{ $areas->lastItem() }} de
-                        {{ $areas->total() }} resultados
+                        Mostrando {{ $workCenters->firstItem() }} a {{ $workCenters->lastItem() }} de
+                        {{ $workCenters->total() }} resultados
                     </div>
 
-                    <!-- Controles de paginación -->
-                    @if ($areas->hasPages())
+                    <!-- Controles de paginación mejorados -->
+                    @if ($workCenters->hasPages())
                         <nav aria-label="Page navigation">
                             <ul class="pagination mb-0">
                                 {{-- Previous Page Link --}}
-                                @if ($areas->onFirstPage())
+                                @if ($workCenters->onFirstPage())
                                     <li class="page-item disabled">
                                         <span class="page-link" aria-hidden="true">&laquo;</span>
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $areas->previousPageUrl() }}" rel="prev"
+                                        <a class="page-link" href="{{ $workCenters->previousPageUrl() }}" rel="prev"
                                             aria-label="Previous">
                                             &laquo;
                                         </a>
@@ -132,22 +110,63 @@
                                 @endif
 
                                 {{-- Pagination Elements --}}
-                                @foreach ($areas->getUrlRange(1, $areas->lastPage()) as $page => $url)
-                                    @if ($page == $areas->currentPage())
+                                @php
+                                    $current = $workCenters->currentPage();
+                                    $last = $workCenters->lastPage();
+                                    $start = max($current - 5, 1);
+                                    $end = min($current + 5, $last);
+
+                                    // Ajustar si estamos cerca del inicio o final
+                                    if ($current <= 5) {
+                                        $end = min(11, $last);
+                                    }
+                                    if ($current >= $last - 5) {
+                                        $start = max($last - 10, 1);
+                                    }
+                                @endphp
+
+                                {{-- Mostrar primera página si no está en el rango --}}
+                                @if ($start > 1)
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $workCenters->url(1) }}">1</a>
+                                    </li>
+                                    @if ($start > 2)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                @endif
+
+                                {{-- Rango de páginas --}}
+                                @for ($page = $start; $page <= $end; $page++)
+                                    @if ($page == $workCenters->currentPage())
                                         <li class="page-item active" aria-current="page">
                                             <span class="page-link">{{ $page }}</span>
                                         </li>
                                     @else
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                            <a class="page-link"
+                                                href="{{ $workCenters->url($page) }}">{{ $page }}</a>
                                         </li>
                                     @endif
-                                @endforeach
+                                @endfor
+
+                                {{-- Mostrar última página si no está en el rango --}}
+                                @if ($end < $last)
+                                    @if ($end < $last - 1)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $workCenters->url($last) }}">{{ $last }}</a>
+                                    </li>
+                                @endif
 
                                 {{-- Next Page Link --}}
-                                @if ($areas->hasMorePages())
+                                @if ($workCenters->hasMorePages())
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $areas->nextPageUrl() }}" rel="next"
+                                        <a class="page-link" href="{{ $workCenters->nextPageUrl() }}" rel="next"
                                             aria-label="Next">
                                             &raquo;
                                         </a>
@@ -247,12 +266,13 @@
         /* Badges simétricos */
         .badge-status {
             display: inline-block;
-            min-width: 90px;
-            padding: 0.5em 0.75em;
+            min-width: 70px;
+            padding: 0.4em 0.6em;
             text-align: center;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 500;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
         }
 
         /* Estilos para la paginación */
@@ -297,27 +317,6 @@
             margin-bottom: 0;
         }
 
-        /* Estilos para los botones de acción - ESPACIADO CORREGIDO */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .btn i {
-            margin-right: 0.5rem; /* Espaciado entre icono y texto */
-        }
-
-        .btn-sm {
-            padding: 0.35rem 0.75rem;
-            font-size: 0.85rem;
-        }
-
-        .gap-2 {
-            gap: 0.5rem;
-        }
-
         /* Alertas */
         .alert {
             border-radius: 8px;
@@ -332,37 +331,8 @@
 
 @section('js')
     <script>
-        // Confirmación antes de eliminar - CORREGIDO
+        // Cerrar alertas automáticamente después de 5 segundos
         document.addEventListener('DOMContentLoaded', function() {
-            // Verificar si SweetAlert2 está disponible
-            if (typeof Swal === 'undefined') {
-                console.error('SweetAlert2 no está disponible. Asegúrate de que esté incluido en AdminLTE.');
-                return;
-            }
-
-            // Agregar event listener a todos los formularios de eliminación
-            document.querySelectorAll('.delete-form').forEach(form => {
-                form.addEventListener('submit', function(e) {
-                    e.preventDefault();
-
-                    Swal.fire({
-                        title: '¿Estás seguro?',
-                        text: "¡No podrás revertir esta acción!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Sí, eliminar',
-                        cancelButtonText: 'Cancelar'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            this.submit();
-                        }
-                    });
-                });
-            });
-
-            // Cerrar alertas automáticamente después de 5 segundos
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => {

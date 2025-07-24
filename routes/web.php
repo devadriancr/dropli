@@ -23,4 +23,5 @@ Route::resource('item-classes', App\Http\Controllers\ItemClassController::class)
 Route::resource('standard-packs', App\Http\Controllers\StandardPackController::class);
 Route::resource('departments', App\Http\Controllers\DepartmentController::class);
 Route::resource('areas', App\Http\Controllers\AreaController::class);
+Route::resource('work-centers', App\Http\Controllers\WorkCenterController::class);
 Route::resource('production-plans', App\Http\Controllers\ProductionPlanController::class);
