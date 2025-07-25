@@ -18,8 +18,6 @@ return new class extends Migration
             $table->foreignId('part_number_id')->constrained('part_numbers');
             $table->string('sequence');
             $table->integer('quantity')->default(0);
-            $table->foreignId('status_id')->constrained('statuses');
-            $table->foreignId('user_id')->constrained('users');
             $table->timestamps();
         });
     }

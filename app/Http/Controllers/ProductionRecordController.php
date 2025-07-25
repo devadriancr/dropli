@@ -54,8 +54,6 @@ class ProductionRecordController extends Controller
             'part_number_id' => $partNumber->id,
             'sequence' => $sequence,
             'quantity' => $standardPack,
-            'status_id' => Status::where('key', 'LIKE', 'in_progress')->first()->id, // Eliminar campo de la bae de datos
-            'user_id' => 1 // Eliminar campo de la bae de datos
         ]);
 
         event(new ProductionRecordCreated());
