@@ -36,13 +36,13 @@ class ProductionPlanController extends Controller
                         });
                 });
             })
-            ->orderByDesc('planned_date')
+            ->orderBy('planned_date', 'asc')
             ->orderBy(
                 Shift::select('abbreviation')
                     ->whereColumn('shifts.id', 'production_plans.shift_id')
                     ->limit(1)
             )
-            ->orderBy('shop_order_number')
+            // ->orderBy('shop_order_number')
             ->paginate(10);
 
         return view('production-plans.index', [

@@ -92,7 +92,7 @@
             </div>
         </div>
 
-        <!-- Pie de página con paginación -->
+        <!-- Pie de página con paginación mejorada -->
         @if ($productionPlans->hasPages() || $productionPlans->total() > 0)
             <div class="card-footer bg-white border-0 py-3">
                 <div class="d-flex justify-content-between align-items-center">
@@ -102,7 +102,7 @@
                         {{ $productionPlans->total() }} resultados
                     </div>
 
-                    <!-- Controles de paginación -->
+                    <!-- Controles de paginación mejorados -->
                     @if ($productionPlans->hasPages())
                         <nav aria-label="Page navigation">
                             <ul class="pagination mb-0">
@@ -121,17 +121,58 @@
                                 @endif
 
                                 {{-- Pagination Elements --}}
-                                @foreach ($productionPlans->getUrlRange(1, $productionPlans->lastPage()) as $page => $url)
+                                @php
+                                    $current = $productionPlans->currentPage();
+                                    $last = $productionPlans->lastPage();
+                                    $start = max($current - 5, 1);
+                                    $end = min($current + 5, $last);
+
+                                    // Ajustar si estamos cerca del inicio o final
+                                    if ($current <= 5) {
+                                        $end = min(11, $last);
+                                    }
+                                    if ($current >= $last - 5) {
+                                        $start = max($last - 10, 1);
+                                    }
+                                @endphp
+
+                                {{-- Mostrar primera página si no está en el rango --}}
+                                @if ($start > 1)
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $productionPlans->url(1) }}">1</a>
+                                    </li>
+                                    @if ($start > 2)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                @endif
+
+                                {{-- Rango de páginas --}}
+                                @for ($page = $start; $page <= $end; $page++)
                                     @if ($page == $productionPlans->currentPage())
                                         <li class="page-item active" aria-current="page">
                                             <span class="page-link">{{ $page }}</span>
                                         </li>
                                     @else
                                         <li class="page-item">
-                                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                            <a class="page-link"
+                                                href="{{ $productionPlans->url($page) }}">{{ $page }}</a>
                                         </li>
                                     @endif
-                                @endforeach
+                                @endfor
+
+                                {{-- Mostrar última página si no está en el rango --}}
+                                @if ($end < $last)
+                                    @if ($end < $last - 1)
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    @endif
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ $productionPlans->url($last) }}">{{ $last }}</a>
+                                    </li>
+                                @endif
 
                                 {{-- Next Page Link --}}
                                 @if ($productionPlans->hasMorePages())
