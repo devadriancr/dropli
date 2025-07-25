@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('production_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('part_number_id')->constrained('part_numbers');
             $table->foreignId('production_plan_id')->nullable()->constrained('production_plans');
-            $table->integer('quantity');
-            $table->string('sequence', 3);
+            $table->string('order_number');
+            $table->foreignId('part_number_id')->constrained('part_numbers');
+            $table->string('sequence');
+            $table->integer('quantity')->default(0);
             $table->foreignId('status_id')->constrained('statuses');
             $table->foreignId('user_id')->constrained('users');
             $table->timestamps();

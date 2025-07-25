@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductionRecord extends Model
 {
     protected $fillable = [
-        'part_number_id',
         'production_plan_id',
-        'quantity',
+        'order_number',
+        'part_number_id',
         'sequence',
+        'quantity',
         'status_id',
-        'user_id',
+        'user_id'
     ];
 
     public function productionPlan(): BelongsTo

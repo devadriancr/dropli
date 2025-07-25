@@ -21,6 +21,7 @@ return new class extends Migration
             $table->date('planned_date');
             $table->foreignId('shift_id')->nullable()->constrained('shifts');
             $table->foreignId('status_id')->default(1)->constrained('statuses');
+            $table->boolean('is_completed')->default(false);
             $table->boolean('synced_to_infor')->default(false);
             $table->timestamp('synced_at')->nullable();
             $table->timestamps();

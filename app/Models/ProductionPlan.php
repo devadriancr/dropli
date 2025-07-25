@@ -17,6 +17,7 @@ class ProductionPlan extends Model
         'planned_date',
         'shift_id',
         'status_id',
+        'is_completed',
         'synced_to_infor',
         'synced_at'
     ];

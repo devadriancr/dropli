@@ -14,15 +14,22 @@ Route::middleware([
     Route::get('/home', function () {
         return view('home');
     })->name('home');
+
+    Route::resource('customers', App\Http\Controllers\CustomerController::class);
+    Route::resource('projects', App\Http\Controllers\ProjectController::class);
+    Route::resource('project-prefixes', App\Http\Controllers\ProjectPrefixController::class);
+    Route::resource('item-classes', App\Http\Controllers\ItemClassController::class);
+    Route::resource('standard-packs', App\Http\Controllers\StandardPackController::class);
+    Route::resource('departments', App\Http\Controllers\DepartmentController::class);
+    Route::resource('areas', App\Http\Controllers\AreaController::class);
+    Route::resource('work-centers', App\Http\Controllers\WorkCenterController::class);
+    Route::resource('part-numbers', App\Http\Controllers\PartNumberController::class);
+    Route::resource('production-plans', App\Http\Controllers\ProductionPlanController::class);
 });
 
-Route::resource('customers', App\Http\Controllers\CustomerController::class);
-Route::resource('projects', App\Http\Controllers\ProjectController::class);
-Route::resource('project-prefixes', App\Http\Controllers\ProjectPrefixController::class);
-Route::resource('item-classes', App\Http\Controllers\ItemClassController::class);
-Route::resource('standard-packs', App\Http\Controllers\StandardPackController::class);
-Route::resource('departments', App\Http\Controllers\DepartmentController::class);
-Route::resource('areas', App\Http\Controllers\AreaController::class);
-Route::resource('work-centers', App\Http\Controllers\WorkCenterController::class);
-Route::resource('part-numbers', App\Http\Controllers\PartNumberController::class);
-Route::resource('production-plans', App\Http\Controllers\ProductionPlanController::class);
+Route::get('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'scanLabel'])->name('production-records.scan-label');
+Route::post('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeLabel'])->name('production-records.store-label');
+
+Route::get('test', function () {
+    return view('guest.dashboard');
+});
