@@ -7,6 +7,7 @@ use App\Models\FSO;
 use App\Models\PartNumber;
 use App\Models\ProductionPlan;
 use App\Models\ProductionRecord;
+use App\Models\Status;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,13 +31,12 @@ class ProductionRecordController extends Controller
             'scanInput' => 'required|string|max:20',
         ]);
 
-        // $orderNumber = substr($request->input('scanInput'), 0, 8);
-        // $sequence = substr($request->input('scanInput'), 8, 6);
-        // $standardPack = substr($request->input('scanInput'), 14, 6);
-        // $partNumber = FSO::query()->select(DB::raw('TRIM(SPROD) AS part_number'))->where(DB::raw('TRIM(SPROD)'), $orderNumber)->first();
+        $orderNumber = substr($request->input('scanInput'), 0, 8);
+        $sequence = substr($request->input('scanInput'), 8, 6);
+        $standardPack = substr($request->input('scanInput'), 14, 6);
+        // $partNumber = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
 
-        $partNumber = $request->input('scanInput');
-        $partNumber = PartNumber::where('number', $request->input('scanInput'))->firstOrFail();
+        $partNumber = PartNumber::where('number', FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER'))->firstOrFail();
         $nextPartNumber = $partNumber->nextProcesses->first();
 
         if (!$nextPartNumber) {
@@ -45,21 +45,28 @@ class ProductionRecordController extends Controller
 
         $productionPlan = ProductionPlan::query()
             ->where('part_number_id', $nextPartNumber->id)
-            ->where('planned_date', Carbon::parse('2025-07-09')->format('Y-m-d'))
+            ->where('planned_date', Carbon::parse('2025-07-23')->format('Y-m-d'))
             ->firstOrFail();
 
         $productionRecord = ProductionRecord::create([
             'production_plan_id' => $productionPlan->id,
-            // 'order_number' => $orderNumber,
+            'order_number' => $orderNumber,
             'part_number_id' => $partNumber->id,
-            // 'sequence' => $sequence,
-            // 'quantity' => $standardPack,
+            'sequence' => $sequence,
+            'quantity' => $standardPack,
+            'status_id' => Status::where('key', 'LIKE', 'in_progress')->first()->id, // Eliminar campo de la bae de datos
+            'user_id' => 1 // Eliminar campo de la bae de datos
         ]);
 
         event(new ProductionRecordCreated());
 
-        // $totalQuantity = $productionRecord->quantity + $standardPack;
-        // $productionPlan->update(['produced_quantity' => $totalQuantity]);
+        if ($productionPlan->produced_quantity === 0) {
+            $status = Status::where('key', 'LIKE', 'in_progress')->first();
+            $productionPlan->update(['produced_quantity' => $standardPack, 'status_id' => $status->id]);
+        } else {
+            $totalQuantity = $productionRecord->quantity + $standardPack;
+            $productionPlan->update(['produced_quantity' => $totalQuantity]);
+        }
 
         return redirect()->route('production-records.scan-label')->with('success', 'Etiqueta escaneada y almacenada correctamente.');
     }

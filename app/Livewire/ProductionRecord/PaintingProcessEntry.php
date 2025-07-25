@@ -18,7 +18,7 @@ class PaintingProcessEntry extends Component
             ->get();
     }
 
-    #[On('echo:production-record-created, ProductionRecordCreated')]
+    #[On('echo:production-record-created,ProductionRecordCreated')]
     public function refreshTable()
     {
         $this->productionEntry = ProductionRecord::with('partNumber')
