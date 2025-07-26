@@ -37,9 +37,7 @@ class ProductionRecordController extends Controller
         $scanData = $request->input('scanInput');
 
         if (strlen($scanData) < 14) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
+            return redirect()->back()->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
         }
 
         $orderNumber = substr($request->input('scanInput'), 0, 8);
@@ -49,32 +47,19 @@ class ProductionRecordController extends Controller
         $partNumberCode = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
 
         if (!$partNumberCode) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', "No se encontró información para la orden: {$orderNumber}");
+            return redirect()->back()->with('error', "No se encontró información para la orden: {$orderNumber}");
         }
 
         $partNumber = PartNumber::where('number', $partNumberCode)->first();
 
         if (!$partNumber) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', "Número de parte no encontrado: {$partNumberCode}");
+            return redirect()->back()->with('error', "Número de parte no encontrado: {$partNumberCode}");
         }
 
         $nextPartNumber = $partNumber->nextProcesses->first();
 
-
         if (!$nextPartNumber) {
-            return redirect()->back()
-                ->withInput()
-                ->with('warning', 'No hay procesos siguientes configurados para este número de parte.')
-                ->with('details', [
-                    'orden' => $orderNumber,
-                    'parte' => $partNumber->number,
-                    'secuencia' => $sequence,
-                    'cantidad' => $standardPack
-                ]);
+            return redirect()->back()->with('warning', 'No hay procesos siguientes configurados para este número de parte.');
         }
 
         $productionPlan = ProductionPlan::query()
@@ -83,10 +68,9 @@ class ProductionRecordController extends Controller
             ->first();
 
         if (!$productionPlan) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'No se encontró un plan de producción activo para este proceso.');
+            return redirect()->back()->with('error', 'No se encontró un plan de producción activo para este proceso.');
         }
+
         $existingRecord = ProductionRecord::query()
             ->where('production_plan_id', $productionPlan->id)
             ->where('order_number', $orderNumber)
@@ -96,16 +80,7 @@ class ProductionRecordController extends Controller
             ->first();
 
         if ($existingRecord) {
-            return redirect()->back()
-                ->withInput()
-                ->with('warning', 'Esta etiqueta ya ha sido procesada anteriormente.')
-                ->with('details', [
-                    'orden' => $orderNumber,
-                    'parte' => $partNumber->number,
-                    'secuencia' => $sequence,
-                    'cantidad' => $standardPack,
-                    'fecha_procesada' => $existingRecord->created_at->format('d/m/Y H:i')
-                ]);
+            return redirect()->back()->with('warning', 'Esta etiqueta ya ha sido procesada anteriormente.');
         }
 
         $productionRecord = ProductionRecord::create([
@@ -131,16 +106,6 @@ class ProductionRecordController extends Controller
             $productionPlan->update(['produced_quantity' => $totalQuantity]);
         }
 
-        return redirect()->route('production-records.scan-label')
-            ->with('success', 'Etiqueta procesada correctamente')
-            ->with('details', [
-                'orden' => $orderNumber,
-                'parte' => $partNumber->number,
-                'secuencia' => $sequence,
-                'cantidad' => $standardPack,
-                'total_producido' => $productionPlan->fresh()->produced_quantity
-            ]);
-
-        return redirect()->route('production-records.scan-label')->with('success', 'Etiqueta escaneada y almacenada correctamente.');
+        return redirect()->route('production-records.scan-label')->with('success', 'Etiqueta procesada correctamente');
     }
 }

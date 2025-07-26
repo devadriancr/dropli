@@ -1,39 +1,13 @@
 <x-guest-layout>
     <div class="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
-
-        <!-- Notificaciones simples -->
-        @if(session('success') || session('error') || session('warning') || $errors->any())
-            <div class="fixed top-4 right-4 z-50 max-w-sm w-full">
-                @if(session('success'))
-                    <div class="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg shadow-lg mb-4 notification">
-                        {{ session('success') }}
-                    </div>
-                @endif
-
-                @if(session('warning'))
-                    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg shadow-lg mb-4 notification">
-                        {{ session('warning') }}
-                    </div>
-                @endif
-
-                @if(session('error') || $errors->any())
-                    <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg shadow-lg mb-4 notification">
-                        @if(session('error'))
-                            {{ session('error') }}
-                        @endif
-                        @if($errors->any())
-                            @foreach($errors->all() as $error)
-                                {{ $error }}
-                            @endforeach
-                        @endif
-                    </div>
-                @endif
-            </div>
-        @endif
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Escaneo de Material</h1>
+        </div>
 
         <div class="mx-auto w-1/2 max-w-md bg-white rounded-xl shadow-xl overflow-hidden">
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <form method="POST" action="{{ route('production-records.store-label') }}">
+                <form method="POST" action="{{ route('production-records.store-label') }}" id="scanForm">
                     @csrf
 
                     <label for="scanInput" class="block text-sm font-medium text-gray-700 mb-2">
@@ -45,10 +19,10 @@
                             type="text"
                             id="scanInput"
                             name="scanInput"
-                            value="{{ old('scanInput') }}"
-                            class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 @error('scanInput') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror"
+                            class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150"
                             placeholder="Escanee aquí..."
                             autocomplete="off"
+                            autofocus
                         />
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,45 +31,44 @@
                         </div>
                     </div>
 
+                    <!-- Mensajes debajo del input -->
+                    @if(session('success'))
+                        <div class="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if(session('warning'))
+                        <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-sm">
+                            {{ session('warning') }}
+                        </div>
+                    @endif
+
+                    @if(session('error') || $errors->any())
+                        <div class="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                            @if(session('error'))
+                                {{ session('error') }}
+                            @endif
+                            @if($errors->any())
+                                @foreach($errors->all() as $error)
+                                    {{ $error }}
+                                @endforeach
+                            @endif
+                        </div>
+                    @endif
+
                     <button type="submit" class="hidden"></button>
                 </form>
             </div>
         </div>
     </div>
 
-    <style>
-        .notification {
-            animation: slideIn 0.4s ease-out, fadeOut 0.3s ease-in 4s forwards;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes fadeOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
-    </style>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const scanInput = document.getElementById('scanInput');
-            const form = scanInput.closest('form');
+            const form = document.getElementById('scanForm');
 
+            // Mantener el autofocus
             setTimeout(() => {
                 scanInput.focus();
             }, 100);
@@ -106,17 +79,16 @@
                 }, 10);
             });
 
+            // Envío automático con Enter
             scanInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     form.submit();
-                    scanInput.value = '';
-                    scanInput.focus();
                 }
             });
 
-            // Limpiar input en éxito
-            @if(session('success'))
+            // Limpiar input después de cualquier respuesta
+            @if(session('error') || session('warning') || session('success') || $errors->any())
                 scanInput.value = '';
                 scanInput.focus();
             @endif
