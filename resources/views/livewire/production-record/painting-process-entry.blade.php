@@ -17,7 +17,7 @@
                                 <div class="flex-1 pr-4">
                                     <h3 class="text-xs text-gray-500 uppercase tracking-wide mb-1">Número de Parte</h3>
                                     <p class="text-sm font-semibold text-gray-900 leading-tight break-words">
-                                        {{ $record->productionPlan->partNumber->number ?? 'N/A' }}
+                                        {{ $record->partNumber->number ?? 'N/A' }}
                                     </p>
                                 </div>
 

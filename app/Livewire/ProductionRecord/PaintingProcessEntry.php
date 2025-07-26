@@ -14,7 +14,7 @@ class PaintingProcessEntry extends Component
     {
         $this->productionEntry = ProductionRecord::with('partNumber')
             ->orderByDesc('created_at')
-            ->limit(15)
+            ->limit(10)
             ->get();
     }
 
@@ -23,7 +23,7 @@ class PaintingProcessEntry extends Component
     {
         $this->productionEntry = ProductionRecord::with('partNumber')
             ->orderByDesc('created_at')
-            ->limit(15)
+            ->limit(10)
             ->get();
     }
 
