@@ -30,9 +30,6 @@ class PaintingProcessExit extends Component
 
         $this->productionExit = ProductionRecord::with([
             'partNumber',
-            'productionPlan.partNumber',
-            'status',
-            'user'
         ])
             ->where('created_at', '<=', $oneMinuteAgo)
             ->orderBy('created_at', 'asc')

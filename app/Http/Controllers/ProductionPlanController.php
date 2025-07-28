@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProductionPlan;
 use App\Models\Shift;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ProductionPlanController extends Controller
@@ -15,11 +16,16 @@ class ProductionPlanController extends Controller
     {
         $search = $request->input('search');
 
+        $now = now();
+        $startOfWeek = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $endOfWeek = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+
         $productionPlans = ProductionPlan::with([
             'partNumber.standardPack',
             'status',
             'shift'
         ])
+            ->whereBetween('planned_date', [$startOfWeek, $endOfWeek])
             ->when($search, function ($query, $search) {
                 return $query->where(function ($q) use ($search) {
                     $q->where('shop_order_number', 'like', "%$search%")
@@ -42,8 +48,8 @@ class ProductionPlanController extends Controller
                     ->whereColumn('shifts.id', 'production_plans.shift_id')
                     ->limit(1)
             )
-            // ->orderBy('shop_order_number')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('production-plans.index', [
             'productionPlans' => $productionPlans,

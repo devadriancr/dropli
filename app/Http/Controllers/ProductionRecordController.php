@@ -7,6 +7,7 @@ use App\Models\FSO;
 use App\Models\PartNumber;
 use App\Models\ProductionPlan;
 use App\Models\ProductionRecord;
+use App\Models\Shift;
 use App\Models\Status;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -14,6 +15,43 @@ use Illuminate\Support\Facades\DB;
 
 class ProductionRecordController extends Controller
 {
+    /**
+     * Display a listing of the production records.
+     */
+    public function index(Request $request)
+    {
+        $search = $request->input('search', '');
+
+        $productionRecords = ProductionRecord::query()
+            ->with(['productionPlan', 'partNumber', 'partNumber.workCenter'])
+            ->when($search, function ($query, $search) {
+                return $query->where(function ($q) use ($search) {
+                    // Buscar por número de estación/centro de trabajo
+                    $q->whereHas('partNumber.workCenter', function ($workCenterQuery) use ($search) {
+                        $workCenterQuery->where('number', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%");
+                    })
+                        // Buscar por número de parte
+                        ->orWhereHas('partNumber', function ($partQuery) use ($search) {
+                            $partQuery->where('number', 'like', "%{$search}%")
+                                ->orWhere('name', 'like', "%{$search}%");
+                        })
+                        // Buscar por secuencia (si existe en tu modelo)
+                        ->orWhere('sequence', 'like', "%{$search}%")
+                        // Buscar por cantidad
+                        ->orWhere('quantity', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('production-records.index')->with([
+            'productionRecords' => $productionRecords,
+            'search' => $search,
+        ]);
+    }
+
     /**
      * Show the form for scanning a label.
      */
@@ -37,7 +75,10 @@ class ProductionRecordController extends Controller
         $scanData = $request->input('scanInput');
 
         if (strlen($scanData) < 14) {
-            return redirect()->back()->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
+            return view('production-records.scan-label', [
+                'message' => 'Código de etiqueta inválido. Verifique que sea correcto.',
+                'messageType' => 'error'
+            ]);
         }
 
         $orderNumber = substr($request->input('scanInput'), 0, 8);
@@ -47,28 +88,43 @@ class ProductionRecordController extends Controller
         $partNumberCode = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
 
         if (!$partNumberCode) {
-            return redirect()->back()->with('error', "No se encontró información para la orden: {$orderNumber}");
+            return view('production-records.scan-label', [
+                'message' => "No se encontró información para la orden: {$orderNumber}",
+                'messageType' => 'error'
+            ]);
         }
 
         $partNumber = PartNumber::where('number', $partNumberCode)->first();
 
         if (!$partNumber) {
-            return redirect()->back()->with('error', "Número de parte no encontrado: {$partNumberCode}");
+            return view('production-records.scan-label', [
+                'message' => "Número de parte no encontrado: {$partNumberCode}",
+                'messageType' => 'error'
+            ]);
         }
 
         $nextPartNumber = $partNumber->nextProcesses->first();
 
         if (!$nextPartNumber) {
-            return redirect()->back()->with('warning', 'No hay procesos siguientes configurados para este número de parte.');
+            return view('production-records.scan-label', [
+                'message' => 'No hay procesos siguientes configurados para este número de parte.',
+                'messageType' => 'warning'
+            ]);
         }
+
+        $shift = Shift::getCurrentShift()->first();
 
         $productionPlan = ProductionPlan::query()
             ->where('part_number_id', $nextPartNumber->id)
-            // ->where('planned_date', Carbon::now()->format('Y-m-d'))
+            ->where('planned_date', Carbon::now()->format('Y-m-d'))
+            ->where('shift_id', $shift->id)
             ->first();
 
         if (!$productionPlan) {
-            return redirect()->back()->with('error', 'No se encontró un plan de producción activo para este proceso.');
+            return view('production-records.scan-label', [
+                'message' => 'No se encontró un plan de producción activo para este proceso.',
+                'messageType' => 'error'
+            ]);
         }
 
         $existingRecord = ProductionRecord::query()
@@ -80,7 +136,10 @@ class ProductionRecordController extends Controller
             ->first();
 
         if ($existingRecord) {
-            return redirect()->back()->with('warning', 'Esta etiqueta ya ha sido procesada anteriormente.');
+            return view('production-records.scan-label', [
+                'message' => 'Esta etiqueta ya ha sido procesada anteriormente.',
+                'messageType' => 'warning'
+            ]);
         }
 
         $productionRecord = ProductionRecord::create([
@@ -106,6 +165,9 @@ class ProductionRecordController extends Controller
             $productionPlan->update(['produced_quantity' => $totalQuantity]);
         }
 
-        return redirect()->route('production-records.scan-label')->with('success', 'Etiqueta procesada correctamente');
+        return view('production-records.scan-label', [
+            'message' => 'Etiqueta procesada correctamente',
+            'messageType' => 'success'
+        ]);
     }
 }

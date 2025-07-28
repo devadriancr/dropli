@@ -2,7 +2,7 @@
     <div class="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Escaneo de Material</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Entrada de Material</h1>
         </div>
 
         <div class="mx-auto w-1/2 max-w-md bg-white rounded-xl shadow-xl overflow-hidden">
@@ -23,6 +23,7 @@
                             placeholder="Escanee aquí..."
                             autocomplete="off"
                             autofocus
+                            value="{{ old('scanInput') }}"
                         />
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,28 +33,27 @@
                     </div>
 
                     <!-- Mensajes debajo del input -->
-                    @if(session('success'))
-                        <div class="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
-                            {{ session('success') }}
-                        </div>
-                    @endif
+                    @isset($message)
+                        @if($messageType === 'success')
+                            <div class="mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
+                                {{ $message }}
+                            </div>
+                        @elseif($messageType === 'warning')
+                            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-sm">
+                                {{ $message }}
+                            </div>
+                        @elseif($messageType === 'error')
+                            <div class="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                                {{ $message }}
+                            </div>
+                        @endif
+                    @endisset
 
-                    @if(session('warning'))
-                        <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-sm">
-                            {{ session('warning') }}
-                        </div>
-                    @endif
-
-                    @if(session('error') || $errors->any())
+                    @if($errors->any())
                         <div class="mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-                            @if(session('error'))
-                                {{ session('error') }}
-                            @endif
-                            @if($errors->any())
-                                @foreach($errors->all() as $error)
-                                    {{ $error }}
-                                @endforeach
-                            @endif
+                            @foreach($errors->all() as $error)
+                                <div>{{ $error }}</div>
+                            @endforeach
                         </div>
                     @endif
 
@@ -68,9 +68,15 @@
             const scanInput = document.getElementById('scanInput');
             const form = document.getElementById('scanForm');
 
-            // Mantener el autofocus
+            // Mantener el autofocus y limpiar el campo después de mostrar mensajes de éxito
             setTimeout(() => {
                 scanInput.focus();
+                // Limpiar el campo si hay mensaje de éxito
+                @isset($messageType)
+                    @if($messageType === 'success')
+                        scanInput.value = '';
+                    @endif
+                @endisset
             }, 100);
 
             scanInput.addEventListener('blur', () => {
@@ -83,15 +89,11 @@
             scanInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    form.submit();
+                    if (scanInput.value.trim() !== '') {
+                        form.submit();
+                    }
                 }
             });
-
-            // Limpiar input después de cualquier respuesta
-            @if(session('error') || session('warning') || session('success') || $errors->any())
-                scanInput.value = '';
-                scanInput.focus();
-            @endif
         });
     </script>
 </x-guest-layout>

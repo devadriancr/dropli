@@ -1,9 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Plan de Producción')
+@section('title', 'Registros de Producción')
 
 @section('content_header')
-    <h1>{{ __('Plan de Producción') }}</h1>
+    <h1>{{ __('Registros de Producción') }}</h1>
 @stop
 
 @section('content')
@@ -13,16 +13,10 @@
             <div class="d-flex justify-content-between align-items-center">
                 <!-- Buscador -->
                 <div class="search-box">
-                    <form method="GET" action="{{ route('production-plans.index') }}">
+                    <form method="GET" action="{{ route('production-records.index') }}">
                         <div class="input-group">
-                            <input
-                                type="text"
-                                name="search"
-                                class="form-control border-end-0"
-                                placeholder="Buscar órdenes, números de parte, fechas..."
-                                aria-label="Buscar"
-                                value="{{ $search ?? '' }}"
-                            >
+                            <input type="text" name="search" class="form-control border-end-0" placeholder="Buscar..."
+                                aria-label="Buscar" value="{{ $search ?? '' }}">
                             <button type="submit" class="input-group-text bg-white border-start-0">
                                 <i class="fas fa-search text-secondary"></i>
                             </button>
@@ -38,52 +32,66 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Orden') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Centro de Trabajo') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Parte') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha Planeada') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Turno Planeado') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad Planeada') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad Producida') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Estado') }}</th>
-                            {{-- <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Acciones') }}</th> --}}
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Secuencia') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha de Creación') }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($productionPlans as $productionPlan)
+                        @forelse ($productionRecords as $record)
                             <tr class="border-light-subtle">
-                                <td class="py-3 small">{{ $productionPlan->shop_order_number }}</td>
-                                <td class="py-3 small">{{ $productionPlan->partNumber->number }}</td>
-                                <td class="py-3 small">{{ $productionPlan->planned_date }}</td>
-                                <td class="py-3 small">{{ $productionPlan->shift->abbreviation }}</td>
-                                <td class="py-3 small">{{ $productionPlan->planned_quantity }}</td>
-                                <td class="py-3 small">{{ $productionPlan->produced_quantity }}</td>
-                                @if (strtolower($productionPlan->status->label) === 'en proceso')
-                                    <td class="py-3">
-                                        <span class="badge-status bg-warning bg-opacity-10 text-warning">{{ $productionPlan->status->label }}</span>
-                                    </td>
-                                @elseif (strtolower($productionPlan->status->label) === 'completado')
-                                    td class="py-3">
-                                        <span class="badge-status bg-success bg-opacity-10 text-success">{{ $productionPlan->status->label }}</span>
-                                    </td>
-                                @elseif (strtolower($productionPlan->status->label) === 'pendiente')
-                                    <td class="py-3">
-                                        <span class="badge-status bg-secondary bg-opacity-10 text-secondary">{{ $productionPlan->status->label }}</span>
-                                    </td>
-                                @else
-                                    <td class="py-3">
-                                        -
-                                    </td>
-                                @endif
+                                <!-- Estación/Centro de Trabajo -->
+                                <td class="py-3 small">
+                                    @if ($record->partNumber && $record->partNumber->workCenter)
+                                        <div class="fw-500">{{ $record->partNumber->workCenter->number }}</div>
+                                        <div class="text-muted">{{ $record->partNumber->workCenter->name }}</div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+
+                                <!-- Número de Parte -->
+                                <td class="py-3 small">
+                                    @if ($record->partNumber)
+                                        <div class="fw-500">{{ $record->partNumber->number }}</div>
+                                        <div class="text-muted">{{ $record->partNumber->name }}</div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+
+                                <!-- Secuencia -->
+                                <td class="py-3 small">
+                                    @if(isset($record->sequence))
+                                        <span class="badge-status bg-primary bg-opacity-10 text-primary">
+                                            {{ $record->sequence }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+
+                                <!-- Cantidad -->
+                                <td class="py-3 small fw-500">
+                                    {{ $record->quantity ?? '-' }}
+                                </td>
+
+                                <!-- Fecha de Creación -->
+                                <td class="py-3 small">
+                                    <div class="fw-500">{{ $record->created_at->format('d/m/Y') }}</div>
+                                    <div class="text-muted">{{ $record->created_at->format('H:i:s') }}</div>
+                                </td>
                             </tr>
                         @empty
                             <tr>
                                 <td colspan="6" class="text-center py-4">
                                     <div class="d-flex flex-column align-items-center">
-                                        <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                                        <span class="text-secondary">No se encontraron resultados</span>
-                                        @if(!empty($search))
-                                            <a href="{{ route('production-plans.index') }}"
-                                               class="btn btn-sm btn-link mt-2">
+                                        <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
+                                        <span class="text-secondary">No se encontraron registros de producción</span>
+                                        @if (!empty($search))
+                                            <a href="{{ route('production-records.index') }}" class="btn btn-sm btn-link mt-2">
                                                 Limpiar búsqueda
                                             </a>
                                         @endif
@@ -97,27 +105,27 @@
         </div>
 
         <!-- Pie de página con paginación mejorada -->
-        @if ($productionPlans->hasPages() || $productionPlans->total() > 0)
+        @if ($productionRecords->hasPages() || $productionRecords->total() > 0)
             <div class="card-footer bg-white border-0 py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <!-- Información de resultados -->
                     <div class="text-muted small">
-                        Mostrando {{ $productionPlans->firstItem() }} a {{ $productionPlans->lastItem() }} de
-                        {{ $productionPlans->total() }} resultados
+                        Mostrando {{ $productionRecords->firstItem() }} a {{ $productionRecords->lastItem() }} de
+                        {{ $productionRecords->total() }} resultados
                     </div>
 
                     <!-- Controles de paginación mejorados -->
-                    @if ($productionPlans->hasPages())
+                    @if ($productionRecords->hasPages())
                         <nav aria-label="Page navigation">
                             <ul class="pagination mb-0">
                                 {{-- Previous Page Link --}}
-                                @if ($productionPlans->onFirstPage())
+                                @if ($productionRecords->onFirstPage())
                                     <li class="page-item disabled">
                                         <span class="page-link" aria-hidden="true">&laquo;</span>
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $productionPlans->previousPageUrl() }}" rel="prev"
+                                        <a class="page-link" href="{{ $productionRecords->previousPageUrl() }}" rel="prev"
                                             aria-label="Previous">
                                             &laquo;
                                         </a>
@@ -126,8 +134,8 @@
 
                                 {{-- Pagination Elements --}}
                                 @php
-                                    $current = $productionPlans->currentPage();
-                                    $last = $productionPlans->lastPage();
+                                    $current = $productionRecords->currentPage();
+                                    $last = $productionRecords->lastPage();
                                     $start = max($current - 5, 1);
                                     $end = min($current + 5, $last);
 
@@ -143,7 +151,7 @@
                                 {{-- Mostrar primera página si no está en el rango --}}
                                 @if ($start > 1)
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $productionPlans->url(1) }}">1</a>
+                                        <a class="page-link" href="{{ $productionRecords->url(1) }}">1</a>
                                     </li>
                                     @if ($start > 2)
                                         <li class="page-item disabled">
@@ -154,14 +162,14 @@
 
                                 {{-- Rango de páginas --}}
                                 @for ($page = $start; $page <= $end; $page++)
-                                    @if ($page == $productionPlans->currentPage())
+                                    @if ($page == $productionRecords->currentPage())
                                         <li class="page-item active" aria-current="page">
                                             <span class="page-link">{{ $page }}</span>
                                         </li>
                                     @else
                                         <li class="page-item">
                                             <a class="page-link"
-                                                href="{{ $productionPlans->url($page) }}">{{ $page }}</a>
+                                                href="{{ $productionRecords->url($page) }}">{{ $page }}</a>
                                         </li>
                                     @endif
                                 @endfor
@@ -174,14 +182,14 @@
                                         </li>
                                     @endif
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $productionPlans->url($last) }}">{{ $last }}</a>
+                                        <a class="page-link" href="{{ $productionRecords->url($last) }}">{{ $last }}</a>
                                     </li>
                                 @endif
 
                                 {{-- Next Page Link --}}
-                                @if ($productionPlans->hasMorePages())
+                                @if ($productionRecords->hasMorePages())
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $productionPlans->nextPageUrl() }}" rel="next"
+                                        <a class="page-link" href="{{ $productionRecords->nextPageUrl() }}" rel="next"
                                             aria-label="Next">
                                             &raquo;
                                         </a>
@@ -208,8 +216,20 @@
 
     <style>
         /* Aplicar fuente a todo el sistema */
-        body, .main-header, .main-sidebar, .content-wrapper,
-        .card, .btn, .form-control, .table, h1, h2, h3, h4, h5, h6 {
+        body,
+        .main-header,
+        .main-sidebar,
+        .content-wrapper,
+        .card,
+        .btn,
+        .form-control,
+        .table,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
             font-family: 'Roboto', sans-serif !important;
         }
 
@@ -219,7 +239,7 @@
         }
 
         .table-hover tbody tr:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             transform: translateY(-1px);
             transition: all 0.2s ease;
         }
@@ -240,7 +260,7 @@
 
         /* Buscador sin contorno azul */
         .search-box .input-group {
-            width: 380px;
+            width: 420px;
         }
 
         .search-box .form-control {
@@ -269,63 +289,12 @@
         /* Badges simétricos */
         .badge-status {
             display: inline-block;
-            min-width: 90px;
-            padding: 0.5em 0.75em;
+            min-width: 80px;
+            padding: 0.4em 0.65em;
             text-align: center;
             border-radius: 12px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 500;
-        }
-
-        /* Botones de acción */
-        .action-btn {
-            display: inline-flex;
-            align-items: center;
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-decoration: none !important;
-            transition: all 0.2s ease;
-            padding: 0.4rem 0.8rem;
-            border-radius: 6px;
-        }
-
-        .action-btn i {
-            font-size: 0.9rem;
-            transition: transform 0.2s ease;
-        }
-
-        .action-btn:hover {
-            background-color: rgba(0, 0, 0, 0.03);
-        }
-
-        .action-btn:hover i {
-            transform: scale(1.1);
-        }
-
-        .action-btn.text-primary:hover {
-            color: #0d62c9 !important;
-        }
-
-        .action-btn.text-danger:hover {
-            color: #c21807 !important;
-        }
-
-        /* Botón Agregar sin animación */
-        .add-btn {
-            display: inline-flex;
-            align-items: center;
-            font-size: 0.95rem;
-            font-weight: 500;
-            text-decoration: none !important;
-            transition: all 0.2s ease;
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            color: #1a73e8 !important;
-        }
-
-        .add-btn:hover {
-            background-color: rgba(26, 115, 232, 0.08);
-            color: #0d62c9 !important;
         }
 
         /* Estilos para la paginación */
@@ -341,7 +310,7 @@
             font-size: 0.9rem;
             min-width: 32px;
             text-align: center;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
             padding: 6px 12px;
         }
 
@@ -365,35 +334,9 @@
             color: #6c757d;
         }
 
-        /* Ajustes de espaciado para paginación */
-        .card-footer .pagination {
-            margin-bottom: 0;
+        /* Estilo para texto resaltado */
+        .fw-500 {
+            font-weight: 500 !important;
         }
     </style>
-@stop
-
-@section('js')
-    <script>
-        // Efecto hover suave para las filas
-        // document.querySelectorAll('.table-hover tbody tr').forEach(row => {
-        //     row.addEventListener('mouseenter', function() {
-        //         this.style.transition = 'all 0.2s ease';
-        //         this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
-        //         this.style.transform = 'translateY(-1px)';
-        //     });
-
-        //     row.addEventListener('mouseleave', function() {
-        //         this.style.boxShadow = 'none';
-        //         this.style.transform = 'translateY(0)';
-        //     });
-        // });
-
-        // Foco automático al buscador
-        // document.addEventListener('DOMContentLoaded', function() {
-        //     const searchInput = document.querySelector('.search-box .form-control');
-        //     if (searchInput && searchInput.value === '') {
-        //         searchInput.focus();
-        //     }
-        // });
-    </script>
 @stop

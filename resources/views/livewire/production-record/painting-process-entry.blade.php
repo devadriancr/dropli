@@ -22,12 +22,12 @@
                                 </div>
 
                                 <!-- Secuencia -->
-                                <div class="flex-1 text-center px-2">
+                                <!-- <div class="flex-1 text-center px-2">
                                     <h4 class="text-xs text-gray-500 uppercase tracking-wide mb-1">Secuencia</h4>
                                     <div class="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-lg">
                                         <span class="text-lg font-bold">{{ $record->sequence ? (int)substr($record->sequence, 0, 3) : '-' }}</span>
                                     </div>
-                                </div>
+                                </div> -->
 
                                 <!-- Cantidad -->
                                 <div class="flex-1 text-center px-2">
