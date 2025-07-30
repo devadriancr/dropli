@@ -10,62 +10,99 @@ use Livewire\Component;
 
 class PaintProductionRecord extends Component
 {
-    public $productionRecord = [];
+    public $records = [];
+    public $timeHeaders = [];
+    public $shift;
 
-
-    public function mount($productionRecord = null)
+    public function mount()
     {
-        $this->productionRecord = $productionRecord ?? [];
-        $this->fetchTable();
+        $this->fetchData();
     }
 
-    public function fetchTable()
+    public function fetchData()
     {
-        $shift = Shift::getShift();
+        // Obtener el turno actual y fecha planeada
+        $this->shift = Shift::getShift();
         $plannedDate = Shift::getPlannedDate();
 
-        $this->productionRecord = ProductionRecord::query()
+        if (!$this->shift) {
+            return;
+        }
+
+        // Generar los encabezados de hora basados en el turno
+        $this->generateTimeHeaders();
+
+        // Obtener los registros de producción
+        $productionRecords = ProductionRecord::query()
             ->with([
                 'partNumber',
                 'productionPlan.shift',
-                'productionPlan.status',
-                'productionPlan.partNumber',
-                'productionPlan.partNumber.workCenter',
                 'productionPlan.partNumber.standardPack',
                 'productionPlan.partNumber.projects'
             ])
-            ->whereHas('productionPlan', function ($q) use ($shift, $plannedDate) {
-                $q->where('shift_id', $shift->id)
+            ->whereHas('productionPlan', function ($q) use ($plannedDate) {
+                $q->where('shift_id', $this->shift->id)
                     ->whereDate('planned_date', $plannedDate);
             })
             ->get();
 
-        foreach ($this->productionRecord as $record) {
-            // Datos de Columnas: Número de Parte, Paquete Estándar, Candidad de Paquete Estándar, Modelo
-            dd(
-                $record->productionPlan->partNumber->number,
-                $record->productionPlan->partNumber->standardPack->name,
-                $record->productionPlan->partNumber->standard_pack_quantity,
-                $record->productionPlan->partNumber->projects->pluck('model')->implode(';'),
-            );
+        // Procesar los registros para la vista
+        $this->processRecords($productionRecords);
+    }
 
-            // Cantidad de Entrada
-            dd(
-                $record->quantity
-            );
+    protected function generateTimeHeaders()
+    {
+        $start = Carbon::parse($this->shift->start_time);
+        $end = Carbon::parse($this->shift->end_time);
 
-            // Cantidad de Salida
-            $number = $record->partNumber->nextProcesses->first();
-            $exit = ProductionRecord::query()
-                ->with(['partNumber'])
-                ->whereHas('partNumber', function ($q) use ($number) {
-                    $q->where('number', $number->number);
-                })
-                ->first();
-            dd(
-                $exit->quantity
-            );
-        };
+        // Generar las horas del turno (de inicio a fin-1 hora)
+        while ($start->lt($end)) {
+            $this->timeHeaders[] = $start->format('H:i');
+            $start->addHour();
+        }
+    }
+
+    protected function processRecords($productionRecords)
+    {
+        $groupedRecords = [];
+
+        foreach ($productionRecords as $record) {
+            $partNumber = $record->productionPlan->partNumber->number;
+            $createdAt = Carbon::parse($record->created_at);
+            $hourKey = $createdAt->format('H:00'); // Agrupar por hora
+
+            if (!isset($groupedRecords[$partNumber])) {
+                $groupedRecords[$partNumber] = [
+                    'part_number' => $partNumber,
+                    'standard_pack' => $record->productionPlan->partNumber->standardPack->name,
+                    'standard_pack_quantity' => $record->productionPlan->partNumber->standard_pack_quantity,
+                    'model' => $record->productionPlan->partNumber->projects->pluck('model')->implode(';'),
+                    'entries' => array_fill_keys($this->timeHeaders, null),
+                    'exits' => array_fill_keys($this->timeHeaders, null),
+                ];
+            }
+
+            // Procesar entrada (quantity)
+            $groupedRecords[$partNumber]['entries'][$hourKey] += $record->quantity;
+
+            // Procesar salida (next process)
+            $nextPartNumber = $record->partNumber->nextProcesses->first();
+            if ($nextPartNumber) {
+                $exitRecord = ProductionRecord::query()
+                    ->whereHas('partNumber', function ($q) use ($nextPartNumber) {
+                        $q->where('number', $nextPartNumber->number);
+                    })
+                    ->whereDate('created_at', $createdAt->toDateString())
+                    ->first();
+
+                if ($exitRecord) {
+                    $exitHourKey = Carbon::parse($exitRecord->created_at)->format('H:00');
+                    $groupedRecords[$partNumber]['exits'][$exitHourKey] += $exitRecord->quantity;
+                }
+            }
+        }
+
+        $this->records = array_values($groupedRecords);
     }
 
     public function render()
