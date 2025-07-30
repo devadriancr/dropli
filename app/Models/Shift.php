@@ -20,7 +20,7 @@ class Shift extends Model
         return $this->hasMany(ProductionPlan::class, 'shift_id');
     }
 
-    public static function getCurrentShift($dateTime = null)
+    public static function getShift($dateTime = null)
     {
         $currentTime = $dateTime ? $dateTime->format('H:i:s') : now()->format('H:i:s');
         $shifts = self::all();
@@ -44,5 +44,25 @@ class Shift extends Model
         }
 
         return null;
+    }
+
+    public static function getPlannedDate($dateTime = null)
+    {
+        $now = $dateTime ?: now();
+        $shift = self::getShift($now);
+
+        if (!$shift) {
+            return $now->toDateString();
+        }
+
+        $currentTime = $now->format('H:i:s');
+        $start = $shift->start_time;
+        $end = $shift->end_time;
+
+        if ($start > $end && $currentTime < $end) {
+            return $now->copy()->subDay()->toDateString();
+        }
+
+        return $now->toDateString();
     }
 }

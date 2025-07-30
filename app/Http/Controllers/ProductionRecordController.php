@@ -112,7 +112,7 @@ class ProductionRecordController extends Controller
             ]);
         }
 
-        $shift = Shift::getCurrentShift()->first();
+        $shift = Shift::getShift()->first();
 
         $productionPlan = ProductionPlan::query()
             ->where('part_number_id', $nextPartNumber->id)
