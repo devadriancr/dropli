@@ -32,10 +32,10 @@ Route::middleware([
 Route::get('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'scanLabel'])->name('production-records.scan-label');
 Route::post('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeLabel'])->name('production-records.store-label');
 
-Route::get('scan', function () {
-    return view('guest.dashboard');
+Route::get('painting-process-tracking', function () {
+    return view('guest.painting-process-tracking');
 });
 
-Route::get('test', function () {
-    return view('guest.test');
+Route::get('production-records-summary', function () {
+    return view('guest.painting-production-summary');
 });

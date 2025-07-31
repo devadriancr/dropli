@@ -4,7 +4,7 @@
         <div class="w-full mx-auto">
             <!-- Livewire component ocupa todo el ancho disponible -->
             <div class="w-full">
-                <livewire:production-record.paint-production-record />
+                <livewire:production-record.paint-production-record :real-time="true" />
             </div>
         </div>
     </div>
