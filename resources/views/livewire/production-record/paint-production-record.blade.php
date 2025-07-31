@@ -38,9 +38,6 @@
                                 Paq. Estándar
                             </th>
                             <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
-                                Cant. Paquete
-                            </th>
-                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Modelo
                             </th>
                             <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
@@ -62,32 +59,42 @@
                         @foreach($records as $record)
                             <!-- Fila de Inicio -->
                             <tr class="hover:bg-gray-50">
-                                <!-- Columnas fijas (rowspan=2) -->
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
+                                <!-- Columnas fijas -->
+                                <td rowspan="3" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
                                     {{ $record['work_center'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
+                                <td rowspan="3" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
                                     {{ $record['part_number'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
-                                    {{ $record['standard_pack'] }}
+                                <td rowspan="3" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
+                                    {{ $record['standard_pack'] }} - {{ $record['standard_pack_quantity'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
-                                    {{ $record['standard_pack_quantity'] }}
-                                </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
+                                <td rowspan="3" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
                                     {{ $record['model'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-900 border text-center">
+                                <td rowspan="3" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-900 border text-center">
                                     {{ $record['planned_quantity'] }}
                                 </td>
 
-                                <!-- Celda de inicio -->
+                                <!-- Celda de plan -->
+                                <td class="px-4 py-2 whitespace-nowrap text-xs text-center font-medium bg-purple-50 text-purple-800 border">
+                                    Plan
+                                </td>
+
+                                <!-- Cantidades plan por hora (una celda por hora) -->
+                                @foreach($timeHeaders as $header)
+                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-center text-gray-900 border">
+                                        {{ $record['plan'][$header] }}
+                                    </td>
+                                @endforeach
+                            </tr>
+
+                            <!-- Fila de Entrada -->
+                            <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-2 whitespace-nowrap text-xs text-center font-medium bg-blue-50 text-blue-800 border">
                                     Entrada
                                 </td>
 
-                                <!-- Cantidades de inicio por hora -->
                                 @foreach($timeHeaders as $header)
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-center text-gray-900 border">
                                         @if($record['entries'][$header] !== null)
@@ -99,14 +106,12 @@
                                 @endforeach
                             </tr>
 
-                            <!-- Fila de Fin -->
+                            <!-- Fila de Salida -->
                             <tr class="hover:bg-gray-50">
-                                <!-- Celda de fin -->
                                 <td class="px-4 py-2 whitespace-nowrap text-xs text-center font-medium bg-green-50 text-green-800 border">
                                     Salida
                                 </td>
 
-                                <!-- Cantidades de fin por hora -->
                                 @foreach($timeHeaders as $header)
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-center text-gray-900 border">
                                         @if($record['exits'][$header] !== null)

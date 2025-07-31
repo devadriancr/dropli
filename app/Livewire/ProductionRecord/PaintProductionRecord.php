@@ -43,7 +43,7 @@ class PaintProductionRecord extends Component
                 'partNumber.standardPack',
                 'partNumber.projects',
                 'partNumber.nextProcesses',
-                'productionRecords' => function($query) {
+                'productionRecords' => function ($query) {
                     $query->orderBy('created_at', 'desc');
                 }
             ])
@@ -78,6 +78,26 @@ class PaintProductionRecord extends Component
             $partNumber = $plan->partNumber->number;
 
             if (!isset($groupedPlans[$partNumber])) {
+                $hoursCount = count($this->timeHeaders);
+
+                // Calcular la distribución del plan por horas
+                $planDistribution = [];
+                if ($hoursCount > 0) {
+                    $baseValue = floor($plan->planned_quantity / $hoursCount);
+                    $remainder = $plan->planned_quantity % $hoursCount;
+
+                    // Llenar todas las horas con el valor base
+                    $planDistribution = array_fill_keys($this->timeHeaders, $baseValue);
+
+                    // Distribuir el resto en las primeras horas
+                    $keys = array_keys($planDistribution);
+                    for ($i = 0; $i < $remainder; $i++) {
+                        $planDistribution[$keys[$i]]++;
+                    }
+                } else {
+                    $planDistribution = array_fill_keys($this->timeHeaders, null);
+                }
+
                 $groupedPlans[$partNumber] = [
                     'work_center' => $plan->partNumber->workCenter->name,
                     'part_number' => $partNumber,
@@ -86,6 +106,7 @@ class PaintProductionRecord extends Component
                     'model' => $plan->partNumber->projects->pluck('model')->implode(';'),
                     'planned_quantity' => $plan->planned_quantity,
                     'produced_quantity' => $plan->produced_quantity,
+                    'plan' => $planDistribution,
                     'entries' => array_fill_keys($this->timeHeaders, null),
                     'exits' => array_fill_keys($this->timeHeaders, null),
                 ];
