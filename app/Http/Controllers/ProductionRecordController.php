@@ -69,105 +69,116 @@ class ProductionRecordController extends Controller
             'scanInput' => 'required|string|max:20',
         ], [
             'scanInput.required' => 'Debe escanear una etiqueta',
-            'scanInput.max' => 'El código escaneado es demasiado largo'
+            'scanInput.max'      => 'El código escaneado es demasiado largo',
         ]);
 
-        $scanData = $request->input('scanInput');
+        $scanData = $validated['scanInput'];
 
+        $redirect = redirect()->route('production-records.scan-label');
+
+        // Validar longitud mínima
         if (strlen($scanData) < 14) {
-            return view('production-records.scan-label', [
-                'message' => 'Código de etiqueta inválido. Verifique que sea correcto.',
-                'messageType' => 'error'
+            return $redirect->with([
+                'message'     => 'Código de etiqueta inválido. Verifique que sea correcto.',
+                'messageType' => 'error',
             ]);
         }
 
-        $orderNumber = substr($request->input('scanInput'), 0, 8);
-        $sequence = substr($request->input('scanInput'), 8, 6);
-        $standardPack = substr($request->input('scanInput'), 14, 6);
+        // Fragmentar etiqueta
+        $orderNumber  = substr($scanData, 0, 8);
+        $sequence     = substr($scanData, 8, 6);
+        $standardPack = substr($scanData, 14, 6);
 
-        $partNumberCode = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
+        // Buscar número de parte en FSO
+        $partNumberCode = FSO::query()
+            ->selectRaw('TRIM(SPROD) AS part_number')
+            ->where('SORD', $orderNumber)
+            ->value('PART_NUMBER');
 
         if (!$partNumberCode) {
-            return view('production-records.scan-label', [
-                'message' => "No se encontró información para la orden: {$orderNumber}",
-                'messageType' => 'error'
+            return $redirect->with([
+                'message'     => "No se encontró información para la orden: {$orderNumber}",
+                'messageType' => 'error',
             ]);
         }
 
+        // Buscar número de parte
         $partNumber = PartNumber::where('number', $partNumberCode)->first();
-
-        if (!$partNumber) {
-            return view('production-records.scan-label', [
-                'message' => "Número de parte no encontrado: {$partNumberCode}",
-                'messageType' => 'error'
+        if (! $partNumber) {
+            return $redirect->with([
+                'message'     => "Número de parte no encontrado: {$partNumberCode}",
+                'messageType' => 'error',
             ]);
         }
 
-        $nextPartNumber = $partNumber->nextProcesses->first();
-
-        if (!$nextPartNumber) {
-            return view('production-records.scan-label', [
-                'message' => 'No hay procesos siguientes configurados para este número de parte.',
-                'messageType' => 'warning'
+        // Procesos siguientes
+        $nextPart = $partNumber->nextProcesses->first();
+        if (! $nextPart) {
+            return $redirect->with([
+                'message'     => 'No hay procesos siguientes configurados para este número de parte.',
+                'messageType' => 'warning',
             ]);
         }
 
+        // Turno y plan de producción
         $shift = Shift::getShift()->first();
+        $today = Shift::getPlannedDate()->first();
 
-        $productionPlan = ProductionPlan::query()
-            ->where('part_number_id', $nextPartNumber->id)
-            ->where('planned_date', Carbon::now()->format('Y-m-d'))
+        $plan = ProductionPlan::query()
+            ->where('part_number_id', $nextPart->id)
+            ->where('planned_date', $today)
             ->where('shift_id', $shift->id)
             ->first();
 
-        if (!$productionPlan) {
-            return view('production-records.scan-label', [
-                'message' => 'No se encontró un plan de producción activo para este proceso.',
-                'messageType' => 'error'
+        if (! $plan) {
+            return $redirect->with([
+                'message'     => 'No se encontró un plan de producción activo para este proceso.',
+                'messageType' => 'error',
             ]);
         }
 
-        $existingRecord = ProductionRecord::query()
-            ->where('production_plan_id', $productionPlan->id)
+        // Verificar duplicados
+        $exists = ProductionRecord::query()
+            ->where('production_plan_id', $plan->id)
             ->where('order_number', $orderNumber)
             ->where('part_number_id', $partNumber->id)
             ->where('sequence', $sequence)
             ->where('quantity', $standardPack)
-            ->first();
+            ->exists();
 
-        if ($existingRecord) {
-            return view('production-records.scan-label', [
-                'message' => 'Esta etiqueta ya ha sido procesada anteriormente.',
-                'messageType' => 'warning'
+        if ($exists) {
+            return $redirect->with([
+                'message'     => 'Esta etiqueta ya ha sido procesada anteriormente.',
+                'messageType' => 'warning',
             ]);
         }
 
-        $productionRecord = ProductionRecord::create([
-            'production_plan_id' => $productionPlan->id,
-            'order_number' => $orderNumber,
-            'part_number_id' => $partNumber->id,
-            'sequence' => $sequence,
-            'quantity' => $standardPack,
+        // Crear registro
+        ProductionRecord::create([
+            'production_plan_id' => $plan->id,
+            'order_number'       => $orderNumber,
+            'part_number_id'     => $partNumber->id,
+            'sequence'           => $sequence,
+            'quantity'           => $standardPack,
         ]);
 
-        // Disparar evento
+        // Evento y actualización de producido
         event(new ProductionRecordCreated());
 
-        // Actualizar cantidad producida en el plan
-        if ($productionPlan->produced_quantity == 0) {
-            $status = Status::where('key', 'LIKE', 'in_progress')->first();
-            $productionPlan->update([
+        if ($plan->produced_quantity == 0) {
+            $status = Status::where('key', 'in_progress')->first();
+            $plan->update([
                 'produced_quantity' => $standardPack,
-                'status_id' => $status->id ?? $productionPlan->status_id
+                'status_id'         => $status->id ?? $plan->status_id,
             ]);
         } else {
-            $totalQuantity = $productionPlan->produced_quantity + intval($standardPack);
-            $productionPlan->update(['produced_quantity' => $totalQuantity]);
+            $plan->increment('produced_quantity', intval($standardPack));
         }
 
-        return view('production-records.scan-label', [
-            'message' => 'Etiqueta procesada correctamente',
-            'messageType' => 'success'
+        // Éxito con PRG
+        return $redirect->with([
+            'message'     => 'Etiqueta procesada correctamente',
+            'messageType' => 'success',
         ]);
     }
 }

@@ -5,22 +5,21 @@
         <div class="px-6 py-4 mx-4 mt-4 bg-white border border-gray-200 rounded-lg">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
-                    <h1 class="text-xl font-bold text-gray-900">Registro de Producción</h1>
                     @if($realTime)
                         <!-- Punto verde -->
                         <span class="flex items-center space-x-1">
                             <span class="inline-block w-4 h-4 bg-green-500 rounded-full"></span>
                         </span>
                     @endif
+                    <h1 class="text-xl font-bold text-gray-900">Registro de Producción</h1>
                 </div>
                 @if($shift)
                     <span class="px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
-                        Turno: {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
+                        {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
                     </span>
                 @endif
             </div>
         </div>
-
 
         <!-- Contenedor de tabla (relative para el sticky) -->
         <div class="flex-1 relative overflow-auto m-4 bg-white rounded-lg border border-gray-200">
@@ -29,20 +28,23 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <!-- Columnas fijas -->
-                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-50 border z-20">
+                           <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Estación
                             </th>
-                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-50 border z-20">
+                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Núm. Parte
                             </th>
-                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-50 border z-20">
+                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Paq. Estándar
                             </th>
-                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-50 border z-20">
+                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Cant. Paquete
                             </th>
-                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-50 border z-20">
+                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Modelo
+                            </th>
+                            <th class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
+                                Cant. Planeada
                             </th>
 
                             <!-- Celda vacía para alinear con las horas -->
@@ -50,7 +52,7 @@
 
                             <!-- Columnas dinámicas de hora -->
                             @foreach($timeHeaders as $header)
-                                <th class="sticky top-0 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100 border z-20">
+                                <th class="sticky top-0 px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                     {{ $header }}
                                 </th>
                             @endforeach
@@ -61,20 +63,23 @@
                             <!-- Fila de Inicio -->
                             <tr class="hover:bg-gray-50">
                                 <!-- Columnas fijas (rowspan=2) -->
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-900 border sticky left-0 bg-white z-10">
+                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
                                     {{ $record['work_center'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-900 border sticky left-0 bg-white z-10">
+                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
                                     {{ $record['part_number'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-500 border">
+                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
                                     {{ $record['standard_pack'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-500 border">
+                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
                                     {{ $record['standard_pack_quantity'] }}
                                 </td>
-                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-500 border">
+                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs text-gray-600 border text-center">
                                     {{ $record['model'] }}
+                                </td>
+                                <td rowspan="2" class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-900 border text-center">
+                                    {{ $record['planned_quantity'] }}
                                 </td>
 
                                 <!-- Celda de inicio -->
@@ -137,7 +142,6 @@
             Alpine.data('productionRecord', () => {
                 return {
                     init() {
-                        // Si está en modo tiempo real, configuramos el intervalo de actualización
                         if (@json($realTime)) {
                             setInterval(() => {
                                 @this.dispatchSelf('refresh-production-records');
