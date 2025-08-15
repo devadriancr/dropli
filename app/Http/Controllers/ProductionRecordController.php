@@ -55,7 +55,7 @@ class ProductionRecordController extends Controller
     /**
      * Show the form for scanning a label.
      */
-    public function scanLabel(Request $request)
+    public function scanLabel()
     {
         return view('production-records.scan-label');
     }
@@ -154,5 +154,21 @@ class ProductionRecordController extends Controller
         }
 
         return $redirect->with('success', 'Etiqueta procesada correctamente');
+    }
+
+    /**
+     * Show the form for entering a part number.
+     */
+    public function partNumberEntry()
+    {
+        return view('production-records.part-number-entry');
+    }
+
+    /**
+     * Store the entered part number data.
+     */
+    public function storePartNumber(Request $request)
+    {
+        dd($request->all());
     }
 }
