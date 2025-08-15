@@ -1,9 +1,9 @@
 <div>
     <div class="w-full h-screen flex flex-col bg-gray-100" x-data="productionRecord">
-        <!-- Header compacto -->
-
+        <!-- Header compacto (modificado: botón Login/Dashboard ahora junto al turno) -->
         <div class="px-6 py-4 mx-4 mt-4 bg-white border border-gray-200 rounded-lg">
             <div class="flex items-center justify-between">
+                <!-- Izquierda: título y punto realTime -->
                 <div class="flex items-center space-x-2">
                     @if($realTime)
                         <!-- Punto verde -->
@@ -13,11 +13,29 @@
                     @endif
                     <h1 class="text-xl font-bold text-gray-900">Registro de Producción</h1>
                 </div>
-                @if($shift)
-                    <span class="px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full">
-                        {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
-                    </span>
-                @endif
+
+                <!-- Derecha: turno + links de auth (alineados) -->
+                <div class="flex items-center space-x-4">
+                    @if($shift)
+                        <span class="px-3 py-1 text-sm font-semibold bg-blue-100 text-blue-800 rounded-full whitespace-nowrap">
+                            {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
+                        </span>
+                    @endif
+
+                    @if (Route::has('login'))
+                        <nav class="flex items-center gap-2">
+                            @auth
+                                <a href="{{ url('/home') }}" class="inline-block px-4 py-1.5 text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC] border border-[#19140035] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:hover:border-[#62605b] rounded-sm" >
+                                    Dashboard
+                                </a>
+                            @else
+                                <a href="{{ route('login') }}" class="inline-block px-4 py-1.5 text-sm font-medium text-[#1b1b18] dark:text-[#EDEDEC] border border-[#19140035] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:hover:border-[#62605b] rounded-sm" >
+                                    Iniciar sesión
+                                </a>
+                            @endauth
+                        </nav>
+                    @endif
+                </div>
             </div>
         </div>
 

@@ -69,52 +69,46 @@ class ProductionRecordController extends Controller
             'scanInput' => 'required|string|max:20',
         ], [
             'scanInput.required' => 'Debe escanear una etiqueta',
+            'scanInput.min'      => 'El código escaneado es demasiado corto',
             'scanInput.max'      => 'El código escaneado es demasiado largo',
         ]);
 
-        $scanData = $validated['scanInput'];
-
-        $redirect = redirect()->route('production-records.scan-label');
+        $barCode        = $request->input('scanInput');
+        $orderNumber    = $request->input('orderNumber', '00000000');
+        $sequence       = $request->input('sequence', '000000');
+        $quantity       = $request->input('quantity', '000000');
 
         // Validar longitud mínima
-        if (strlen($scanData) < 14) {
-            return $redirect->with([
+        if (strlen($barCode) < 14) {
+            return redirect()->route('production-records.scan-label')->with([
                 'message'     => 'Código de etiqueta inválido. Verifique que sea correcto.',
                 'messageType' => 'error',
             ]);
         }
 
-        // Fragmentar etiqueta
-        $orderNumber  = substr($scanData, 0, 8);
-        $sequence     = substr($scanData, 8, 6);
-        $standardPack = substr($scanData, 14, 6);
-
         // Buscar número de parte en FSO
-        $partNumberCode = FSO::query()
-            ->selectRaw('TRIM(SPROD) AS part_number')
-            ->where('SORD', $orderNumber)
-            ->value('PART_NUMBER');
+        $orderPartNumber = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
 
-        if (!$partNumberCode) {
-            return $redirect->with([
+        if (!$orderPartNumber) {
+            return redirect()->route('production-records.scan-label')->with([
                 'message'     => "No se encontró información para la orden: {$orderNumber}",
                 'messageType' => 'error',
             ]);
         }
 
         // Buscar número de parte
-        $partNumber = PartNumber::where('number', $partNumberCode)->first();
-        if (! $partNumber) {
-            return $redirect->with([
-                'message'     => "Número de parte no encontrado: {$partNumberCode}",
+        $partNumber = PartNumber::where('number', $orderPartNumber)->first();
+        if (!$partNumber) {
+            return redirect()->route('production-records.scan-label')->with([
+                'message'     => "Número de parte no encontrado: {$orderPartNumber}",
                 'messageType' => 'error',
             ]);
         }
 
-        // Procesos siguientes
-        $nextPart = $partNumber->nextProcesses->first();
-        if (! $nextPart) {
-            return $redirect->with([
+        // Número de parte siguientes
+        $nextPartNumber = $partNumber->nextProcesses->first();
+        if (!$nextPartNumber) {
+            return redirect()->route('production-records.scan-label')->with([
                 'message'     => 'No hay procesos siguientes configurados para este número de parte.',
                 'messageType' => 'warning',
             ]);
@@ -122,61 +116,61 @@ class ProductionRecordController extends Controller
 
         // Turno y plan de producción
         $shift = Shift::getShift()->first();
-        $today = Shift::getPlannedDate()->first();
+        $today = Shift::getPlannedDate();
 
-        $plan = ProductionPlan::query()
-            ->where('part_number_id', $nextPart->id)
+        $productionPlan = ProductionPlan::query()
+            ->where('part_number_id', $nextPartNumber->id)
             ->where('planned_date', $today)
             ->where('shift_id', $shift->id)
             ->first();
 
-        if (! $plan) {
-            return $redirect->with([
-                'message'     => 'No se encontró un plan de producción activo para este proceso.',
+        if (! $productionPlan) {
+            return redirect()->route('production-records.scan-label')->with([
+                'message'     => 'No se encontró un plan de producción para este número de parte.',
                 'messageType' => 'error',
             ]);
         }
 
         // Verificar duplicados
         $exists = ProductionRecord::query()
-            ->where('production_plan_id', $plan->id)
+            ->where('production_plan_id', $productionPlan->id)
             ->where('order_number', $orderNumber)
             ->where('part_number_id', $partNumber->id)
             ->where('sequence', $sequence)
-            ->where('quantity', $standardPack)
+            ->where('quantity', $quantity)
             ->exists();
 
         if ($exists) {
-            return $redirect->with([
-                'message'     => 'Esta etiqueta ya ha sido procesada anteriormente.',
+            return redirect()->route('production-records.scan-label')->with([
+                'message'     => 'Esta etiqueta ya ha sido escaneada anteriormente.',
                 'messageType' => 'warning',
             ]);
         }
 
         // Crear registro
         ProductionRecord::create([
-            'production_plan_id' => $plan->id,
+            'production_plan_id' => $productionPlan->id,
             'order_number'       => $orderNumber,
             'part_number_id'     => $partNumber->id,
             'sequence'           => $sequence,
-            'quantity'           => $standardPack,
+            'quantity'           => $quantity,
         ]);
 
         // Evento y actualización de producido
         event(new ProductionRecordCreated());
 
-        if ($plan->produced_quantity == 0) {
+        if ($productionPlan->produced_quantity == 0) {
             $status = Status::where('key', 'in_progress')->first();
-            $plan->update([
-                'produced_quantity' => $standardPack,
-                'status_id'         => $status->id ?? $plan->status_id,
+            $productionPlan->update([
+                'produced_quantity' => $quantity,
+                'status_id'         => $status->id ?? $productionPlan->status_id,
             ]);
         } else {
-            $plan->increment('produced_quantity', intval($standardPack));
+            $productionPlan->increment('produced_quantity', intval($quantity));
         }
 
         // Éxito con PRG
-        return $redirect->with([
+        return redirect()->route('production-records.scan-label')->with([
             'message'     => 'Etiqueta procesada correctamente',
             'messageType' => 'success',
         ]);

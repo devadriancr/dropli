@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('production-records.summary');
 });
 
 Route::middleware([
@@ -34,8 +34,8 @@ Route::post('production-records/label-scan', [App\Http\Controllers\ProductionRec
 
 Route::get('painting-process-tracking', function () {
     return view('guest.painting-process-tracking');
-});
+})->name('production-records.tracking');
 
 Route::get('production-records-summary', function () {
     return view('guest.painting-production-summary');
-});
+})->name('production-records.summary');
