@@ -4,6 +4,8 @@
         <div class="text-center mb-2">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">Entrada de Material</h1>
         </div>
+
+        <!-- Card principal -->
         <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="p-8">
                 <form method="POST" action="{{ route('production-records.store-label') }}" id="scanForm">
@@ -12,25 +14,31 @@
                         Escanea etiqueta
                     </label>
                     <div class="relative">
-                        <input type="text" id="scanInput" name="scanInput" class="w-full pr-24 px-5 py-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors" placeholder="Escanee aquí…" autocomplete="off" autofocus value="{{ old('scanInput') }}"
-                        />
-                        <!-- Botón de envío -->
-                        <button type="button" id="processBtn" class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-700 hover:bg-gray-800 rounded-tr-lg rounded-br-lg transition-colors"
-                        >
-                            Procesar
+                        <input type="text" id="scanInput" name="scanInput" class="w-full pr-24 px-5 py-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors" placeholder="Escanee aquí…" autocomplete="off" autofocus value="{{ old('scanInput') }}" />
+                        <button type="button" id="processBtn" class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-700 hover:bg-gray-800 rounded-tr-lg rounded-br-lg transition-colors" >
+                            Registrar
                         </button>
                     </div>
-                    {{-- Mensajes flash --}}
-                    @if(session('message'))
-                        @php $type = session('messageType', 'success'); @endphp
-                        <div class="mt-4 p-4 rounded-lg text-base
-                            {{ $type==='success' ? 'bg-green-50 border border-green-200 text-green-700' : '' }}
-                            {{ $type==='warning' ? 'bg-yellow-50 border border-yellow-200 text-yellow-700' : '' }}
-                            {{ $type==='error'   ? 'bg-red-50 border border-red-200 text-red-700' : '' }}
-                        ">
-                            {{ session('message') }}
+
+                    {{-- Mensajes flash estándar de Laravel --}}
+                    @if(session('success'))
+                        <div class="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-base">
+                            {{ session('success') }}
                         </div>
                     @endif
+
+                    @if(session('error'))
+                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    @if(session('warning'))
+                        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-base">
+                            {{ session('warning') }}
+                        </div>
+                    @endif
+
                     {{-- Errores de validación --}}
                     @if($errors->any())
                         <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
@@ -78,12 +86,7 @@
                         <label for="quantity" class="block text-lg font-medium text-gray-700 mb-3">
                             Cantidad
                         </label>
-                        <input type="number"
-                               id="quantity"
-                               name="quantity"
-                               class="w-full px-5 py-4 text-xl font-semibold text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
-                               min="1"
-                               required>
+                        <input type="number" id="quantity" name="quantity" class="w-full px-5 py-4 text-xl font-semibold text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors" min="1" required >
                     </div>
 
                     <!-- Campos ocultos -->
@@ -93,9 +96,7 @@
 
                     <!-- Botones -->
                     <div class="flex gap-4 pt-4">
-                        <button type="button"
-                                id="cancelBtn"
-                                class="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-lg transition-colors">
+                        <button type="button" id="cancelBtn" class="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-lg transition-colors">
                             Cancelar
                         </button>
                         <button type="submit"

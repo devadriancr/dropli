@@ -78,40 +78,30 @@ class ProductionRecordController extends Controller
         $sequence       = $request->input('sequence', '000000');
         $quantity       = $request->input('quantity', '000000');
 
+        $redirect = redirect()->route('production-records.scan-label');
+
         // Validar longitud mínima
         if (strlen($barCode) < 14) {
-            return redirect()->route('production-records.scan-label')->with([
-                'message'     => 'Código de etiqueta inválido. Verifique que sea correcto.',
-                'messageType' => 'error',
-            ]);
+            return $redirect->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
         }
 
         // Buscar número de parte en FSO
-        $orderPartNumber = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
+        $orderPartNumber = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('part_number');
 
         if (!$orderPartNumber) {
-            return redirect()->route('production-records.scan-label')->with([
-                'message'     => "No se encontró información para la orden: {$orderNumber}",
-                'messageType' => 'error',
-            ]);
+            return $redirect->with('error', "No se encontró información para la orden: {$orderNumber}");
         }
 
         // Buscar número de parte
         $partNumber = PartNumber::where('number', $orderPartNumber)->first();
         if (!$partNumber) {
-            return redirect()->route('production-records.scan-label')->with([
-                'message'     => "Número de parte no encontrado: {$orderPartNumber}",
-                'messageType' => 'error',
-            ]);
+            return $redirect->with('error', "Número de parte no encontrado: {$orderPartNumber}");
         }
 
         // Número de parte siguientes
         $nextPartNumber = $partNumber->nextProcesses->first();
         if (!$nextPartNumber) {
-            return redirect()->route('production-records.scan-label')->with([
-                'message'     => 'No hay procesos siguientes configurados para este número de parte.',
-                'messageType' => 'warning',
-            ]);
+            return $redirect->with('warning', 'No hay procesos siguientes configurados para este número de parte.');
         }
 
         // Turno y plan de producción
@@ -125,10 +115,7 @@ class ProductionRecordController extends Controller
             ->first();
 
         if (! $productionPlan) {
-            return redirect()->route('production-records.scan-label')->with([
-                'message'     => 'No se encontró un plan de producción para este número de parte.',
-                'messageType' => 'error',
-            ]);
+            return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
         }
 
         // Verificar duplicados
@@ -141,10 +128,7 @@ class ProductionRecordController extends Controller
             ->exists();
 
         if ($exists) {
-            return redirect()->route('production-records.scan-label')->with([
-                'message'     => 'Esta etiqueta ya ha sido escaneada anteriormente.',
-                'messageType' => 'warning',
-            ]);
+            return $redirect->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');
         }
 
         // Crear registro
@@ -169,10 +153,6 @@ class ProductionRecordController extends Controller
             $productionPlan->increment('produced_quantity', intval($quantity));
         }
 
-        // Éxito con PRG
-        return redirect()->route('production-records.scan-label')->with([
-            'message'     => 'Etiqueta procesada correctamente',
-            'messageType' => 'success',
-        ]);
+        return $redirect->with('success', 'Etiqueta procesada correctamente');
     }
 }
