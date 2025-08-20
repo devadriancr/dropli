@@ -5,6 +5,7 @@ namespace App\Livewire\ProductionRecord;
 use App\Models\ProductionRecord;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Carbon\Carbon;
 
 class PaintingProcessEntry extends Component
 {
@@ -12,16 +13,21 @@ class PaintingProcessEntry extends Component
 
     public function mount()
     {
-        $this->productionEntry = ProductionRecord::with('partNumber')
-            ->orderByDesc('created_at')
-            ->limit(10)
-            ->get();
+        $this->loadRecords();
     }
 
     #[On('echo:production-record-created,ProductionRecordCreated')]
     public function refreshTable()
     {
+        $this->loadRecords();
+    }
+
+    protected function loadRecords()
+    {
+        $oneHourAgo = Carbon::now()->subHours(2);
+
         $this->productionEntry = ProductionRecord::with('partNumber')
+            ->where('created_at', '>=', $oneHourAgo)
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();

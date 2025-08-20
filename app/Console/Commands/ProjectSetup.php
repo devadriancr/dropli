@@ -33,6 +33,7 @@ class ProjectSetup extends Command
         ['Obteniendo información del standard pack', 'infor:standard-pack', []],
         ['Ejecutando DepartmentSeeder', 'db:seed', ['--class' => 'DepartmentSeeder']],
         ['Obteniendo información del work center', 'infor:work-center', []],
+        ['Ejecutando AreaSeeder', 'db:seed', ['--class' => 'AreaSeeder']],
         ['Obteniendo información del part number', 'infor:part-number', []],
         ['Obteniendo información del next process', 'infor:next-process', []],
     ];

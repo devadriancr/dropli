@@ -43,12 +43,11 @@ class PaintProductionRecord extends Component
                 'partNumber.standardPack',
                 'partNumber.projects',
                 'partNumber.nextProcesses',
-                'productionRecords' => function ($query) {
-                    $query->orderBy('created_at', 'desc');
-                }
+                'productionRecords'
             ])
             ->where('shift_id', $this->shift->id)
             ->whereDate('planned_date', $plannedDate)
+            ->orderBy('part_number_id', 'asc')
             ->get();
 
         // Procesar los registros para la vista
@@ -144,6 +143,9 @@ class PaintProductionRecord extends Component
             }
         }
 
+        usort($groupedPlans, function ($a, $b) {
+            return strcmp($a['part_number'], $b['part_number']);
+        });
         $this->records = array_values($groupedPlans);
     }
 

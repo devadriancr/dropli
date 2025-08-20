@@ -32,6 +32,9 @@ Route::middleware([
 Route::get('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'scanLabel'])->name('production-records.scan-label');
 Route::post('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeLabel'])->name('production-records.store-label');
 
+Route::get('production-records/exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'exitScan'])->name('production-records.exit-scan');
+Route::post('production-records/exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeExit'])->name('production-records.store-exit');
+
 Route::get('production-records/part-number-entry', [App\Http\Controllers\ProductionRecordController::class, 'partNumberEntry'])->name('production-records.part-number-entry');
 Route::post('production-records/part-number-entry', [App\Http\Controllers\ProductionRecordController::class, 'storePartNumber'])->name('production-records.store-part-number');
 
