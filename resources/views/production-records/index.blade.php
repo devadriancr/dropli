@@ -16,7 +16,7 @@
                     <form method="GET" action="{{ route('production-records.index') }}">
                         <div class="input-group">
                             <input type="text" name="search" class="form-control border-end-0" placeholder="Buscar..."
-                                aria-label="Buscar" value="{{ $search ?? '' }}">
+                                   aria-label="Buscar" value="{{ $search ?? '' }}">
                             <button type="submit" class="input-group-text bg-white border-start-0">
                                 <i class="fas fa-search text-secondary"></i>
                             </button>
@@ -31,74 +31,75 @@
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
-                        <tr>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Centro de Trabajo') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Parte') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Secuencia') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha de Creación') }}</th>
-                        </tr>
+                    <tr>
+                        <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Centro de Trabajo') }}</th>
+                        <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Parte') }}</th>
+                        <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Secuencia') }}</th>
+                        <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad') }}</th>
+                        <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha de Creación') }}</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        @forelse ($productionRecords as $record)
-                            <tr class="border-light-subtle">
-                                <!-- Estación/Centro de Trabajo -->
-                                <td class="py-3 small">
-                                    @if ($record->partNumber && $record->partNumber->workCenter)
-                                        <div class="fw-500">{{ $record->partNumber->workCenter->number }}</div>
-                                        <div class="text-muted">{{ $record->partNumber->workCenter->name }}</div>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
+                    @forelse ($productionRecords as $record)
+                        <tr class="border-light-subtle">
+                            <!-- Estación/Centro de Trabajo -->
+                            <td class="py-3 small">
+                                @if ($record->partNumber && $record->partNumber->workCenter)
+                                    <div class="fw-500">{{ $record->partNumber->workCenter->number }}</div>
+                                    <div class="text-muted">{{ $record->partNumber->workCenter->name }}</div>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
 
-                                <!-- Número de Parte -->
-                                <td class="py-3 small">
-                                    @if ($record->partNumber)
-                                        <div class="fw-500">{{ $record->partNumber->number }}</div>
-                                        <div class="text-muted">{{ $record->partNumber->name }}</div>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
+                            <!-- Número de Parte -->
+                            <td class="py-3 small">
+                                @if ($record->partNumber)
+                                    <div class="fw-500">{{ $record->partNumber->number }}</div>
+                                    <div class="text-muted">{{ $record->partNumber->name }}</div>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
 
-                                <!-- Secuencia -->
-                                <td class="py-3 small">
-                                    @if(isset($record->sequence))
-                                        <span class="badge-status bg-primary bg-opacity-10 text-primary">
+                            <!-- Secuencia -->
+                            <td class="py-3 small">
+                                @if(isset($record->sequence))
+                                    <span class="badge-status bg-primary bg-opacity-10 text-primary">
                                             {{ $record->sequence }}
                                         </span>
-                                    @else
-                                        <span class="text-muted">-</span>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+
+                            <!-- Cantidad -->
+                            <td class="py-3 small fw-500">
+                                {{ $record->quantity ?? '-' }}
+                            </td>
+
+                            <!-- Fecha de Creación -->
+                            <td class="py-3 small">
+                                <div class="fw-500">{{ $record->created_at->format('d/m/Y') }}</div>
+                                <div class="text-muted">{{ $record->created_at->format('H:i:s') }}</div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="d-flex flex-column align-items-center">
+                                    <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
+                                    <span class="text-secondary">No se encontraron registros de producción</span>
+                                    @if (!empty($search))
+                                        <a href="{{ route('production-records.index') }}"
+                                           class="btn btn-sm btn-link mt-2">
+                                            Limpiar búsqueda
+                                        </a>
                                     @endif
-                                </td>
-
-                                <!-- Cantidad -->
-                                <td class="py-3 small fw-500">
-                                    {{ $record->quantity ?? '-' }}
-                                </td>
-
-                                <!-- Fecha de Creación -->
-                                <td class="py-3 small">
-                                    <div class="fw-500">{{ $record->created_at->format('d/m/Y') }}</div>
-                                    <div class="text-muted">{{ $record->created_at->format('H:i:s') }}</div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center py-4">
-                                    <div class="d-flex flex-column align-items-center">
-                                        <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
-                                        <span class="text-secondary">No se encontraron registros de producción</span>
-                                        @if (!empty($search))
-                                            <a href="{{ route('production-records.index') }}" class="btn btn-sm btn-link mt-2">
-                                                Limpiar búsqueda
-                                            </a>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforelse
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
                     </tbody>
                 </table>
             </div>
@@ -125,8 +126,9 @@
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $productionRecords->previousPageUrl() }}" rel="prev"
-                                            aria-label="Previous">
+                                        <a class="page-link" href="{{ $productionRecords->previousPageUrl() }}"
+                                           rel="prev"
+                                           aria-label="Previous">
                                             &laquo;
                                         </a>
                                     </li>
@@ -169,7 +171,7 @@
                                     @else
                                         <li class="page-item">
                                             <a class="page-link"
-                                                href="{{ $productionRecords->url($page) }}">{{ $page }}</a>
+                                               href="{{ $productionRecords->url($page) }}">{{ $page }}</a>
                                         </li>
                                     @endif
                                 @endfor
@@ -190,7 +192,7 @@
                                 @if ($productionRecords->hasMorePages())
                                     <li class="page-item">
                                         <a class="page-link" href="{{ $productionRecords->nextPageUrl() }}" rel="next"
-                                            aria-label="Next">
+                                           aria-label="Next">
                                             &raquo;
                                         </a>
                                     </li>

@@ -29,8 +29,8 @@ Route::middleware([
     Route::resource('production-records', App\Http\Controllers\ProductionRecordController::class)->except(['show']);
 });
 
-Route::get('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'scanLabel'])->name('production-records.scan-label');
-Route::post('production-records/label-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeLabel'])->name('production-records.store-label');
+Route::get('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'scanEntry'])->name('production-records.entry-scan');
+Route::post('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeEntry'])->name('production-records.store-entry');
 
 Route::get('production-records/exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'exitScan'])->name('production-records.exit-scan');
 Route::post('production-records/exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeExit'])->name('production-records.store-exit');

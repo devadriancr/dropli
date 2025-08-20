@@ -20,8 +20,11 @@
                         Escanea etiqueta
                     </label>
                     <div class="relative">
-                        <input type="text" id="exitCode" name="exitCode" class="w-full pr-24 px-5 py-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors" placeholder="Escanee aquí…" autocomplete="off" autofocus value="{{ old('exitCode') }}" />
-                        <button type="button" id="processBtn" class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-700 hover:bg-gray-800 rounded-tr-lg rounded-br-lg transition-colors" >
+                        <input type="text" id="exitCode" name="exitCode"
+                               class="w-full pr-24 px-5 py-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
+                               placeholder="Escanee aquí…" autocomplete="off" autofocus value="{{ old('exitCode') }}"/>
+                        <button type="button" id="processBtn"
+                                class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-700 hover:bg-gray-800 rounded-tr-lg rounded-br-lg transition-colors">
                             Registrar
                         </button>
                     </div>
@@ -40,7 +43,8 @@
                     @endif
 
                     @if(session('warning'))
-                        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-base">
+                        <div
+                            class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-base">
                             {{ session('warning') }}
                         </div>
                     @endif

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\ProductionRecordCreated;
+use App\Http\Requests\StoreEntryScanRequest;
 use App\Http\Requests\StoreExitScanRequest;
 use App\Models\FSO;
 use App\Models\PartNumber;
@@ -10,9 +11,7 @@ use App\Models\ProductionPlan;
 use App\Models\ProductionRecord;
 use App\Models\Shift;
 use App\Models\Status;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ProductionRecordController extends Controller
@@ -57,45 +56,31 @@ class ProductionRecordController extends Controller
     /**
      * Show the form for scanning a label.
      */
-    public function scanLabel()
+    public function scanEntry()
     {
-        return view('production-records.scan-label');
+        return view('production-records.entry-scan');
     }
 
     /**
      * Store the scanned label data.
      */
-    public function storeLabel(Request $request)
+    public function storeEntry(StoreEntryScanRequest $request)
     {
-        $validated = $request->validate([
-            'scanInput' => 'required|string|min:5|max:20',
-            'orderNumber' => 'required|string|max:8',
-            'sequence' => 'required|string|max:6',
-            'quantity' => 'required|integer|min:1',
-        ], [
-            'scanInput.required' => 'Debe escanear una etiqueta',
-            'scanInput.min' => 'El código escaneado es demasiado corto',
-            'scanInput.max' => 'El código escaneado es demasiado largo',
+        $entryCode = $request->input('entryCode');
+        $orderNumber = $request->input('orderNumber');
+        $sequence = $request->input('sequence');
+        $quantity = $request->input('quantity');
 
-            'quantity.required' => 'Indique la cantidad producida.',
-            'quantity.integer' => 'La cantidad debe ser un número entero.',
-            'quantity.min' => 'La cantidad debe ser al menos 1.',
-        ]);
-
-        $barCode = $request->input('scanInput');
-        $orderNumber = $request->input('orderNumber', '00000000');
-        $sequence = $request->input('sequence', '000000');
-        $quantity = $request->input('quantity', '000000');
-
-        $redirect = redirect()->route('production-records.scan-label');
+        $redirect = redirect()->route('production-records.entry-scan');
 
         // Validar longitud mínima
-        if (strlen($barCode) < 14) {
+        if (strlen($entryCode) < 14) {
             return $redirect->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
         }
 
         // Buscar número de parte en FSO
-        $orderPartNumber = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
+        $orderPartNumber = FSO::getPartNumberByOrder($orderNumber);
+        dd($orderNumber, $orderPartNumber);
         if (!$orderPartNumber) {
             return $redirect->with('error', "No se encontró información para la orden: {$orderNumber}");
         }
@@ -244,11 +229,17 @@ class ProductionRecordController extends Controller
         return $redirect->with('success', 'Número de parte registrado correctamente');
     }
 
+    /**
+     * Show the form for scanning an exit label.
+     */
     public function exitScan(): View
     {
         return view('production-records.exit-scan');
     }
 
+    /**
+     * Store the exit scan data.
+     */
     public function storeExit(StoreExitScanRequest $request)
     {
         $exitCode = $request->input('exitCode');
@@ -258,7 +249,7 @@ class ProductionRecordController extends Controller
 
         if (strlen($exitCode) <= 20) {
 
-            $orderPartNumber = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
+            $orderPartNumber = FSO::getPartNumberByOrder($orderNumber);
             if (!$orderPartNumber) {
                 return redirect()->route('production-records.exit-scan')->with('error', "No se encontró información para la orden: {$orderNumber}");
             }
@@ -270,7 +261,7 @@ class ProductionRecordController extends Controller
 
             $previousPartNumber = $partNumber->previousProcesses->where('is_obsolete', false)->first();
             if (!$previousPartNumber) {
-                return  redirect()->route('production-records.exit-scan')->with('warning', 'No hay procesos anterior configurado para este número de parte.');
+                return redirect()->route('production-records.exit-scan')->with('warning', 'No hay procesos anterior configurado para este número de parte.');
             }
 
             $shift = Shift::getShift()->first();
@@ -303,10 +294,10 @@ class ProductionRecordController extends Controller
                 'order_number' => $orderNumber,
                 'sequence' => $sequence,
                 'quantity' => $quantity,
-                 'exited' => true,
+                'record_type' => 'exit',
             ]);
 
-             return redirect()->route('production-records.exit-scan')->with('success', 'Etiqueta registrada correctamente');
+            return redirect()->route('production-records.exit-scan')->with('success', 'Etiqueta registrada correctamente');
         }
     }
 }

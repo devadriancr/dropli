@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreExitScanRequest extends FormRequest
+class StoreEntryScanRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,10 +22,10 @@ class StoreExitScanRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'exitCode' => ['required', 'string'],
+            'entryCode' => ['required', 'string'],
             'orderNumber' => ['required', 'string'],
             'sequence' => ['required', 'string'],
-            'quantity' => ['required', 'numeric', 'min:1'],
+            'quantity' => ['required', 'integer', 'min:1'],
         ];
     }
 }

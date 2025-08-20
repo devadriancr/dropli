@@ -13,7 +13,7 @@ class ProductionRecord extends Model
         'part_number_id',
         'sequence',
         'quantity',
-        'exited',
+        'record_type',
     ];
 
     public function productionPlan(): BelongsTo

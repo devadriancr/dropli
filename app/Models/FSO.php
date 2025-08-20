@@ -15,4 +15,11 @@ class FSO extends Model
         'SRDTE',
         'SOCNO'
     ];
+
+    public static function getPartNumberByOrder(string $orderNumber): ?string
+    {
+        $partNumber = self::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
+
+        return $partNumber ? trim($partNumber) : null;
+    }
 }

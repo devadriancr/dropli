@@ -18,8 +18,6 @@ return new class extends Migration
             $table->foreignId('part_number_id')->constrained('part_numbers');
             $table->string('sequence');
             $table->integer('quantity')->default(0);
-            $table->boolean('exited')->default(false);
-            $table->foreignId('related_entry_record_id')->nullable()->constrained('production_records');
             $table->enum('record_type', ['entry', 'exit'])->default('entry');
             $table->timestamps();
         });
