@@ -14,6 +14,7 @@ class PaintProductionRecord extends Component
     public $records = [];
     public $timeHeaders = [];
     public $shift;
+    public $date;
     public bool $realTime = false;
 
     public function mount($realTime = false)
@@ -26,8 +27,8 @@ class PaintProductionRecord extends Component
     public function fetchData()
     {
         // Obtener el turno actual y fecha planeada
-        $this->shift = Shift::getShift();
-        $plannedDate = Shift::getPlannedDate();
+        $this->shift = Shift::getShift()->first();
+        $this->date = Shift::getPlannedDate();
 
         if (!$this->shift) {
             return;
@@ -46,7 +47,7 @@ class PaintProductionRecord extends Component
                 'productionRecords'
             ])
             ->where('shift_id', $this->shift->id)
-            ->whereDate('planned_date', $plannedDate)
+            ->whereDate('planned_date', $this->date)
             ->orderBy('part_number_id', 'asc')
             ->get();
 
@@ -127,16 +128,13 @@ class PaintProductionRecord extends Component
                 ];
             }
 
-
-            $plannedDate = Shift::getPlannedDate();
-
             $previousProcess = $plan->partNumber->previousProcesses->first();
 
             if ($previousProcess) {
                 $entryRecords = ProductionRecord::query()
                     ->where('part_number_id', $previousProcess->id)
                     ->where('record_type', 'entry')
-                    ->whereDate('created_at', $plannedDate)
+                    ->whereDate('created_at', $this->date)
                     ->get();
 
                 foreach ($entryRecords as $record) {
@@ -152,7 +150,7 @@ class PaintProductionRecord extends Component
             $exitRecords = ProductionRecord::query()
                 ->where('part_number_id', $plan->part_number_id)
                 ->where('record_type', 'exit')
-                ->whereDate('created_at', $plannedDate)
+                ->whereDate('created_at', $this->date)
                 ->get();
 
             foreach ($exitRecords as $record) {

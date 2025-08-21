@@ -20,7 +20,7 @@ class Status extends Model
     }
 
     public function productionRecords(): HasMany
-{
-    return $this->hasMany(ProductionRecord::class, 'status_id');
-}
+    {
+        return $this->hasMany(ProductionRecord::class, 'status_id');
+    }
 }

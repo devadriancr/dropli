@@ -88,16 +88,21 @@ class ProductionRecordController extends Controller
             return $redirect->with('error', "Número de parte no encontrado: {$orderPartNumber}");
         }
 
-        $nextPartNumber = $partNumber->nextProcesses->where('is_obsolete', false)->first();
-        if (!$nextPartNumber) {
+        $nextPartNumbers = $partNumber->nextProcesses->where('is_obsolete', false);
+        if ($nextPartNumbers->isEmpty()) {
             return $redirect->with('warning', 'No hay procesos siguientes configurados para este número de parte.');
         }
 
         $shift = Shift::getShift()->first();
         $today = Shift::getPlannedDate();
+        $productionPlan = null;
 
-        $productionPlan = ProductionPlan::getProductionPlan($nextPartNumber->id, $today, $shift->id);
-
+        foreach ($nextPartNumbers as $nextPart) {
+            $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
+            if ($productionPlan) {
+                break;
+            }
+        }
         if (!$productionPlan) {
             return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
         }
@@ -256,15 +261,15 @@ class ProductionRecordController extends Controller
 
             event(new MaterialExitRegistered());
 
-            // if ($productionPlan->produced_quantity == 0) {
-            //     $status = Status::where('key', 'in_progress')->first();
-            //     $productionPlan->update([
-            //         'produced_quantity' => $quantity,
-            //         'status_id' => $status->id ?? $productionPlan->status_id,
-            //     ]);
-            // } else {
-            //     $productionPlan->increment('produced_quantity', intval($quantity));
-            // }
+            if ($productionPlan->produced_quantity == 0) {
+                $status = Status::where('key', 'in_progress')->first();
+                $productionPlan->update([
+                    'produced_quantity' => $quantity,
+                    'status_id' => $status->id ?? $productionPlan->status_id,
+                ]);
+            } else {
+                $productionPlan->increment('produced_quantity', intval($quantity));
+            }
 
             return redirect()->route('production-records.exit-scan')->with('success', 'Etiqueta registrada correctamente');
         }
