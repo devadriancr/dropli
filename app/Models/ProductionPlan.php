@@ -42,6 +42,16 @@ class ProductionPlan extends Model
         return $this->hasMany(ProductionRecord::class, 'production_plan_id');
     }
 
+    public static function getProductionPlan(int $partNumberId, string $today, int $shiftId): ?ProductionPlan
+    {
+        return ProductionPlan::query()
+            ->where('part_number_id', $partNumberId)
+            ->where('planned_date', $today)
+            ->where('shift_id', $shiftId)
+            ->first();
+    }
+
+
     public static function store(
         $shopOrderNumber = null,
         $partNumberId,

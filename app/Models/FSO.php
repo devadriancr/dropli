@@ -18,7 +18,7 @@ class FSO extends Model
 
     public static function getPartNumberByOrder(string $orderNumber): ?string
     {
-        $partNumber = self::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
+        $partNumber = FSO::query()->selectRaw('TRIM(SPROD) AS part_number')->where('SORD', $orderNumber)->value('PART_NUMBER');
 
         return $partNumber ? trim($partNumber) : null;
     }

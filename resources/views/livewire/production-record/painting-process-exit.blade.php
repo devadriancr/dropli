@@ -6,7 +6,7 @@
 
     <!-- Cards Stack -->
     <div class="max-w-2xl mx-auto space-y-4">
-        @forelse($productionExit as $index => $record)
+        @forelse($paintingExitRecords as $index => $record)
             <div
                 class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
                 <div class="p-6">
@@ -87,19 +87,3 @@
         @endforelse
     </div>
 </div>
-
-@script
-    <script>
-        Alpine.data("exitTable", () => {
-            return {
-                init() {
-                    if (@json($realTime)) {
-                        setInterval(() => {
-                            $wire.dispatchSelf("refresh-table");
-                        }, 1000); // Actualiza cada segundo
-                    }
-                }
-            }
-        });
-    </script>
-@endscript

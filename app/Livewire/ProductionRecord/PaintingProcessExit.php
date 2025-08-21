@@ -9,33 +9,30 @@ use Livewire\Component;
 
 class PaintingProcessExit extends Component
 {
-    public $productionExit = [];
-    public bool $realTime = true;
+    public $paintingExitRecords;
 
-    public function mount($productionExit = null)
+    public function mount()
     {
-        $this->productionExit = $productionExit ?? [];
-        $this->fetchTable();
+        $this->loadPaintingExitRecords();
     }
 
-    #[On('refresh-table')]
-    public function refreshTable()
+    public function refreshPaintingExitTable()
     {
-        $this->fetchTable();
+        $this->loadPaintingExitRecords();
     }
 
-    public function fetchTable()
+    public function loadPaintingExitRecords()
     {
-        $oneMinuteAgo = Carbon::now()->subMinute();
+        $twoAndAHalfHours = Carbon::now()->addHours(2)->addMinutes(30);
 
-        $this->productionExit = ProductionRecord::with([
+        $this->paintingExitRecords = ProductionRecord::with([
             'partNumber',
         ])
-            ->where('created_at', '<=', $oneMinuteAgo)
+            ->where('record_type', 'exit')
+            ->where('created_at', '<=', $twoAndAHalfHours)
             ->orderBy('created_at', 'asc')
             ->limit(10)
             ->get();
-
     }
 
     public function render()

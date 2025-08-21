@@ -29,7 +29,7 @@ Route::middleware([
     Route::resource('production-records', App\Http\Controllers\ProductionRecordController::class)->except(['show']);
 });
 
-Route::get('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'scanEntry'])->name('production-records.entry-scan');
+Route::get('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'entryScan'])->name('production-records.entry-scan');
 Route::post('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeEntry'])->name('production-records.store-entry');
 
 Route::get('production-records/exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'exitScan'])->name('production-records.exit-scan');

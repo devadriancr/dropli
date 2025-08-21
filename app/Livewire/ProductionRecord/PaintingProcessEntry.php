@@ -9,25 +9,26 @@ use Carbon\Carbon;
 
 class PaintingProcessEntry extends Component
 {
-    public $productionEntry;
+    public $recentEntryRecords;
 
     public function mount()
     {
-        $this->loadRecords();
+        $this->loadRecentEntries();
     }
 
-    #[On('echo:production-record-created,ProductionRecordCreated')]
-    public function refreshTable()
+    #[On('echo:material-entry-registered,ProductionRecord\MaterialEntryRegistered')]
+    public function refreshRecentEntries()
     {
-        $this->loadRecords();
+        $this->loadRecentEntries();
     }
 
-    protected function loadRecords()
+    protected function loadRecentEntries()
     {
-        $oneHourAgo = Carbon::now()->subHours(2);
+        $twoHoursAgo = Carbon::now()->subHours(2);
 
-        $this->productionEntry = ProductionRecord::with('partNumber')
-            ->where('created_at', '>=', $oneHourAgo)
+        $this->recentEntryRecords = ProductionRecord::with('partNumber')
+            ->where('record_type', 'entry')
+            ->where('created_at', '>=', $twoHoursAgo)
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
