@@ -59,6 +59,8 @@ class PaintProductionRecord extends Component
         $start = Carbon::parse($this->shift->start_time);
         $end = Carbon::parse($this->shift->end_time);
 
+        $end = $start->gt($end) ? $end->copy()->addDay() : $end;
+
         // Limpiar headers existentes
         $this->timeHeaders = [];
 
@@ -79,19 +81,33 @@ class PaintProductionRecord extends Component
             if (!isset($groupedPlans[$partNumber])) {
                 $hoursCount = count($this->timeHeaders);
 
-                // Calcular la distribución del plan por horas
                 $planDistribution = [];
                 if ($hoursCount > 0) {
-                    $baseValue = floor($plan->planned_quantity / $hoursCount);
-                    $remainder = $plan->planned_quantity % $hoursCount;
+                    $standardPackQuantity = $plan->partNumber->standard_pack_quantity;
+                    $plannedQuantity = $plan->planned_quantity;
 
-                    // Llenar todas las horas con el valor base
-                    $planDistribution = array_fill_keys($this->timeHeaders, $baseValue);
+                    if ($plannedQuantity > 0 && $standardPackQuantity > 0) {
+                        $baseQuantity = floor($plannedQuantity / $hoursCount);
 
-                    // Distribuir el resto en las primeras horas
-                    $keys = array_keys($planDistribution);
-                    for ($i = 0; $i < $remainder; $i++) {
-                        $planDistribution[$keys[$i]]++;
+                        $adjustedBase = floor($baseQuantity / $standardPackQuantity) * $standardPackQuantity;
+
+                        $distributedTotal = $adjustedBase * $hoursCount;
+                        $remainder = $plannedQuantity - $distributedTotal;
+
+                        $planDistribution = array_fill_keys($this->timeHeaders, $adjustedBase);
+
+                        $keys = array_keys($planDistribution);
+                        $remainingPacks = ceil($remainder / $standardPackQuantity);
+
+                        for ($i = 0; $i < $remainingPacks && $i < $hoursCount; $i++) {
+                            $toAdd = min($standardPackQuantity, $remainder);
+                            $planDistribution[$keys[$i]] += $toAdd;
+                            $remainder -= $toAdd;
+
+                            if ($remainder <= 0) break;
+                        }
+                    } else {
+                        $planDistribution = array_fill_keys($this->timeHeaders, null);
                     }
                 } else {
                     $planDistribution = array_fill_keys($this->timeHeaders, null);
@@ -111,34 +127,40 @@ class PaintProductionRecord extends Component
                 ];
             }
 
-            // Procesar los registros de producción asociados a este plan
-            foreach ($plan->productionRecords as $record) {
+
+            $plannedDate = Shift::getPlannedDate();
+
+            $previousProcess = $plan->partNumber->previousProcesses->first();
+
+            if ($previousProcess) {
+                $entryRecords = ProductionRecord::query()
+                    ->where('part_number_id', $previousProcess->id)
+                    ->where('record_type', 'entry')
+                    ->whereDate('created_at', $plannedDate)
+                    ->get();
+
+                foreach ($entryRecords as $record) {
+                    $createdAt = Carbon::parse($record->created_at);
+                    $hourKey = $createdAt->format('H:00');
+
+                    if (in_array($hourKey, $this->timeHeaders)) {
+                        $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
+                    }
+                }
+            }
+
+            $exitRecords = ProductionRecord::query()
+                ->where('part_number_id', $plan->part_number_id)
+                ->where('record_type', 'exit')
+                ->whereDate('created_at', $plannedDate)
+                ->get();
+
+            foreach ($exitRecords as $record) {
                 $createdAt = Carbon::parse($record->created_at);
                 $hourKey = $createdAt->format('H:00');
 
-                // Sumar a las entradas
-                if (!isset($groupedPlans[$partNumber]['entries'][$hourKey])) {
-                    $groupedPlans[$partNumber]['entries'][$hourKey] = 0;
-                }
-                $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
-
-                // Procesar salidas (next process)
-                $nextPartNumber = $record->partNumber->nextProcesses->first();
-                if ($nextPartNumber) {
-                    $exitRecord = ProductionRecord::query()
-                        ->whereHas('partNumber', function ($q) use ($nextPartNumber) {
-                            $q->where('number', $nextPartNumber->number);
-                        })
-                        ->whereDate('created_at', $createdAt->toDateString())
-                        ->first();
-
-                    if ($exitRecord) {
-                        $exitHourKey = Carbon::parse($exitRecord->created_at)->format('H:00');
-                        if (!isset($groupedPlans[$partNumber]['exits'][$exitHourKey])) {
-                            $groupedPlans[$partNumber]['exits'][$exitHourKey] = 0;
-                        }
-                        $groupedPlans[$partNumber]['exits'][$exitHourKey] += $exitRecord->quantity;
-                    }
+                if (in_array($hourKey, $this->timeHeaders)) {
+                    $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
                 }
             }
         }
@@ -146,6 +168,7 @@ class PaintProductionRecord extends Component
         usort($groupedPlans, function ($a, $b) {
             return strcmp($a['part_number'], $b['part_number']);
         });
+
         $this->records = array_values($groupedPlans);
     }
 

@@ -102,7 +102,11 @@
                                 <!-- Cantidades plan por hora (una celda por hora) -->
                                 @foreach($timeHeaders as $header)
                                     <td class="px-4 py-2 whitespace-nowrap text-sm text-center text-gray-900 border">
-                                        {{ $record['plan'][$header] }}
+                                        @if($record['plan'][$header] > 0)
+                                            {{ number_format($record['plan'][$header]) }}
+                                        @else
+                                            -
+                                        @endif
                                     </td>
                                 @endforeach
                             </tr>
