@@ -6,7 +6,7 @@
 
     <!-- Cards Stack -->
     <div class="max-w-2xl mx-auto space-y-4">
-        @forelse($paintingExitRecords as $index => $record)
+        @forelse($recentExitRecords as $index => $record)
             <div
                 class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
                 <div class="p-6">

@@ -9,28 +9,27 @@ use Livewire\Component;
 
 class PaintingProcessExit extends Component
 {
-    public $paintingExitRecords;
+    public $recentExitRecords;
 
     public function mount()
     {
-        $this->loadPaintingExitRecords();
+        $this->loadRecentExits();
     }
 
-    public function refreshPaintingExitTable()
+    #[On('echo:material-exit-registered,ProductionRecord\MaterialExitRegistered')]
+    public function refreshRecentExits()
     {
-        $this->loadPaintingExitRecords();
+        $this->loadRecentExits();
     }
 
-    public function loadPaintingExitRecords()
+    public function loadRecentExits()
     {
-        $twoAndAHalfHours = Carbon::now()->addHours(2)->addMinutes(30);
+        $twoAndAHalfHoursAgo = Carbon::now()->subHours(2)->subMinutes(30);
 
-        $this->paintingExitRecords = ProductionRecord::with([
-            'partNumber',
-        ])
+        $this->recentExitRecords = ProductionRecord::with(['partNumber'])
             ->where('record_type', 'exit')
-            ->where('created_at', '<=', $twoAndAHalfHours)
-            ->orderBy('created_at', 'asc')
+            ->where('created_at', '>=', $twoAndAHalfHoursAgo)
+            ->orderByDesc('created_at')
             ->limit(10)
             ->get();
     }

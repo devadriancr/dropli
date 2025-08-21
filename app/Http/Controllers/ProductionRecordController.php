@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\ProductionRecord\MaterialEntryRegistered;
+use App\Events\ProductionRecord\MaterialExitRegistered;
 use App\Http\Requests\StoreEntryScanRequest;
 use App\Http\Requests\StoreExitScanRequest;
 use App\Models\FSO;
@@ -110,15 +111,15 @@ class ProductionRecordController extends Controller
 
         event(new MaterialEntryRegistered());
 
-        if ($productionPlan->produced_quantity == 0) {
-            $status = Status::where('key', 'in_progress')->first();
-            $productionPlan->update([
-                'produced_quantity' => $quantity,
-                'status_id' => $status->id ?? $productionPlan->status_id,
-            ]);
-        } else {
-            $productionPlan->increment('produced_quantity', intval($quantity));
-        }
+        // if ($productionPlan->produced_quantity == 0) {
+        //     $status = Status::where('key', 'in_progress')->first();
+        //     $productionPlan->update([
+        //         'produced_quantity' => $quantity,
+        //         'status_id' => $status->id ?? $productionPlan->status_id,
+        //     ]);
+        // } else {
+        //     $productionPlan->increment('produced_quantity', intval($quantity));
+        // }
 
         return $redirect->with('success', 'Etiqueta registrada correctamente');
     }
@@ -252,6 +253,18 @@ class ProductionRecordController extends Controller
             }
 
             ProductionRecord::store($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'exit');
+
+            event(new MaterialExitRegistered());
+
+            // if ($productionPlan->produced_quantity == 0) {
+            //     $status = Status::where('key', 'in_progress')->first();
+            //     $productionPlan->update([
+            //         'produced_quantity' => $quantity,
+            //         'status_id' => $status->id ?? $productionPlan->status_id,
+            //     ]);
+            // } else {
+            //     $productionPlan->increment('produced_quantity', intval($quantity));
+            // }
 
             return redirect()->route('production-records.exit-scan')->with('success', 'Etiqueta registrada correctamente');
         }

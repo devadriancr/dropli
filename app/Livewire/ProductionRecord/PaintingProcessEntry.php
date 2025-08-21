@@ -24,11 +24,11 @@ class PaintingProcessEntry extends Component
 
     protected function loadRecentEntries()
     {
-        $twoHoursAgo = Carbon::now()->subHours(2);
+        $twoAndAHalfHoursAgo = Carbon::now()->subHours(2)->subMinutes(30);
 
         $this->recentEntryRecords = ProductionRecord::with('partNumber')
             ->where('record_type', 'entry')
-            ->where('created_at', '>=', $twoHoursAgo)
+            ->where('created_at', '>=', $twoAndAHalfHoursAgo)
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
