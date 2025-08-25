@@ -115,7 +115,7 @@ class PaintProductionRecord extends Component
                 }
 
                 $groupedPlans[$partNumber] = [
-                    'work_center' => $plan->partNumber->workCenter->name,
+                    'line_name' => $plan->partNumber->previousProcesses->first()->workCenter->area->name ?? '-',
                     'part_number' => $partNumber,
                     'standard_pack' => $plan->partNumber->standardPack->name,
                     'standard_pack_quantity' => $plan->partNumber->standard_pack_quantity,
@@ -164,6 +164,10 @@ class PaintProductionRecord extends Component
         }
 
         usort($groupedPlans, function ($a, $b) {
+            $lineCompare = strcmp($a['line_name'], $b['line_name']);
+            if ($lineCompare !== 0) {
+                return $lineCompare;
+            }
             return strcmp($a['part_number'], $b['part_number']);
         });
 

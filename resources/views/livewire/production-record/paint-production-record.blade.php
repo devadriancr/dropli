@@ -91,7 +91,7 @@
                             <!-- Columnas fijas -->
                             <td rowspan="3"
                                 class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
-                                {{ $record['work_center'] }}
+                                {{ $record['line_name'] }}
                             </td>
                             <td rowspan="3"
                                 class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border">
