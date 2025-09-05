@@ -321,63 +321,100 @@ return [
         //     'can' => 'manage-blog',
         // ],
         [
-            'header' => 'ADMINISTRACIÓN',
+            'header' => 'CONFIGURACIÓN',
         ],
         [
-            'text' => 'Usuarios',
-            'route'  => 'users.index',
-            'icon' => 'fas fa-user',
-        ],
-        [
-            'text' => 'Clientes',
-            'route' => 'customers.index',
-            'icon' => 'fas fa-fw fa-users',
-        ],
-        [
-            'text' => 'Proyectos',
-            'route' => 'projects.index',
-            'icon' => 'fas fa-fw fa-project-diagram',
-        ],
-        [
-            'text' => 'Prefijos de Proyecto',
-            'route' => 'project-prefixes.index',
-            'icon' => 'fas fa-fw fa-tags',
+            'text' => 'Identidad y Acceso',
+            'icon' => 'fas fa-fw fa-shield-alt',
+            'submenu' => [
+                [
+                    'text' => 'Usuarios',
+                    'route'  => 'users.index',
+                    'icon' => 'fas fa-user',
+                ],
+            ],
         ],
 
         [
-            'text' => 'Clases de Ítems',
-            'route' => 'item-classes.index',
-            'icon' => 'fas fa-fw fa-box',
+            'text' => 'Configuración del Sistema',
+            'icon' => 'fas fa-fw fa-sitemap',
+            'submenu' => [
+                [
+                    'text' => 'Clientes',
+                    'route' => 'customers.index',
+                    'icon' => 'fas fa-fw fa-users',
+                ],
+                [
+                    'text' => 'Proyectos',
+                    'route' => 'projects.index',
+                    'icon' => 'fas fa-fw fa-project-diagram',
+                ],
+                [
+                    'text' => 'Prefijos de Proyecto',
+                    'route' => 'project-prefixes.index',
+                    'icon' => 'fas fa-fw fa-tags',
+                ],
+                [
+                    'text' => 'Departamentos',
+                    'route' => 'departments.index',
+                    'icon' => 'fas fa-fw fa-building',
+                ],
+                [
+                    'text' => 'Áreas',
+                    'route' => 'areas.index',
+                    'icon' => 'fas fa-fw fa-map-marker-alt',
+                ],
+                [
+                    'text' => 'Centros de Trabajo',
+                    'route' => 'work-centers.index',
+                    'icon' => 'fas fa-fw fa-industry',
+                ],
+                [
+                    'text' => 'Turnos',
+                    'route' => 'shifts.index',
+                    'icon' => 'fas fa-fw fa-clock',
+                ],
+                [
+                    'text' => 'Clases de Ítems',
+                    'route' => 'item-classes.index',
+                    'icon' => 'fas fa-fw fa-box',
+                ],
+                [
+                    'text' => 'Paquetes Estándar',
+                    'route' => 'standard-packs.index',
+                    'icon' => 'fas fa-fw fa-cubes',
+                ],
+                [
+                    'text' => 'Números de Parte',
+                    'route' => 'part-numbers.index',
+                    'icon' => 'fas fa-fw fa-shapes',
+                ],
+                [
+                    'text' => 'Tipos de Paro',
+                    'route' => 'downtime-types.index',
+                    'icon' => 'fas fa-fw fa-stopwatch',
+                ],
+                [
+                    'text' => 'Razones de Paro',
+                    'route' => 'downtime-reasons.index',
+                    'icon' => 'fas fa-fw fa-exclamation-circle',
+                ],
+                [
+                    'text' => 'Categorías de Scrap',
+                    'route' => 'scrap-categories.index',
+                    'icon' => 'fas fa-fw fa-layer-group',
+                ],
+                [
+                    'text' => 'Razones de Scrap',
+                    'route' => 'scrap-reasons.index',
+                    'icon' => 'fas fa-fw fa-ban',
+                ],
+
+            ]
         ],
+
         [
-            'text' => 'Paquetes Estándar',
-            'route' => 'standard-packs.index',
-            'icon' => 'fas fa-fw fa-cubes',
-        ],
-        [
-            'text' => 'Departamentos',
-            'route' => 'departments.index',
-            'icon' => 'fas fa-fw fa-building',
-        ],
-        [
-            'text' => 'Áreas',
-            'route' => 'areas.index',
-            'icon' => 'fas fa-fw fa-map-marker-alt',
-        ],
-        [
-            'text' => 'Centros de Trabajo',
-            'route' => 'work-centers.index',
-            'icon' => 'fas fa-fw fa-industry',
-        ],
-        [
-            'text' => 'Números de Parte',
-            'route' => 'part-numbers.index',
-            'icon' => 'fas fa-fw fa-shapes',
-        ],
-        [
-            'text' => 'Turnos',
-            'route' => 'shifts.index',
-            'icon' => 'fas fa-fw fa-clock',
+            'header' => 'PRODUCCIÓN',
         ],
         [
             'text' => 'Plan de Producción',
@@ -390,19 +427,14 @@ return [
             'icon' => 'fas fa-fw fa-clipboard-list',
         ],
         [
-            'text' => 'Tipos de Paro',
-            'route' => 'downtime-types.index',
-            'icon' => 'fas fa-fw fa-stopwatch',
-        ],
-        [
-            'text' => 'Razones de Paro',
-            'route' => 'downtime-reasons.index',
-            'icon' => 'fas fa-fw fa-exclamation-circle',
-        ],
-        [
             'text' => 'Registros de Paro',
             'route' => 'downtime-records.index',
             'icon' => 'fas fa-fw fa-history',
+        ],
+        [
+            'text' => 'Registros de Scrap',
+            'route' => 'scrap-records.index',
+            'icon' => 'fas fa-fw fa-trash-alt',
         ],
 
         // [

@@ -32,6 +32,9 @@ Route::middleware([
     Route::resource('downtime-types', App\Http\Controllers\DowntimeTypeController::class);
     Route::resource('downtime-reasons', App\Http\Controllers\DowntimeReasonController::class);
     Route::resource('downtime-records', App\Http\Controllers\DowntimeRecordController::class);
+    Route::resource('scrap-categories', App\Http\Controllers\ScrapCategoryController::class);
+    Route::resource('scrap-reasons', App\Http\Controllers\ScrapReasonController::class);
+    Route::resource('scrap-records', App\Http\Controllers\ScrapRecordController::class);
 });
 
 Route::get('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'entryScan'])->name('production-records.entry-scan');

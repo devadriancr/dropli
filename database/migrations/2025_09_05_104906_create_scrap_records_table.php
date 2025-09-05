@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('scrap_records', function (Blueprint $table) {
-            Schema::create('scrap_records', function (Blueprint $table) {
             $table->id();
             $table->foreignId('part_number_id')->nullable()->constrained('part_numbers');
             $table->foreignId('scrap_reason_id')->nullable()->constrained('scrap_reasons');
@@ -21,7 +20,6 @@ return new class extends Migration
 
             $table->index(['part_number_id', 'scrap_reason_id']);
             $table->index('created_at');
-        });
         });
     }
 
