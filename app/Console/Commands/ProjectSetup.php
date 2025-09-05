@@ -36,6 +36,7 @@ class ProjectSetup extends Command
         ['Ejecutando AreaSeeder', 'db:seed', ['--class' => 'AreaSeeder']],
         ['Obteniendo información del part number', 'infor:part-number', []],
         ['Obteniendo información del next process', 'infor:next-process', []],
+        ['Ejecutando DowntimeSeeder', 'db:seed', ['--class' => 'DowntimeSeeder']],
     ];
 
     /**

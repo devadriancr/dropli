@@ -324,6 +324,11 @@ return [
             'header' => 'ADMINISTRACIÓN',
         ],
         [
+            'text' => 'Usuarios',
+            'route'  => 'users.index',
+            'icon' => 'fas fa-user',
+        ],
+        [
             'text' => 'Clientes',
             'route' => 'customers.index',
             'icon' => 'fas fa-fw fa-users',
@@ -359,7 +364,7 @@ return [
             'route' => 'areas.index',
             'icon' => 'fas fa-fw fa-map-marker-alt',
         ],
-                [
+        [
             'text' => 'Centros de Trabajo',
             'route' => 'work-centers.index',
             'icon' => 'fas fa-fw fa-industry',
@@ -383,6 +388,21 @@ return [
             'text' => 'Registros de Producción',
             'route' => 'production-records.index',
             'icon' => 'fas fa-fw fa-clipboard-list',
+        ],
+        [
+            'text' => 'Tipos de Paro',
+            'route' => 'downtime-types.index',
+            'icon' => 'fas fa-fw fa-stopwatch',
+        ],
+        [
+            'text' => 'Razones de Paro',
+            'route' => 'downtime-reasons.index',
+            'icon' => 'fas fa-fw fa-exclamation-circle',
+        ],
+        [
+            'text' => 'Registros de Paro',
+            'route' => 'downtime-records.index',
+            'icon' => 'fas fa-fw fa-history',
         ],
 
         // [

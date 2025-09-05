@@ -22,7 +22,7 @@ class PartNumber extends Model
     ];
 
     /**
-     *
+     * Get the item class that owns the part number
      */
     public function itemClass(): BelongsTo
     {
@@ -30,7 +30,7 @@ class PartNumber extends Model
     }
 
     /**
-     *
+     * Get the work center that owns the part number
      */
     public function workCenter(): BelongsTo
     {
@@ -38,7 +38,7 @@ class PartNumber extends Model
     }
 
     /**
-     *
+     * Get the standard pack that owns the part number
      */
     public function standardPack(): BelongsTo
     {
@@ -46,7 +46,7 @@ class PartNumber extends Model
     }
 
     /**
-     *
+     * Get the projects that belong to the part number
      */
     public function projects(): BelongsToMany
     {
@@ -54,7 +54,7 @@ class PartNumber extends Model
     }
 
     /**
-     *
+     * Get the production plans for the part number
      */
     public function productionPlans(): HasMany
     {
@@ -62,13 +62,24 @@ class PartNumber extends Model
     }
 
     /**
-     *
+     * Get the scrap records for the part number
+     */
+    public function scrapRecords(): HasMany
+    {
+        return $this->hasMany(ScrapRecord::class, 'part_number_id');
+    }
+
+    /**
+     * Get the production records for the part number
      */
     public function productionRecords(): HasMany
     {
         return $this->hasMany(ProductionRecord::class, 'part_number_id');
     }
 
+    /**
+     * Get the next processes in the sequence
+     */
     public function nextProcesses()
     {
         return $this->belongsToMany(
@@ -83,6 +94,9 @@ class PartNumber extends Model
             ->orderBy('pivot_sequence_order');
     }
 
+    /**
+     * Get the previous processes in the sequence
+     */
     public function previousProcesses()
     {
         return $this->belongsToMany(

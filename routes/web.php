@@ -15,6 +15,8 @@ Route::middleware([
         return view('home');
     })->name('home');
 
+    Route::resource('users', App\Http\Controllers\UserController::class);
+
     Route::resource('customers', App\Http\Controllers\CustomerController::class)->except(['show']);
     Route::resource('projects', App\Http\Controllers\ProjectController::class)->except(['show']);
     Route::resource('project-prefixes', App\Http\Controllers\ProjectPrefixController::class)->except(['show']);
@@ -27,6 +29,9 @@ Route::middleware([
     Route::resource('shifts', App\Http\Controllers\ShiftController::class)->except(['show']);
     Route::resource('production-plans', App\Http\Controllers\ProductionPlanController::class)->except(['show']);
     Route::resource('production-records', App\Http\Controllers\ProductionRecordController::class)->except(['show']);
+    Route::resource('downtime-types', App\Http\Controllers\DowntimeTypeController::class);
+    Route::resource('downtime-reasons', App\Http\Controllers\DowntimeReasonController::class);
+    Route::resource('downtime-records', App\Http\Controllers\DowntimeRecordController::class);
 });
 
 Route::get('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'entryScan'])->name('production-records.entry-scan');
