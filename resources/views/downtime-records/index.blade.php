@@ -17,7 +17,8 @@
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert' aria-label="Close"></button>
+            {{-- CORREGIDO: Faltaba comilla de cierre --}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
@@ -38,7 +39,7 @@
                     </form>
                 </div>
 
-                <!-- Botón Agregar con espaciado corregido -->
+                <!-- Botón Agregar -->
                 <a href="{{ route('downtime-records.create') }}" class="btn btn-primary rounded-3">
                     <i class="fas fa-plus me-2"></i>
                     <span>Agregar nuevo</span>
@@ -50,7 +51,7 @@
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+                    <thead class="bg-light sticky-top">
                         <tr>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Centro de Trabajo') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Razón') }}</th>
@@ -95,10 +96,10 @@
                                     </span>
                                 </td>
                                 <td class="py-3 small">
-                                    {{ $record->start_time ? \Carbon\Carbon::parse($record->start_time)->format('Y-m-d H:i') : ''}}
+                                    {{ $record->start_time ? \Carbon\Carbon::parse($record->start_time)->format('Y-m-d H:i') : '-' }}
                                 </td>
                                 <td class="py-3 small">
-                                    {{ $record->end_time ? \Carbon\Carbon::parse($record->end_time)->format('Y-m-d H:i') : ''}}
+                                    {{ $record->end_time ? \Carbon\Carbon::parse($record->end_time)->format('Y-m-d H:i') : '-' }}
                                 </td>
                                 <td class="py-3">
                                     <div class="d-flex gap-2">
@@ -147,52 +148,9 @@
                         {{ $downtimeRecords->total() }} resultados
                     </div>
 
-                    <!-- Controles de paginación -->
+                    <!-- Controles de paginación simplificados -->
                     @if ($downtimeRecords->hasPages())
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination mb-0">
-                                {{-- Previous Page Link --}}
-                                @if ($downtimeRecords->onFirstPage())
-                                    <li class="page-item disabled">
-                                        <span class="page-link" aria-hidden="true">&laquo;</span>
-                                    </li>
-                                @else
-                                    <li class="page-item">
-                                        <a class="page-link" href="{{ $downtimeRecords->previousPageUrl() }}" rel="prev"
-                                            aria-label="Previous">
-                                            &laquo;
-                                        </a>
-                                    </li>
-                                @endif
-
-                                {{-- Pagination Elements --}}
-                                @foreach ($downtimeRecords->getUrlRange(1, $downtimeRecords->lastPage()) as $page => $url)
-                                    @if ($page == $downtimeRecords->currentPage())
-                                        <li class="page-item active" aria-current="page">
-                                            <span class="page-link">{{ $page }}</span>
-                                        </li>
-                                    @else
-                                        <li class="page-item">
-                                            <a class="page-link" href="{{ $url }}">{{ $page }}</a>
-                                        </li>
-                                    @endif
-                                @endforeach
-
-                                {{-- Next Page Link --}}
-                                @if ($downtimeRecords->hasMorePages())
-                                    <li class="page-item">
-                                        <a class="page-link" href="{{ $downtimeRecords->nextPageUrl() }}" rel="next"
-                                            aria-label="Next">
-                                            &raquo;
-                                        </a>
-                                    </li>
-                                @else
-                                    <li class="page-item disabled">
-                                        <span class="page-link" aria-hidden="true">&raquo;</span>
-                                    </li>
-                                @endif
-                            </ul>
-                        </nav>
+                        {{ $downtimeRecords->links('pagination::bootstrap-4') }}
                     @endif
                 </div>
             </div>
@@ -207,21 +165,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Aplicar fuente a todo el sistema */
-        body,
-        .main-header,
-        .main-sidebar,
-        .content-wrapper,
+        /* Aplicar fuente a elementos específicos sin afectar AdminLTE */
         .card,
         .btn,
         .form-control,
         .table,
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6 {
+        .content-header h1 {
             font-family: 'Roboto', sans-serif !important;
         }
 
@@ -281,7 +230,7 @@
         /* Badges simétricos */
         .badge-status {
             display: inline-block;
-            min-width: 90px;
+            min-width: 60px;
             padding: 0.5em 0.75em;
             text-align: center;
             border-radius: 12px;
@@ -331,7 +280,7 @@
             margin-bottom: 0;
         }
 
-        /* Estilos para los botones de acción - ESPACIADO CORREGIDO */
+        /* Estilos para los botones de acción */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -340,7 +289,7 @@
         }
 
         .btn i {
-            margin-right: 0.5rem; /* Espaciado entre icono y texto */
+            margin-right: 0.5rem;
         }
 
         .btn-sm {
@@ -370,33 +319,35 @@
 
 @section('js')
     <script>
-        // Confirmación antes de eliminar - CORREGIDO
+        // Confirmación antes de eliminar
         document.addEventListener('DOMContentLoaded', function() {
-            // Verificar si SweetAlert2 está disponible
-            if (typeof Swal === 'undefined') {
-                console.error('SweetAlert2 no está disponible. Asegúrate de que esté incluido en AdminLTE.');
-                return;
-            }
-
             // Agregar event listener a todos los formularios de eliminación
             document.querySelectorAll('.delete-form').forEach(form => {
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
 
-                    Swal.fire({
-                        title: '¿Estás seguro?',
-                        text: "¡No podrás revertir esta acción!",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#3085d6',
-                        cancelButtonColor: '#d33',
-                        confirmButtonText: 'Sí, eliminar',
-                        cancelButtonText: 'Cancelar'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
+                    // Usar SweetAlert2 si está disponible, sino usar confirm nativo
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: '¿Estás seguro?',
+                            text: "¡No podrás revertir esta acción!",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Sí, eliminar',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                this.submit();
+                            }
+                        });
+                    } else {
+                        // Fallback a confirm nativo
+                        if (confirm('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
                             this.submit();
                         }
-                    });
+                    }
                 });
             });
 
@@ -404,7 +355,7 @@
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => {
-                    if (bootstrap && bootstrap.Alert) {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
                         const bsAlert = new bootstrap.Alert(alert);
                         bsAlert.close();
                     }
