@@ -1,17 +1,20 @@
 @extends('adminlte::page')
 
-@section('title', 'Dashboard - Producción')
+@section('title', 'Dashboard')
+
+@section('content_header')
+    <h1>Dashboard</h1>
+@stop
 
 @section('content')
-    <div class="container-fluid">
-        <div class="row p-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <livewire:production-record.paint-production-chart />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <p>Welcome to this beautiful admin panel.</p>
+@stop
+
+@section('css')
+    {{-- Add here extra stylesheets --}}
+    {{-- <link rel="stylesheet" href="/css/admin_custom.css"> --}}
+@stop
+
+@section('js')
+    <script> console.log("Hi, I'm using the Laravel-AdminLTE package!"); </script>
 @stop

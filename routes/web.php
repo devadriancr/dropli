@@ -11,9 +11,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/home', function () {
-        return view('home');
-    })->name('home');
+    Route::resource('home',  App\Http\Controllers\HomeController::class);;
 
     Route::resource('users', App\Http\Controllers\UserController::class);
 
