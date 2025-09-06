@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\DowntimeRecord;
+use App\Models\PartNumber;
 use App\Models\ProductionPlan;
+use App\Models\ProductionRecord;
 use App\Models\ScrapRecord;
 use App\Models\Shift;
 use Carbon\Carbon;
@@ -44,6 +46,50 @@ class HomeController extends Controller
 
         $totalScrap = $scrapRecords->sum('quantity');
 
+        // Ganchos
+        $productionRecords = ProductionRecord::with(['partNumber'])
+            ->where('record_type', 'entry')
+            ->whereBetween('created_at', [$start, $end])
+            ->get();
+
+        $quantityByPartNumber = [];
+        $hooksByPartNumber = [];
+
+        foreach ($productionRecords as $record) {
+            $partNumberId = $record->part_number_id;
+
+            if (!isset($quantityByPartNumber[$partNumberId])) {
+                $quantityByPartNumber[$partNumberId] = 0;
+            }
+
+            $quantityByPartNumber[$partNumberId] += $record->quantity;
+        }
+
+        foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
+            $partNumber = PartNumber::find($partNumberId);
+
+            if ($partNumber) {
+                $piecesPerHook = $partNumber->getCustomAttributeValue('pieces_per_hook');
+
+                if ($piecesPerHook && $piecesPerHook > 0) {
+                    $hooksByPartNumber[$partNumberId] = [
+                        'part_number' => $partNumber->number,
+                        'total_quantity' => $totalQuantity,
+                        'pieces_per_hook' => $piecesPerHook,
+                        'total_hooks' => $totalQuantity / $piecesPerHook
+                    ];
+                }
+            }
+        }
+
+        dd($hooksByPartNumber //este es el chido
+        , $quantityByPartNumber);
+
+        $totalQuantityGeneral = array_sum($quantityByPartNumber); // Cantidad Total Por Numero de Parte
+        $totalHooksGeneral = array_sum(array_column($hooksByPartNumber, 'total_hooks')); // Ganchos Primarios
+        $totalHooksGeneral = round($totalHooksGeneral, 2);
+
+        dd($totalQuantityGeneral, $totalHooksGeneral, $totalHooksGeneral);
 
         // Grafica
         $productionPlans = ProductionPlan::with(['partNumber'])

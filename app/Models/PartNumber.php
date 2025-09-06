@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class PartNumber extends Model
 {
@@ -78,6 +79,14 @@ class PartNumber extends Model
     }
 
     /**
+     * Get all attributes for the part number
+     */
+    public function attributes(): MorphMany
+    {
+        return $this->morphMany(Attribute::class, 'attributable');
+    }
+
+    /**
      * Get the next processes in the sequence
      */
     public function nextProcesses()
@@ -108,5 +117,56 @@ class PartNumber extends Model
             ->using(PartNumberSequence::class)
             ->withPivot('sequence_order', 'lead_time_hours', 'is_active')
             ->wherePivot('is_active', true);
+    }
+
+    /**
+     * Get a specific custom attribute value
+     */
+    public function getCustomAttributeValue(string $key)
+    {
+        $attribute = $this->attributes()->where('attribute_key', $key)->first();
+        return $attribute ? $attribute->cast_value : null;
+    }
+
+    /**
+     * Set a custom attribute value
+     */
+    public function setCustomAttributeValue(string $key, $value, ?string $dataType = null)
+    {
+        if (!$dataType) {
+            $dataType = $this->detectDataType($value);
+        }
+
+        $this->attributes()->updateOrCreate(
+            ['attribute_key' => $key],
+            [
+                'attribute_value' => $this->formatValue($value, $dataType),
+                'data_type' => $dataType
+            ]
+        );
+    }
+
+    /**
+     * Detect data type from value
+     */
+    protected function detectDataType($value): string
+    {
+        if (is_int($value)) return 'integer';
+        if (is_float($value)) return 'double';
+        if (is_bool($value)) return 'boolean';
+        if (is_array($value)) return 'array';
+        return 'string';
+    }
+
+    /**
+     * Format value for storage
+     */
+    protected function formatValue($value, string $dataType): string
+    {
+        return match ($dataType) {
+            'boolean' => $value ? 'true' : 'false',
+            'array' => json_encode($value),
+            default => (string) $value,
+        };
     }
 }
