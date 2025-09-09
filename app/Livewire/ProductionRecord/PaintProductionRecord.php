@@ -48,6 +48,9 @@ class PaintProductionRecord extends Component
             ])
             ->where('shift_id', $this->shift->id)
             ->whereDate('planned_date', $this->date)
+            ->whereHas('partNumber.workCenter.area', function ($query) {
+                $query->where('number', '141010');
+            })
             ->orderBy('part_number_id', 'asc')
             ->get();
 

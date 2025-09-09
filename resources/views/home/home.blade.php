@@ -64,11 +64,27 @@
                         <div>
                             <h5 class="card-title mb-1">Total de Piezas de Scrap</h5>
                         </div>
-                        <div class="text-secondary">
-                            <i class="fas fa-shapes fa-2x"></i>
+                        <div class="text-danger">
+                            <i class="fas fa-trash-alt fa-2x"></i>
                         </div>
                     </div>
                     <h3 class="mt-3 mb-0">{{ $totalScrap }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Total de Ganchos Primarios Utilizados</h5>
+                        </div>
+                        <div class="text-secondary">
+                            <i class="fas fa-paint-roller fa-2x"></i>
+                        </div>
+                    </div>
+                    <h3 class="mt-3 mb-0">{{ $totalHooksUsed }}</h3>
                 </div>
             </div>
         </div>
@@ -115,7 +131,8 @@
 
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    <!-- Reemplaza con tu propio kit de FontAwesome -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             var ctx = document.getElementById('productionChart').getContext('2d');

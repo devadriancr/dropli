@@ -82,14 +82,9 @@ class HomeController extends Controller
             }
         }
 
-        dd($hooksByPartNumber //este es el chido
-        , $quantityByPartNumber);
-
-        $totalQuantityGeneral = array_sum($quantityByPartNumber); // Cantidad Total Por Numero de Parte
-        $totalHooksGeneral = array_sum(array_column($hooksByPartNumber, 'total_hooks')); // Ganchos Primarios
-        $totalHooksGeneral = round($totalHooksGeneral, 2);
-
-        dd($totalQuantityGeneral, $totalHooksGeneral, $totalHooksGeneral);
+        $totalHooksUsed = array_sum($quantityByPartNumber);
+        // $totalPaintedParts = array_sum(array_column($hooksByPartNumber, 'total_hooks'));
+        // $totalPaintedParts = round($totalPaintedParts, 2);
 
         // Grafica
         $productionPlans = ProductionPlan::with(['partNumber'])
@@ -120,7 +115,8 @@ class HomeController extends Controller
             'effectiveProductionTime',
             'totalDowntimeMinutes',
             'totalDowntimeCount',
-            'totalScrap'
+            'totalScrap',
+            'totalHooksUsed',
         ));
     }
 }
