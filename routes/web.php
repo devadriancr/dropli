@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ScrapRecordController;
 
 Route::get('/', function () {
     return redirect()->route('production-records.summary');
@@ -12,9 +13,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::resource('home',  App\Http\Controllers\HomeController::class);;
-
     Route::resource('users', App\Http\Controllers\UserController::class);
-
     Route::resource('customers', App\Http\Controllers\CustomerController::class)->except(['show']);
     Route::resource('projects', App\Http\Controllers\ProjectController::class)->except(['show']);
     Route::resource('project-prefixes', App\Http\Controllers\ProjectPrefixController::class)->except(['show']);
@@ -33,6 +32,22 @@ Route::middleware([
     Route::resource('scrap-categories', App\Http\Controllers\ScrapCategoryController::class);
     Route::resource('scrap-reasons', App\Http\Controllers\ScrapReasonController::class);
     Route::resource('scrap-records', App\Http\Controllers\ScrapRecordController::class);
+});
+
+Route::prefix('guest')->group(function () {
+    Route::get('production-records-summary', function () {
+        return view('guest.painting-production-summary');
+    })->name('production-records.summary');
+
+    Route::get('scrap-records/create', [ScrapRecordController::class, 'create'])
+        ->name('guest.scrap-records.create');
+    Route::post('scrap-records', [ScrapRecordController::class, 'store'])
+        ->name('guest.scrap-records.store');
+
+    Route::get('downtime-records/create', [App\Http\Controllers\DowntimeRecordController::class, 'create'])
+        ->name('guest.downtime-records.create');
+    Route::post('downtime-records', [App\Http\Controllers\DowntimeRecordController::class, 'store'])
+        ->name('guest.downtime-records.store');
 });
 
 Route::get('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'entryScan'])->name('production-records.entry-scan');

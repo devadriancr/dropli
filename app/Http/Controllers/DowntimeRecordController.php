@@ -45,9 +45,17 @@ class DowntimeRecordController extends Controller
             ->orderBy('code')
             ->get();
 
-        $workCenters = Auth::user()->workCenters;
+        if (Auth::check()) {
+            $workCenters = Auth::user()->workCenters;
+        } else {
+            // Para invitados, mostrar solo el work center específico (número 141010)
+            $workCenters = WorkCenter::where('number', '141010')->get();
+        }
 
-        return view('downtime-records.create', compact('downtimeReasons', 'workCenters'));
+        // Determinar qué vista usar según si es usuario autenticado o invitado
+        $view = Auth::check() ? 'downtime-records.create' : 'guest.downtime-records.create';
+
+        return view($view, compact('downtimeReasons', 'workCenters'));
     }
 
     /**
@@ -66,11 +74,17 @@ class DowntimeRecordController extends Controller
         try {
             DowntimeRecord::create($request->all());
 
-            return redirect()->route('downtime-records.index')
-                ->with('success', 'Registro de tiempo muerto creado exitosamente.');
+            // Redirigir según la ruta de origen
+            if ($request->is('guest/*')) {
+                return redirect()->route('guest.downtime-records.create')
+                    ->with('success', 'Registro de paro creado exitosamente.');
+            } else {
+                return redirect()->route('downtime-records.index')
+                    ->with('success', 'Registro de tiempo muerto creado exitosamente.');
+            }
         } catch (\Exception $e) {
             return redirect()->back()
-                ->with('error', 'Error al crear el registro de tiempo muerto: ' . $e->getMessage())
+                ->with('error', 'Error al crear el registro de paro: ' . $e->getMessage())
                 ->withInput();
         }
     }

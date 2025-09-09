@@ -39,13 +39,23 @@ class ScrapRecordController extends Controller
      */
     public function create()
     {
-        $workCenterIds = Auth::user()->workCenters->pluck('id');
-        $partNumbers = PartNumber::whereIn('work_center_id', $workCenterIds)
-            ->orderBy('number')
-            ->get();
+        if (Auth::check()) {
+            $workCenterIds = Auth::user()->workCenters->pluck('id');
+            $partNumbers = PartNumber::whereIn('work_center_id', $workCenterIds)
+                ->orderBy('number')
+                ->get();
+        } else {
+            $partNumbers = PartNumber::with(['workCenter'])
+                ->whereHas('workCenter', function ($query) {
+                    $query->where('number', '141010');
+                })->orderBy('number')->get();
+        }
+
         $scrapReasons = ScrapReason::orderBy('code')->get();
 
-        return view('scrap-records.create', compact('partNumbers', 'scrapReasons'));
+        $view = Auth::check() ? 'scrap-records.create' : 'guest.scrap-records.create';
+
+        return view($view, compact('partNumbers', 'scrapReasons'));
     }
 
     /**
@@ -62,8 +72,14 @@ class ScrapRecordController extends Controller
         try {
             ScrapRecord::create($validated);
 
-            return redirect()->route('scrap-records.index')
-                ->with('success', 'Registro de scrap creado exitosamente.');
+            // Redirigir según la ruta de origen
+            if ($request->is('guest/*')) {
+                return redirect()->route('guest.scrap-records.create')
+                    ->with('success', 'Registro de scrap creado exitosamente.');
+            } else {
+                return redirect()->route('scrap-records.index')
+                    ->with('success', 'Registro de scrap creado exitosamente.');
+            }
         } catch (\Exception $e) {
             return redirect()->back()
                 ->with('error', 'Error al crear el registro: ' . $e->getMessage())

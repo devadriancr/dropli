@@ -1,14 +1,32 @@
 <x-guest-layout>
     <div class="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
-        <!-- Header con título y botón en línea -->
+        <!-- Header con título y botones en línea -->
         <div class="w-full max-w-3xl flex justify-between items-center mb-2">
             <h1 class="text-3xl font-bold text-gray-900">Entrada de Material</h1>
-            <!-- <a href="{{ route('production-records.part-number-entry') }}" class="inline-flex items-center justify-center gap-2 w-full max-w-[200px] py-2 text-white bg-gray-700 hover:bg-gray-800 rounded-lg text-sm transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                </svg>
-                Captura Manual
-            </a> -->
+
+            <div class="flex gap-2">
+                <!-- Botón de Paros de Línea -->
+                <a href="{{ route('guest.downtime-records.create') }}" class="inline-flex items-center gap-2 px-4 py-2 text-gray-900 border border-gray-700 rounded-md hover:border-gray-800 hover:bg-gray-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Paros de Línea
+                </a>
+
+                <!-- Botón de Scrap -->
+                <a href="{{ route('guest.scrap-records.create') }}" class="inline-flex items-center gap-2 px-4 py-2 text-red-600 border border-red-500 rounded-md hover:border-red-600 hover:bg-red-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Scrap
+                </a>
+                <!-- <a href="{{ route('production-records.part-number-entry') }}" class="inline-flex items-center justify-center gap-2 w-full max-w-[200px] py-2 text-white bg-gray-700 hover:bg-gray-800 rounded-lg text-sm transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                    </svg>
+                    Captura Manual
+                </a> -->
+            </div>
         </div>
 
         <!-- Card principal -->

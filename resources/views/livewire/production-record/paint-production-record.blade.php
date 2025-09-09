@@ -30,14 +30,6 @@
                             {{ $shift->start_time }} - {{ $shift->end_time }}
                         </span>
                     @endif
-
-                    <!-- Botón de Paro de Línea -->
-                    <a href="" class="inline-flex items-center px-4 py-1.5 text-sm font-medium text-[#1b1b18] border border-[#19140035] hover:border-[#1915014a] rounded-md">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Paro de Línea
-                    </a>
                 </div>
             </div>
         </div>
@@ -74,10 +66,6 @@
                                 {{ $header }}
                             </th>
                         @endforeach
-
-                        <th class="sticky top-0 px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
-
-                        </th>
                     </tr>
                     </thead>
                     <tbody class="bg-white">
@@ -124,14 +112,6 @@
                                     @endif
                                 </td>
                             @endforeach
-
-                            <td rowspan="2" class="px-4 py-2 whitespace-nowrap text-sm text-center border">
-                                <a class="inline-flex items-center p-2 text-red-600 border border-red-500 rounded-md hover:border-red-600 hover:bg-red-50 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </a>
-                            </td>
                         </tr>
 
                         <!-- Fila de Salida -->
