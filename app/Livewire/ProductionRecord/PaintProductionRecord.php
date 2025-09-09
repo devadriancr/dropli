@@ -83,39 +83,39 @@ class PaintProductionRecord extends Component
             $partNumber = $plan->partNumber->number;
 
             if (!isset($groupedPlans[$partNumber])) {
-                $hoursCount = count($this->timeHeaders);
+                // $hoursCount = count($this->timeHeaders);
 
-                $planDistribution = [];
-                if ($hoursCount > 0) {
-                    $standardPackQuantity = $plan->partNumber->standard_pack_quantity;
-                    $plannedQuantity = $plan->planned_quantity;
+                // $planDistribution = [];
+                // if ($hoursCount > 0) {
+                //     $standardPackQuantity = $plan->partNumber->standard_pack_quantity;
+                //     $plannedQuantity = $plan->planned_quantity;
 
-                    if ($plannedQuantity > 0 && $standardPackQuantity > 0) {
-                        $baseQuantity = floor($plannedQuantity / $hoursCount);
+                //     if ($plannedQuantity > 0 && $standardPackQuantity > 0) {
+                //         $baseQuantity = floor($plannedQuantity / $hoursCount);
 
-                        $adjustedBase = floor($baseQuantity / $standardPackQuantity) * $standardPackQuantity;
+                //         $adjustedBase = floor($baseQuantity / $standardPackQuantity) * $standardPackQuantity;
 
-                        $distributedTotal = $adjustedBase * $hoursCount;
-                        $remainder = $plannedQuantity - $distributedTotal;
+                //         $distributedTotal = $adjustedBase * $hoursCount;
+                //         $remainder = $plannedQuantity - $distributedTotal;
 
-                        $planDistribution = array_fill_keys($this->timeHeaders, $adjustedBase);
+                //         $planDistribution = array_fill_keys($this->timeHeaders, $adjustedBase);
 
-                        $keys = array_keys($planDistribution);
-                        $remainingPacks = ceil($remainder / $standardPackQuantity);
+                //         $keys = array_keys($planDistribution);
+                //         $remainingPacks = ceil($remainder / $standardPackQuantity);
 
-                        for ($i = 0; $i < $remainingPacks && $i < $hoursCount; $i++) {
-                            $toAdd = min($standardPackQuantity, $remainder);
-                            $planDistribution[$keys[$i]] += $toAdd;
-                            $remainder -= $toAdd;
+                //         for ($i = 0; $i < $remainingPacks && $i < $hoursCount; $i++) {
+                //             $toAdd = min($standardPackQuantity, $remainder);
+                //             $planDistribution[$keys[$i]] += $toAdd;
+                //             $remainder -= $toAdd;
 
-                            if ($remainder <= 0) break;
-                        }
-                    } else {
-                        $planDistribution = array_fill_keys($this->timeHeaders, null);
-                    }
-                } else {
-                    $planDistribution = array_fill_keys($this->timeHeaders, null);
-                }
+                //             if ($remainder <= 0) break;
+                //         }
+                //     } else {
+                //         $planDistribution = array_fill_keys($this->timeHeaders, null);
+                //     }
+                // } else {
+                //     $planDistribution = array_fill_keys($this->timeHeaders, null);
+                // }
 
                 $groupedPlans[$partNumber] = [
                     'line_name' => $plan->partNumber->previousProcesses->first()->workCenter->area->name ?? '-',
@@ -125,7 +125,7 @@ class PaintProductionRecord extends Component
                     'model' => $plan->partNumber->projects->pluck('model')->implode(';'),
                     'planned_quantity' => $plan->planned_quantity,
                     'produced_quantity' => $plan->produced_quantity,
-                    'plan' => $planDistribution,
+                    // 'plan' => $planDistribution,
                     'entries' => array_fill_keys($this->timeHeaders, null),
                     'exits' => array_fill_keys($this->timeHeaders, null),
                 ];
