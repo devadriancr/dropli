@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Area;
 use App\Models\Department;
 use App\Models\WorkCenter;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class AreaSeeder extends Seeder
@@ -18,12 +17,18 @@ class AreaSeeder extends Seeder
         $department = Department::where('name', 'Pintura')->first();
 
         $area = Area::create([
-            'name' => 'Pintura',
+            'name' => 'PAINT',
             'department_id' => $department->id,
         ]);
 
-        $workCenter = WorkCenter::where('number', '141010')->first();
+        $workCenterNumbers = ['141010', '141060', '200500'];
 
-        $workCenter->update(['area_id' => $area->id]);
+        foreach ($workCenterNumbers as $number) {
+            $workCenter = WorkCenter::where('number', $number)->first();
+
+            if ($workCenter) {
+                $workCenter->update(['area_id' => $area->id]);
+            }
+        }
     }
 }

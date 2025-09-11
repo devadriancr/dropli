@@ -61,7 +61,7 @@ class DowntimeTypeController extends Controller
      */
     public function show(DowntimeType $downtimeType)
     {
-        return view('downtime-types.show', compact('downtimeType'));
+        //
     }
 
     /**

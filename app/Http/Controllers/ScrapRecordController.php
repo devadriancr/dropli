@@ -45,10 +45,12 @@ class ScrapRecordController extends Controller
                 ->orderBy('number')
                 ->get();
         } else {
-            $partNumbers = PartNumber::with(['workCenter'])
-                ->whereHas('workCenter', function ($query) {
-                    $query->where('number', '141010');
-                })->orderBy('number')->get();
+            $partNumbers = PartNumber::with(['workCenter.area'])
+                ->whereHas('workCenter.area', function ($query) {
+                    $query->where('name', 'PAINT');
+                })
+                ->orderBy('number')
+                ->get();
         }
 
         $scrapReasons = ScrapReason::orderBy('code')->get();
@@ -92,8 +94,21 @@ class ScrapRecordController extends Controller
      */
     public function edit(ScrapRecord $scrapRecord)
     {
-        $partNumbers = PartNumber::orderBy('number')->get();
         $scrapReasons = ScrapReason::orderBy('code')->get();
+
+        if (Auth::check()) {
+            $workCenterIds = Auth::user()->workCenters->pluck('id');
+            $partNumbers = PartNumber::whereIn('work_center_id', $workCenterIds)
+                ->orderBy('number')
+                ->get();
+        } else {
+            $partNumbers = PartNumber::with(['workCenter.area'])
+                ->whereHas('workCenter.area', function ($query) {
+                    $query->where('name', 'PAINT');
+                })
+                ->orderBy('number')
+                ->get();
+        }
 
         return view('scrap-records.edit', compact('scrapRecord', 'partNumbers', 'scrapReasons'));
     }

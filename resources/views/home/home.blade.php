@@ -16,11 +16,11 @@
                         <div>
                             <h5 class="card-title mb-1">Tiempo Efectivo de Producción</h5>
                         </div>
-                        <div class="text-primary">
+                        <div class="text-blue">
                             <i class="fas fa-clock fa-2x"></i>
                         </div>
                     </div>
-                    <h3 class="mt-3 mb-0">{{ $effectiveProductionTime }} Min</h3>
+                    <h3 class="mt-3 mb-0">{{ $effectiveProductionTimePerShift ?? '-' }} Min</h3>
                 </div>
             </div>
         </div>
@@ -32,11 +32,11 @@
                         <div>
                             <h5 class="card-title mb-1">Tiempo Total de Paros</h5>
                         </div>
-                        <div class="text-danger">
-                            <i class="fas fa-stopwatch fa-2x"></i>
+                        <div class="text-red">
+                            <i class="fas fa-ban fa-2x"></i>
                         </div>
                     </div>
-                    <h3 class="mt-3 mb-0">{{ $totalDowntimeMinutes }} Min</h3>
+                    <h3 class="mt-3 mb-0">{{ $totalDowntimeMinutes ?? '-' }} Min</h3>
                 </div>
             </div>
         </div>
@@ -48,11 +48,11 @@
                         <div>
                             <h5 class="card-title mb-1">Total de Paros</h5>
                         </div>
-                        <div class="text-warning">
+                        <div class="text-red">
                             <i class="fas fa-exclamation-triangle fa-2x"></i>
                         </div>
                     </div>
-                    <h3 class="mt-3 mb-0">{{ $totalDowntimeCount }}</h3>
+                    <h3 class="mt-3 mb-0">{{ $totalDowntimeCount ?? '-' }}</h3>
                 </div>
             </div>
         </div>
@@ -64,11 +64,11 @@
                         <div>
                             <h5 class="card-title mb-1">Total de Piezas de Scrap</h5>
                         </div>
-                        <div class="text-danger">
+                        <div class="text-red">
                             <i class="fas fa-trash-alt fa-2x"></i>
                         </div>
                     </div>
-                    <h3 class="mt-3 mb-0">{{ $totalScrap }}</h3>
+                    <h3 class="mt-3 mb-0">{{ $totalScrap ?? '-' }}</h3>
                 </div>
             </div>
         </div>
@@ -80,11 +80,41 @@
                         <div>
                             <h5 class="card-title mb-1">Total de Ganchos Primarios Utilizados</h5>
                         </div>
-                        <div class="text-secondary">
+                        <div class="text-green">
                             <i class="fas fa-paint-roller fa-2x"></i>
                         </div>
                     </div>
-                    <h3 class="mt-3 mb-0">{{ $totalHooksUsed }}</h3>
+                    <h3 class="mt-3 mb-0">{{ $totalHooksUsedPerShift ?? '-' }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">Tasa de Colgado por Turno</h5>
+                        </div>
+                        <div class="text-green">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                    <h3 class="mt-3 mb-0">{{ $hangingRatePerShift ?? '-' }} %</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-1">JPH Promedio por Turno</h5>
+                        </div>
+                        <div class="text-green">
+                            <i class="fas fa-chart-bar fa-2x"></i>
+                        </div>
+                    </div>
+                    <h3 class="mt-3 mb-0">{{ $averageJphPerShift ?? '-' }}</h3>
                 </div>
             </div>
         </div>

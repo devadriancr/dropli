@@ -116,15 +116,15 @@ class ProductionRecordController extends Controller
 
         event(new MaterialEntryRegistered());
 
-        // if ($productionPlan->produced_quantity == 0) {
-        //     $status = Status::where('key', 'in_progress')->first();
-        //     $productionPlan->update([
-        //         'produced_quantity' => $quantity,
-        //         'status_id' => $status->id ?? $productionPlan->status_id,
-        //     ]);
-        // } else {
-        //     $productionPlan->increment('produced_quantity', intval($quantity));
-        // }
+        if ($productionPlan->produced_quantity == 0) {
+            $status = Status::where('key', 'in_progress')->first();
+            $productionPlan->update([
+                'produced_quantity' => $quantity,
+                'status_id' => $status->id ?? $productionPlan->status_id,
+            ]);
+        } else {
+            $productionPlan->increment('produced_quantity', intval($quantity));
+        }
 
         return $redirect->with('success', 'Etiqueta registrada correctamente');
     }

@@ -37,6 +37,7 @@
                             <th class="fw-bold text-secondary text-uppercase">{{ __('Empaque Estándar') }}</th>
                             <th class="fw-bold text-secondary text-uppercase">{{ __('Cantidad') }}</th>
                             <th class="fw-bold text-secondary text-uppercase">{{ __('Estado') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase">{{ __('Acciones') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -106,6 +107,15 @@
                                             <i class="fas fa-check-circle"></i> Activo
                                         </span>
                                     @endif
+                                </td>
+                                <td class="py-3">
+                                    <div class="d-flex gap-2">
+                                        <a href="{{ route('part-numbers.edit', $partNumber) }}"
+                                            class="btn btn-sm btn-outline-primary rounded-3">
+                                            <i class="fas fa-edit me-2"></i>
+                                            <span>Editar</span>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @empty

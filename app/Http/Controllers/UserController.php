@@ -69,8 +69,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        $user->load('workCenters');
-        return view('users.show', compact('user'));
+        //
     }
 
     /**

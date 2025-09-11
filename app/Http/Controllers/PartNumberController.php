@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PartNumber;
+use App\Models\Attribute;
 use Illuminate\Http\Request;
 
 class PartNumberController extends Controller
@@ -87,17 +88,77 @@ class PartNumberController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(PartNumber $partNumber)
     {
-        //
+        // Obtener atributos únicos existentes con sus tipos de datos
+        $existingAttributes = Attribute::where('attributable_type', PartNumber::class)
+            ->select('attribute_key', 'data_type')
+            ->distinct()
+            ->get()
+            ->groupBy('attribute_key')
+            ->map(function ($items) {
+                return $items->first()->data_type;
+            });
+
+        return view('part-numbers.edit')->with([
+            'partNumber' => $partNumber,
+            'existingAttributes' => $existingAttributes,
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, PartNumber $partNumber)
     {
-        //
+        // Validar los datos
+        $request->validate([
+            'attributes.*.value' => 'required',
+            'attributes.*.data_type' => 'required|in:string,integer,double,boolean,array',
+            'new_attributes.*.key' => 'sometimes|required',
+            'new_attributes.*.value' => 'sometimes|required',
+            'new_attributes.*.data_type' => 'sometimes|required|in:string,integer,double,boolean,array',
+        ]);
+
+        // Procesar atributos existentes (incluyendo los nuevos que se agregaron desde existentes)
+        if ($request->has('attributes')) {
+            foreach ($request->attributes as $attributeData) {
+                if (isset($attributeData['key']) && isset($attributeData['value'])) {
+                    $partNumber->setCustomAttributeValue(
+                        $attributeData['key'],
+                        $attributeData['value'],
+                        $attributeData['data_type']
+                    );
+                }
+            }
+        }
+
+        // Procesar nuevos atributos (creados desde cero)
+        if ($request->has('new_attributes')) {
+            foreach ($request->new_attributes as $attributeData) {
+                if (!empty($attributeData['key']) && isset($attributeData['value'])) {
+                    $partNumber->setCustomAttributeValue(
+                        $attributeData['key'],
+                        $attributeData['value'],
+                        $attributeData['data_type']
+                    );
+                }
+            }
+        }
+
+        // Eliminar atributos marcados para eliminación
+        if ($request->has('delete_attributes')) {
+            foreach ($request->delete_attributes as $attributeKey) {
+                if (!empty($attributeKey)) {
+                    $partNumber->attributes()
+                        ->where('attribute_key', $attributeKey)
+                        ->delete();
+                }
+            }
+        }
+
+        return redirect()->route('part-numbers.index')
+            ->with('success', 'Atributos actualizados correctamente');
     }
 
     /**
@@ -106,5 +167,17 @@ class PartNumberController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Get all unique attribute keys used by part numbers
+     */
+    public static function getUniqueAttributeKeys()
+    {
+        return Attribute::where('attributable_type', PartNumber::class)
+            ->distinct()
+            ->pluck('attribute_key')
+            ->sort()
+            ->values();
     }
 }

@@ -49,7 +49,7 @@ class PaintProductionRecord extends Component
             ->where('shift_id', $this->shift->id)
             ->whereDate('planned_date', $this->date)
             ->whereHas('partNumber.workCenter.area', function ($query) {
-                $query->where('number', '141010');
+                $query->where('name', 'PAINT');
             })
             ->orderBy('part_number_id', 'asc')
             ->get();
@@ -131,16 +131,23 @@ class PaintProductionRecord extends Component
                 ];
             }
 
-            $previousProcess = $plan->partNumber->previousProcesses->first();
+            $previousProcesses = $plan->partNumber->previousProcesses;
 
-            if ($previousProcess) {
-                $entryRecords = ProductionRecord::query()
-                    ->where('part_number_id', $previousProcess->id)
-                    ->where('record_type', 'entry')
-                    ->whereDate('created_at', $this->date)
-                    ->get();
+            if ($previousProcesses) {
+                $records = [];
+                foreach ($previousProcesses as $previousProcess) {
+                    $data = ProductionRecord::query()
+                        ->where('part_number_id', $previousProcess->id)
+                        ->where('record_type', 'entry')
+                        ->whereDate('created_at', $this->date)
+                        ->get();
 
-                foreach ($entryRecords as $record) {
+                    if ($data->isNotEmpty()) {
+                        $records = array_merge($records, $data->all());
+                    }
+                }
+
+                foreach ($records as $record) {
                     $createdAt = Carbon::parse($record->created_at);
                     $hourKey = $createdAt->format('H:00');
 

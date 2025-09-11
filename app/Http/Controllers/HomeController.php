@@ -29,7 +29,7 @@ class HomeController extends Controller
         }
 
         // Tiempo Efectivo de Producción
-        $effectiveProductionTime = $start->diffInMinutes($end);
+        $effectiveProductionTimePerShift = $start->diffInMinutes($end);
 
         // Paros de Línea
         $downtimeRecords = DowntimeRecord::with(['workCenter'])
@@ -81,10 +81,24 @@ class HomeController extends Controller
                 }
             }
         }
-
-        $totalHooksUsed = array_sum($quantityByPartNumber);
-        // $totalPaintedParts = array_sum(array_column($hooksByPartNumber, 'total_hooks'));
+        // $totalHooksUsedPerShift = array_sum($quantityByPartNumber);
+        $totalHooksUsedPerShift = array_sum(array_column($hooksByPartNumber, 'total_hooks'));
         // $totalPaintedParts = round($totalPaintedParts, 2);
+
+        // Tasa de Ganchos por Turno
+        $cycleTimeSeconds = 16;
+        $hangingRatePerShift = ($effectiveProductionTimePerShift > 0 && $totalHooksUsedPerShift !== null)
+            ? round(((($cycleTimeSeconds / 60) * $totalHooksUsedPerShift) / $effectiveProductionTimePerShift) * 100, 2)
+            : 0;
+
+
+
+        // JPH Promedio por Turno
+        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
+            ? round($totalHooksUsedPerShift / $effectiveProductionTimePerShift,2)
+            : 0;
+
+        // Man-hours per piece per shift - $manHoursPerPiecePerShift
 
         // Grafica
         $productionPlans = ProductionPlan::with(['partNumber'])
@@ -112,11 +126,13 @@ class HomeController extends Controller
             'data',
             'shift',
             'date',
-            'effectiveProductionTime',
+            'effectiveProductionTimePerShift',
             'totalDowntimeMinutes',
             'totalDowntimeCount',
             'totalScrap',
-            'totalHooksUsed',
+            'totalHooksUsedPerShift',
+            'hangingRatePerShift',
+            'averageJphPerShift'
         ));
     }
 }

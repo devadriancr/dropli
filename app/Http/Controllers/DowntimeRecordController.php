@@ -48,8 +48,12 @@ class DowntimeRecordController extends Controller
         if (Auth::check()) {
             $workCenters = Auth::user()->workCenters;
         } else {
-            // Para invitados, mostrar solo el work center específico (número 141010)
-            $workCenters = WorkCenter::where('number', '141010')->get();
+            // Para invitados, mostrar solo el work center específico
+            $workCenters = WorkCenter::with('area')
+                ->whereHas('area', function ($query) {
+                    $query->where('name', 'PAINT');
+                })
+                ->get();
         }
 
         // Determinar qué vista usar según si es usuario autenticado o invitado
@@ -94,8 +98,7 @@ class DowntimeRecordController extends Controller
      */
     public function show(DowntimeRecord $downtimeRecord)
     {
-        $downtimeRecord->load(['downtimeReason.downtimeType', 'workCenter']);
-        return view('downtime-records.show', compact('downtimeRecord'));
+        //
     }
 
     /**
@@ -107,7 +110,16 @@ class DowntimeRecordController extends Controller
             ->orderBy('code')
             ->get();
 
-        $workCenters = WorkCenter::orderBy('number')->get();
+        if (Auth::check()) {
+            $workCenters = Auth::user()->workCenters;
+        } else {
+            // Para invitados, mostrar solo el work center específico
+            $workCenters = WorkCenter::with('area')
+                ->whereHas('area', function ($query) {
+                    $query->where('name', 'PAINT');
+                })
+                ->get();
+        }
 
         return view('downtime-records.edit', compact('downtimeRecord', 'downtimeReasons', 'workCenters'));
     }
