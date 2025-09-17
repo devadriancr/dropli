@@ -6,17 +6,23 @@
 
             <div class="flex gap-2">
                 <!-- Botón de Paros de Línea -->
-                <a href="{{ route('guest.downtime-records.create') }}" class="inline-flex items-center gap-2 px-4 py-2 text-gray-900 border border-gray-700 rounded-md hover:border-gray-800 hover:bg-gray-50 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <a href="{{ route('guest.downtime-records.create', ['origin' => url()->current()]) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-gray-900 border border-gray-700 rounded-md hover:border-gray-800 hover:bg-gray-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Paros de Línea
                 </a>
 
                 <!-- Botón de Scrap -->
-                <a href="{{ route('guest.scrap-records.create') }}" class="inline-flex items-center gap-2 px-4 py-2 text-red-600 border border-red-500 rounded-md hover:border-red-600 hover:bg-red-50 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <a href="{{ route('guest.scrap-records.create', ['origin' => url()->current()]) }}"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-red-600 border border-red-500 rounded-md hover:border-red-600 hover:bg-red-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     Scrap
                 </a>
@@ -39,28 +45,28 @@
                     </label>
                     <div class="relative">
                         <input type="text" id="entryCode" name="entryCode"
-                               class="w-full pr-24 px-5 py-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
-                               placeholder="Escanee aquí…" autocomplete="off" autofocus value="{{ old('entryCode') }}"/>
+                            class="w-full pr-24 px-5 py-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
+                            placeholder="Escanee aquí…" autocomplete="off" autofocus value="{{ old('entryCode') }}" />
                         <button type="button" id="processBtn"
-                                class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-700 hover:bg-gray-800 rounded-tr-lg rounded-br-lg transition-colors">
+                            class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-700 hover:bg-gray-800 rounded-tr-lg rounded-br-lg transition-colors">
                             Registrar
                         </button>
                     </div>
 
                     {{-- Mensajes flash estándar de Laravel --}}
-                    @if(session('success'))
+                    @if (session('success'))
                         <div class="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-base">
                             {{ session('success') }}
                         </div>
                     @endif
 
-                    @if(session('error'))
+                    @if (session('error'))
                         <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
                             {{ session('error') }}
                         </div>
                     @endif
 
-                    @if(session('warning'))
+                    @if (session('warning'))
                         <div
                             class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-base">
                             {{ session('warning') }}
@@ -68,9 +74,9 @@
                     @endif
 
                     {{-- Errores de validación --}}
-                    @if($errors->any())
+                    @if ($errors->any())
                         <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
-                            @foreach($errors->all() as $error)
+                            @foreach ($errors->all() as $error)
                                 <div>{{ $error }}</div>
                             @endforeach
                         </div>
@@ -115,8 +121,8 @@
                             Cantidad
                         </label>
                         <input type="number" id="quantity" name="quantity"
-                               class="w-full px-5 py-4 text-xl font-semibold text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
-                               min="1" required>
+                            class="w-full px-5 py-4 text-xl font-semibold text-center border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
+                            min="1" required>
                     </div>
 
                     <!-- Campos ocultos -->
@@ -127,11 +133,11 @@
                     <!-- Botones -->
                     <div class="flex gap-4 pt-4">
                         <button type="button" id="cancelBtn"
-                                class="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-lg transition-colors">
+                            class="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-lg transition-colors">
                             Cancelar
                         </button>
                         <button type="submit"
-                                class="flex-1 px-6 py-4 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-medium text-lg transition-colors">
+                            class="flex-1 px-6 py-4 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-medium text-lg transition-colors">
                             Guardar
                         </button>
                     </div>
@@ -174,9 +180,9 @@
                 }
 
                 // Separar la información según el formato especificado
-                const orderNumber = code.substring(0, 8);     // Primeros 8 caracteres
-                const sequence = code.substring(8, 14);       // Siguiente 6 caracteres
-                const quantity = code.substring(14, 20);      // Siguiente 6 caracteres
+                const orderNumber = code.substring(0, 8); // Primeros 8 caracteres
+                const sequence = code.substring(8, 14); // Siguiente 6 caracteres
+                const quantity = code.substring(14, 20); // Siguiente 6 caracteres
 
                 // Convertir cantidad a número y remover ceros a la izquierda
                 const quantityNumber = parseInt(quantity, 10);

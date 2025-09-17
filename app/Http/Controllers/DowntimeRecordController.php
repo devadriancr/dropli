@@ -39,7 +39,7 @@ class DowntimeRecordController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         $downtimeReasons = DowntimeReason::with('downtimeType')
             ->orderBy('code')
@@ -54,6 +54,12 @@ class DowntimeRecordController extends Controller
                     $query->where('name', 'PAINT');
                 })
                 ->get();
+        }
+
+        // Guardar la URL de origen en la sesión
+        $origin = $request->get('origin');
+        if ($origin) {
+            session(['downtime_origin' => $origin]);
         }
 
         // Determinar qué vista usar según si es usuario autenticado o invitado
@@ -78,11 +84,20 @@ class DowntimeRecordController extends Controller
         try {
             DowntimeRecord::create($request->all());
 
-            // Redirigir según la ruta de origen
-            if ($request->is('guest/*')) {
-                return redirect()->route('guest.downtime-records.create')
+            // Obtener la URL de origen de la sesión
+            $origin = session('downtime_origin');
+
+            // Verificar si es una de las rutas específicas y redirigir apropiadamente
+            if ($origin) {
+                // Limpiar la sesión después de usarla
+                session()->forget('downtime_origin');
+
+                return redirect($origin)
                     ->with('success', 'Registro de paro creado exitosamente.');
-            } else {
+            }
+
+            // Redirección por defecto para usuarios autenticados
+            if (Auth::check()) {
                 return redirect()->route('downtime-records.index')
                     ->with('success', 'Registro de tiempo muerto creado exitosamente.');
             }

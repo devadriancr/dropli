@@ -37,7 +37,7 @@ class ScrapRecordController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
         if (Auth::check()) {
             $workCenterIds = Auth::user()->workCenters->pluck('id');
@@ -54,6 +54,12 @@ class ScrapRecordController extends Controller
         }
 
         $scrapReasons = ScrapReason::orderBy('code')->get();
+
+        // Guardar la URL de origen en la sesión
+        $origin = $request->get('origin');
+        if ($origin) {
+            session(['scrap_origin' => $origin]);
+        }
 
         $view = Auth::check() ? 'scrap-records.create' : 'guest.scrap-records.create';
 
@@ -74,11 +80,20 @@ class ScrapRecordController extends Controller
         try {
             ScrapRecord::create($validated);
 
-            // Redirigir según la ruta de origen
-            if ($request->is('guest/*')) {
-                return redirect()->route('guest.scrap-records.create')
+            // Obtener la URL de origen de la sesión
+            $origin = session('scrap_origin');
+
+            // Verificar si es una de las rutas específicas y redirigir apropiadamente
+            if ($origin) {
+                // Limpiar la sesión después de usarla
+                session()->forget('scrap_origin');
+
+                return redirect($origin)
                     ->with('success', 'Registro de scrap creado exitosamente.');
-            } else {
+            }
+
+            // Redirección por defecto para usuarios autenticados
+            if (Auth::check()) {
                 return redirect()->route('scrap-records.index')
                     ->with('success', 'Registro de scrap creado exitosamente.');
             }

@@ -50,14 +50,19 @@ Route::prefix('guest')->group(function () {
         ->name('guest.downtime-records.store');
 });
 
-Route::get('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'entryScan'])->name('production-records.entry-scan');
-Route::post('production-records/entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeEntry'])->name('production-records.store-entry');
+Route::prefix('production-records')->name('production-records.')->group(function () {
+    // Entry Scan
+    Route::get('entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'entryScan'])->name('entry-scan');
+    Route::post('entry-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeEntry'])->name('store-entry');
 
-Route::get('production-records/exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'exitScan'])->name('production-records.exit-scan');
-Route::post('production-records/exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeExit'])->name('production-records.store-exit');
+    // Exit Scan
+    Route::get('exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'exitScan'])->name('exit-scan');
+    Route::post('exit-scan', [App\Http\Controllers\ProductionRecordController::class, 'storeExit'])->name('store-exit');
 
-Route::get('production-records/part-number-entry', [App\Http\Controllers\ProductionRecordController::class, 'partNumberEntry'])->name('production-records.part-number-entry');
-Route::post('production-records/part-number-entry', [App\Http\Controllers\ProductionRecordController::class, 'storePartNumber'])->name('production-records.store-part-number');
+    // Part Number Entry
+    Route::get('part-number-entry', [App\Http\Controllers\ProductionRecordController::class, 'partNumberEntry'])->name('part-number-entry');
+    Route::post('part-number-entry', [App\Http\Controllers\ProductionRecordController::class, 'storePartNumber'])->name('store-part-number');
+});
 
 Route::get('painting-process-tracking', function () {
     return view('guest.painting-process-tracking');
