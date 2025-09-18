@@ -26,10 +26,10 @@ class GetPartNumberNextProcess extends Command
      */
     public function handle()
     {
-        info("Process GetItemClassJob is running at ". now());
+        info("Process GetPartNumberNextProcessJob is running at ". now());
 
         GetPartNumberNextProcessJob::dispatch();
 
-        info("Process GetItemClassJob completed at ". now());
+        info("Process GetPartNumberNextProcessJob completed at ". now());
     }
 }

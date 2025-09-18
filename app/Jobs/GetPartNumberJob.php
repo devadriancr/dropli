@@ -24,7 +24,7 @@ class GetPartNumberJob implements ShouldQueue
     public function handle(): void
     {
         $itemMaster = IIM::query()
-            ->select('IPROD AS partNumber', 'IDESC AS partName', 'ICLAS AS itemClass', 'IREF04 AS project', 'IMPLC AS isObsolete', 'IMSPKT AS standardPack')
+            ->select('IPROD AS partNumber', 'IDESC AS partName', 'ICLAS AS itemClass', 'IREF04 AS project', 'IMPLC AS isObsolete', 'IMSPKT AS standardPack', 'IMBOXQ AS quantityStandardPack')
             // ->where('IMPLC', 'LIKE', 'OBSOLETE  ')
             ->get();
 
@@ -35,7 +35,8 @@ class GetPartNumberJob implements ShouldQueue
                 trim($item->itemClass),
                 trim($item->project),
                 trim($item->isObsolete),
-                trim($item->standardPack)
+                trim($item->standardPack),
+                trim($item->quantityStandardPack)
             );
         }
     }

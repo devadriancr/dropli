@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\ItemClass;
 use App\Models\PartNumber;
 use App\Models\Project;
+use App\Models\StandardPack;
 use App\Models\WorkCenter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -21,11 +22,12 @@ class StorePartNumberJob implements ShouldQueue
     protected $project;
     protected $isObsolete;
     protected $standardPack;
+    protected $quantityStandardPack;
 
     /**
      * Create a new job instance.
      */
-    public function __construct($partNumber, $partName, $itemClass, $project, $isObsolete, $standardPack)
+    public function __construct($partNumber, $partName, $itemClass, $project, $isObsolete, $standardPack, $quantityStandardPack)
     {
         $this->partNumber =  $partNumber;
         $this->partName =  $partName;
@@ -33,6 +35,7 @@ class StorePartNumberJob implements ShouldQueue
         $this->project =  $project;
         $this->isObsolete = $isObsolete;
         $this->standardPack =  $standardPack;
+        $this->quantityStandardPack = $quantityStandardPack;
     }
 
     /**
@@ -42,12 +45,15 @@ class StorePartNumberJob implements ShouldQueue
     {
         $partNumber = PartNumber::query()->where([['number', $this->partNumber], ['name', $this->partName]])->first();
         $itemClass = ItemClass::query()->where('abbreviation', $this->itemClass)->first();
+        $standardPack = StandardPack::query()->where('name', $this->standardPack)->first();
 
         if ($partNumber !== null) {
             $partNumber->update([
                 'number' => $this->partNumber,
                 'name' => $this->partName,
                 'item_class_id' => $itemClass->id,
+                'standard_pack_id' => $standardPack ? $standardPack->id : null,
+                 'standard_pack_quantity' => $this->quantityStandardPack ?? null,
                 'is_obsolete' => ($this->isObsolete == "OBSOLETE") ? true : false,
             ]);
         } else {
@@ -55,6 +61,8 @@ class StorePartNumberJob implements ShouldQueue
                 'number' => $this->partNumber,
                 'name' => $this->partName,
                 'item_class_id' => $itemClass->id,
+                'standard_pack_id' => $standardPack ? $standardPack->id : null,
+                'standard_pack_quantity' => $this->quantityStandardPack ?? null,
                 'is_obsolete' => ($this->isObsolete == "OBSOLETE") ? true : false,
             ]);
         }

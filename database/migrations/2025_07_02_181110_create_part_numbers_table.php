@@ -19,6 +19,8 @@ return new class extends Migration
             $table->integer('efficiency')->nullable()->default(90);
             $table->foreignId('item_class_id')->nullable()->constrained('item_classes');
             $table->foreignId('work_center_id')->nullable()->constrained('work_centers');
+            $table->foreignId('standard_pack_id')->nullable()->constrained('standard_packs');
+            $table->double('standard_pack_quantity')->nullable();
             $table->boolean('is_obsolete')->default(false);
             $table->timestamps();
         });

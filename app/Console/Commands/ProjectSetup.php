@@ -23,15 +23,21 @@ class ProjectSetup extends Command
 
     protected $steps = [
         ['Migraciones', 'migrate', []],
+        ['Ejecutando DatabaseSeeder', 'db:seed', ['--class' => 'DatabaseSeeder']],
         ['Ejecutando CustomerSeeder', 'db:seed', ['--class' => 'CustomerSeeder']],
+        ['Ejecutando ShiftSeeder', 'db:seed', ['--class' => 'ShiftSeeder']],
+        ['Ejecutando StatusesSeeder', 'db:seed', ['--class' => 'StatusesSeeder']],
         ['Obteniendo información del proyecto', 'info:project', []],
         ['Ejecutando ProjectPrefixSeeder', 'db:seed', ['--class' => 'ProjectPrefixSeeder']],
         ['Obteniendo información del item class', 'infor:item-class', []],
         ['Obteniendo información del standard pack', 'infor:standard-pack', []],
         ['Ejecutando DepartmentSeeder', 'db:seed', ['--class' => 'DepartmentSeeder']],
         ['Obteniendo información del work center', 'infor:work-center', []],
+        ['Ejecutando AreaSeeder', 'db:seed', ['--class' => 'AreaSeeder']],
         ['Obteniendo información del part number', 'infor:part-number', []],
         ['Obteniendo información del next process', 'infor:next-process', []],
+        ['Ejecutando DowntimeSeeder', 'db:seed', ['--class' => 'DowntimeSeeder']],
+        ['Ejecutando PartNumberAttributesSeeder', 'db:seed', ['--class' => 'PartNumberAttributesSeeder']],
     ];
 
     /**

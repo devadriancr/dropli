@@ -16,7 +16,7 @@ class Department extends Model
     /**
      *
      */
-    public function lines(): HasMany
+    public function areas(): HasMany
     {
         return $this->hasMany(Area::class, 'department_id');
     }

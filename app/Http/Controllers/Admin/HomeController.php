@@ -17,8 +17,6 @@ class HomeController extends Controller
      */
     public function index()
     {
-        FetchPartNumberNextProcess::dispatch('BCJH5329Y'); // Example part number
-
         return view('admin.index');
     }
 
