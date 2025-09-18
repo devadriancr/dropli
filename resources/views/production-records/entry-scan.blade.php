@@ -173,19 +173,35 @@
 
             // Función para procesar el código escaneado
             function processCode(code) {
-                // Validar que el código tenga al menos 20 caracteres
-                if (code.length < 20) {
-                    alert('El código debe tener al menos 20 caracteres');
+                let orderNumber, sequence, quantity;
+
+                // Detectar el formato del código
+                if (code.length >= 20 && code.length <= 25) {
+                    // Formato original: 20 caracteres exactos
+                    orderNumber = code.substring(0, 8);
+                    sequence = code.substring(8, 14);
+                    quantity = code.substring(14, 20);
+                } else if (code.length > 25 && code.startsWith('1')) {
+                    // Formato nuevo: empieza con '1' y es más largo
+                    // Saltar el primer '1' y tomar los siguientes caracteres
+
+                    const relevantPart = code.substring(1);
+                    orderNumber = relevantPart.substring(0, 12);
+                    sequence = relevantPart.substring(12, 18);
+                    quantity = relevantPart.substring(18, 24);
+                } else {
+                    alert('Formato de código no reconocido. Verifique el código escaneado.');
                     return;
                 }
 
-                // Separar la información según el formato especificado
-                const orderNumber = code.substring(0, 8); // Primeros 8 caracteres
-                const sequence = code.substring(8, 14); // Siguiente 6 caracteres
-                const quantity = code.substring(14, 20); // Siguiente 6 caracteres
-
                 // Convertir cantidad a número y remover ceros a la izquierda
                 const quantityNumber = parseInt(quantity, 10);
+
+                // Validar que la cantidad sea válida
+                if (isNaN(quantityNumber) || quantityNumber <= 0) {
+                    alert('La cantidad no es válida');
+                    return;
+                }
 
                 // Llenar la información en el modal
                 orderNumberEl.textContent = orderNumber;

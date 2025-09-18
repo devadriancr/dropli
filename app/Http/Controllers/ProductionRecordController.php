@@ -6,7 +6,9 @@ use App\Events\ProductionRecord\MaterialEntryRegistered;
 use App\Events\ProductionRecord\MaterialExitRegistered;
 use App\Http\Requests\StoreEntryScanRequest;
 use App\Http\Requests\StoreExitScanRequest;
+use App\Models\ECL;
 use App\Models\FSO;
+use App\Models\HPO;
 use App\Models\PartNumber;
 use App\Models\ProductionPlan;
 use App\Models\ProductionRecord;
@@ -71,14 +73,20 @@ class ProductionRecordController extends Controller
         $orderNumber = $request->input('orderNumber');
         $sequence = $request->input('sequence');
         $quantity = $request->input('quantity');
-
         $redirect = redirect()->route('production-records.entry-scan');
 
         if (strlen($entryCode) < 14) {
             return $redirect->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
         }
 
-        $orderPartNumber = FSO::getPartNumberByOrder($orderNumber);
+        if (strlen($entryCode) >= 20 && strlen($entryCode) <= 25) {
+            $orderPartNumber = FSO::getPartNumberByOrder($orderNumber);
+        } elseif (strlen($entryCode) > 25 && str_starts_with($entryCode, '1')) {
+            $orderPartNumber = HPO::getPartNumberByOrder($orderNumber);
+        } else {
+            $orderPartNumber = null;
+        }
+
         if (!$orderPartNumber) {
             return $redirect->with('error', "No se encontró información para la orden: {$orderNumber}");
         }
@@ -103,6 +111,7 @@ class ProductionRecordController extends Controller
                 break;
             }
         }
+
         if (!$productionPlan) {
             return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
         }
@@ -115,16 +124,6 @@ class ProductionRecordController extends Controller
         ProductionRecord::store($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'entry');
 
         event(new MaterialEntryRegistered());
-
-        // if ($productionPlan->produced_quantity == 0) {
-        //     $status = Status::where('key', 'in_progress')->first();
-        //     $productionPlan->update([
-        //         'produced_quantity' => $quantity,
-        //         'status_id' => $status->id ?? $productionPlan->status_id,
-        //     ]);
-        // } else {
-        //     $productionPlan->increment('produced_quantity', intval($quantity));
-        // }
 
         return $redirect->with('success', 'Etiqueta registrada correctamente');
     }
@@ -227,51 +226,57 @@ class ProductionRecordController extends Controller
         $sequence = $request->input('sequence');
         $quantity = $request->input('quantity');
 
-        if (strlen($exitCode) <= 20) {
+        $redirect = redirect()->route('production-records.exit-scan');
 
+        if (strlen($exitCode) >= 20 && strlen($exitCode) <= 25) {
             $orderPartNumber = FSO::getPartNumberByOrder($orderNumber);
-            if (!$orderPartNumber) {
-                return redirect()->route('production-records.exit-scan')->with('error', "No se encontró información para la orden: {$orderNumber}");
-            }
-
-            $partNumber = PartNumber::query()->where('number', $orderPartNumber)->where('is_obsolete', false)->first();
-            if (!$partNumber) {
-                return redirect()->route('production-records.exit-scan')->with('error', "Número de parte no encontrado: {$orderPartNumber}");
-            }
-
-            $previousPartNumber = $partNumber->previousProcesses->where('is_obsolete', false)->first();
-            if (!$previousPartNumber) {
-                return redirect()->route('production-records.exit-scan')->with('warning', 'No hay procesos anterior configurado para este número de parte.');
-            }
-
-            $shift = Shift::getShift()->first();
-            $today = Shift::getPlannedDate();
-
-            $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
-            if (!$productionPlan) {
-                return redirect()->route('production-records.exit-scan')->with('warning', 'No se encontró un plan de producción para este número de parte.');
-            }
-
-            $exists = ProductionRecord::productionPlanExists($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'exit');
-            if ($exists) {
-                return redirect()->route('production-records.exit-scan')->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');
-            }
-
-            ProductionRecord::store($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'exit');
-
-            event(new MaterialExitRegistered());
-
-            if ($productionPlan->produced_quantity == 0) {
-                $status = Status::where('key', 'in_progress')->first();
-                $productionPlan->update([
-                    'produced_quantity' => $quantity,
-                    'status_id' => $status->id ?? $productionPlan->status_id,
-                ]);
-            } else {
-                $productionPlan->increment('produced_quantity', intval($quantity));
-            }
-
-            return redirect()->route('production-records.exit-scan')->with('success', 'Etiqueta registrada correctamente');
+        } elseif (strlen($exitCode) >= 30) {
+            $orderPartNumber = ECL::getFinalPartNumber($orderNumber);
+        } else {
+            $orderPartNumber = null;
         }
+
+        if (!$orderPartNumber) {
+            return $redirect->with('error', "No se encontró información para la orden: {$orderNumber}");
+        }
+
+        $partNumber = PartNumber::query()->where('number', $orderPartNumber)->where('is_obsolete', false)->first();
+        if (!$partNumber) {
+            return $redirect->with('error', "Número de parte no encontrado: {$orderPartNumber}");
+        }
+
+        $previousPartNumber = $partNumber->previousProcesses->where('is_obsolete', false);
+        if (!$previousPartNumber) {
+            return $redirect->with('warning', 'No hay procesos anterior configurado para este número de parte.');
+        }
+
+        $shift = Shift::getShift()->first();
+        $today = Shift::getPlannedDate();
+
+        $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
+        if (!$productionPlan) {
+            return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
+        }
+
+        $exists = ProductionRecord::productionPlanExists($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'exit');
+        if ($exists) {
+            return $redirect->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');
+        }
+
+        ProductionRecord::store($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'exit');
+
+        event(new MaterialExitRegistered());
+
+        if ($productionPlan->produced_quantity == 0) {
+            $status = Status::where('key', 'in_progress')->first();
+            $productionPlan->update([
+                'produced_quantity' => $quantity,
+                'status_id' => $status->id ?? $productionPlan->status_id,
+            ]);
+        } else {
+            $productionPlan->increment('produced_quantity', intval($quantity));
+        }
+
+        return $redirect->with('success', 'Etiqueta registrada correctamente');
     }
 }

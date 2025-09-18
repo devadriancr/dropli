@@ -174,19 +174,31 @@
 
             // Función para procesar el código escaneado
             function processCode(code) {
-                // Validar que el código tenga al menos 20 caracteres
-                if (code.length < 20) {
-                    alert('El código debe tener al menos 20 caracteres');
+                let orderNumber, sequence, quantity;
+
+                // Detectar el formato basado en la longitud del código
+                if (code.length === 20) {
+
+                    orderNumber = code.substring(0, 8);
+                    sequence = code.substring(8, 14);
+                    quantity = code.substring(14, 20);
+                } else if (code.length >= 30) {
+                    orderNumber = code.substring(0, 7);
+                    sequence = code.substring(7, 10);
+                    quantity = code.substring(20,26);
+                } else {
+                    alert('Formato de código no reconocido. Debe tener 20 caracteres o el nuevo formato.');
                     return;
                 }
 
-                // Separar la información según el formato especificado
-                const orderNumber = code.substring(0, 8); // Primeros 8 caracteres
-                const sequence = code.substring(8, 14); // Siguiente 6 caracteres
-                const quantity = code.substring(14, 20); // Siguiente 6 caracteres
-
                 // Convertir cantidad a número y remover ceros a la izquierda
                 const quantityNumber = parseInt(quantity, 10);
+
+                // Validar que los datos extraídos sean válidos
+                if (!orderNumber || !sequence || isNaN(quantityNumber)) {
+                    alert('Error al procesar el código. Verifique el formato.');
+                    return;
+                }
 
                 // Llenar la información en el modal
                 orderNumberEl.textContent = orderNumber;
