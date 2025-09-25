@@ -37,7 +37,7 @@
                                     <h4 class="text-xs text-gray-500 uppercase tracking-wide mb-1">Cantidad</h4>
                                     <div
                                         class="inline-flex items-center px-2 py-1 bg-green-50 text-green-700 rounded-lg">
-                                        <span class="text-lg font-bold">{{ number_format($record->productionPlan->partNumber->standard_pack_quantity) }}</span>
+                                        <span class="text-lg font-bold">{{ number_format($record->quantity) }}</span>
                                         <span class="text-xs ml-1">pzs</span>
                                     </div>
                                 </div>

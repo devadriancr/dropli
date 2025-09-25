@@ -12,7 +12,7 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::resource('home',  App\Http\Controllers\HomeController::class);;
+    Route::resource('home',  App\Http\Controllers\HomeController::class);
     Route::resource('users', App\Http\Controllers\UserController::class);
     Route::resource('customers', App\Http\Controllers\CustomerController::class)->except(['show']);
     Route::resource('projects', App\Http\Controllers\ProjectController::class)->except(['show']);

@@ -24,7 +24,7 @@ class PaintingProcessEntry extends Component
 
     protected function loadRecentEntries()
     {
-        $twoAndAHalfHoursAgo = Carbon::now()->subHours(2)->subMinutes(30);
+        $twoAndAHalfHoursAgo = Carbon::now()->subMinutes(210);
 
         $this->recentEntryRecords = ProductionRecord::with('partNumber')
             ->where('record_type', 'entry')

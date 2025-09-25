@@ -8,14 +8,14 @@
 
 @section('content')
     {{-- Agregamos las alertas que faltaban --}}
-    @if(session('success'))
+    @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    @if(session('error'))
+    @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -53,11 +53,16 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light sticky-top">
                         <tr>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Centro de Trabajo') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Parte') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Centro de Trabajo') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Número de Parte') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Secuencia') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha de Creación') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Entrada') }} / {{ __('Salida') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Fecha de Creación') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -85,8 +90,8 @@
 
                                 <!-- Secuencia -->
                                 <td class="py-3">
-                                    @if(isset($record->sequence))
-                                        <span class="badge-status bg-primary bg-opacity-10 text-primary">
+                                    @if (isset($record->sequence))
+                                        <span class="badge-status bg-secondary bg-opacity-10 text-secondary">
                                             {{ $record->sequence }}
                                         </span>
                                     @else
@@ -96,9 +101,26 @@
 
                                 <!-- Cantidad -->
                                 <td class="py-3">
-                                    <span class="badge-status bg-success bg-opacity-10 text-success">
+                                    <span class="badge-status bg-secondary bg-opacity-10 text-secondary">
                                         {{ $record->quantity ?? '-' }}
                                     </span>
+                                </td>
+
+                                <!-- Cantidad -->
+                                <td class="py-3">
+                                    @if ($record->record_type == 'exit')
+                                        <span class="badge-status bg-success bg-opacity-10 text-success">
+                                            {{ __('Salida') }}
+                                        </span>
+                                    @elseif ($record->record_type == 'entry')
+                                        <span class="badge-status bg-primary bg-opacity-10 text-primary">
+                                            {{ __('Entrada') }}
+                                        </span>
+                                    @else
+                                        <span class="badge-status bg-secondary bg-opacity-10 text-secondary">
+                                            -
+                                        </span>
+                                    @endif
                                 </td>
 
                                 <!-- Fecha de Creación -->
@@ -114,7 +136,8 @@
                                         <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
                                         <span class="text-secondary">No se encontraron registros de producción</span>
                                         @if (!empty($search))
-                                            <a href="{{ route('production-records.index') }}" class="btn btn-sm btn-link mt-2">
+                                            <a href="{{ route('production-records.index') }}"
+                                                class="btn btn-sm btn-link mt-2">
                                                 Limpiar búsqueda
                                             </a>
                                         @endif
@@ -133,7 +156,8 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <!-- Información de resultados -->
                     <div class="text-muted small">
-                        Mostrando {{ $productionRecords->firstItem() ?? 0 }} a {{ $productionRecords->lastItem() ?? 0 }} de
+                        Mostrando {{ $productionRecords->firstItem() ?? 0 }} a {{ $productionRecords->lastItem() ?? 0 }}
+                        de
                         {{ $productionRecords->total() }} resultados
                     </div>
 

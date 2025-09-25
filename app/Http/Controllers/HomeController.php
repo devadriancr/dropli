@@ -14,10 +14,29 @@ use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $shift = Shift::getShift();
-        $date = Shift::getPlannedDate();
+        // Obtener todos los turnos para el select
+        $shifts = Shift::all();
+
+        // Obtener fecha y turno de la request o usar valores por defecto
+        $selectedDate = $request->input('date', Shift::getPlannedDate());
+        $selectedShiftId = $request->input('shift_id', Shift::getShift()->id);
+
+        // Validar que la fecha no sea futura
+        $today = Carbon::today()->toDateString();
+        if ($selectedDate > $today) {
+            $selectedDate = $today;
+        }
+
+        // Obtener el turno seleccionado
+        $shift = Shift::find($selectedShiftId);
+        if (!$shift) {
+            $shift = Shift::getShift();
+            $selectedShiftId = $shift->id;
+        }
+
+        $date = $selectedDate;
 
         $workCenter = Auth::user()->workCenters->pluck('id')->toArray();
 
@@ -81,6 +100,7 @@ class HomeController extends Controller
                 }
             }
         }
+
         // $totalHooksUsedPerShift = array_sum($quantityByPartNumber);
         $totalHooksUsedPerShift = array_sum(array_column($hooksByPartNumber, 'total_hooks'));
         // $totalPaintedParts = round($totalPaintedParts, 2);
@@ -90,8 +110,6 @@ class HomeController extends Controller
         $hangingRatePerShift = ($effectiveProductionTimePerShift > 0 && $totalHooksUsedPerShift !== null)
             ? round(((($cycleTimeSeconds / 60) * $totalHooksUsedPerShift) / $effectiveProductionTimePerShift) * 100, 2)
             : 0;
-
-
 
         // JPH Promedio por Turno
         $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
@@ -132,7 +150,10 @@ class HomeController extends Controller
             'totalScrap',
             'totalHooksUsedPerShift',
             'hangingRatePerShift',
-            'averageJphPerShift'
+            'averageJphPerShift',
+            'shifts',
+            'selectedDate',
+            'selectedShiftId'
         ));
     }
 }

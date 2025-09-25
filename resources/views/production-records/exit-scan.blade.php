@@ -1,19 +1,24 @@
 <x-guest-layout>
     <div class="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
+        <!-- Header con título y botones en línea -->
+        <div class="w-full max-w-4xl flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+            <h1 class="text-3xl font-bold text-gray-900 text-center sm:text-left">Salida de Material</h1>
 
-        <div class="w-full max-w-3xl flex justify-between items-center mb-2">
-            <h1 class="text-3xl font-bold text-gray-900">Salida de Material</h1>
-            <div class="flex gap-2">
-                <!-- <a href="" class="inline-flex items-center justify-center gap-2 w-full max-w-[200px] py-2 text-white bg-gray-700 hover:bg-gray-800 rounded-lg text-sm transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+            <div class="flex flex-wrap gap-2 justify-center">
+                <!-- Botón de Captura Manual (mismo estilo que Paros de Línea) -->
+                <a href="{{ route('production-records.part-number-entry') }}"
+                   class="inline-flex items-center gap-2 px-4 py-3 text-gray-900 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                         stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                     </svg>
                     Captura Manual
-                </a> -->
+                </a>
 
                 <!-- Botón de Paros de Línea -->
                 <a href="{{ route('guest.downtime-records.create', ['origin' => url()->current()]) }}"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-gray-900 border border-gray-700 rounded-md hover:border-gray-800 hover:bg-gray-50 transition-colors">
+                    class="inline-flex items-center gap-2 px-4 py-3 text-gray-900 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -24,7 +29,7 @@
 
                 <!-- Botón de Scrap -->
                 <a href="{{ route('guest.scrap-records.create', ['origin' => url()->current()]) }}"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-red-600 border border-red-500 rounded-md hover:border-red-600 hover:bg-red-50 transition-colors">
+                    class="inline-flex items-center gap-2 px-4 py-3 text-red-700 border border-red-300 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -36,7 +41,7 @@
         </div>
 
         <!-- Card principal -->
-        <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg overflow-hidden">
             <div class="p-8">
                 <form method="POST" action="{{ route('production-records.store-exit') }}" id="scanForm">
                     @csrf
@@ -48,34 +53,33 @@
                             class="w-full pr-24 px-5 py-4 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 transition-colors"
                             placeholder="Escanee aquí…" autocomplete="off" autofocus value="{{ old('exitCode') }}" />
                         <button type="button" id="processBtn"
-                            class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-700 hover:bg-gray-800 rounded-tr-lg rounded-br-lg transition-colors">
+                            class="absolute inset-y-0 right-0 px-6 flex items-center justify-center text-white bg-gray-600 hover:bg-gray-700 rounded-tr-lg rounded-br-lg transition-colors font-medium">
                             Registrar
                         </button>
                     </div>
 
-                    {{-- Mensajes flash estándar de Laravel --}}
+                    {{-- Mensajes flash --}}
                     @if (session('success'))
-                        <div class="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-base">
+                        <div class="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
                             {{ session('success') }}
                         </div>
                     @endif
 
                     @if (session('error'))
-                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
+                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
                             {{ session('error') }}
                         </div>
                     @endif
 
                     @if (session('warning'))
-                        <div
-                            class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-base">
+                        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg">
                             {{ session('warning') }}
                         </div>
                     @endif
 
                     {{-- Errores de validación --}}
                     @if ($errors->any())
-                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
+                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
                             @foreach ($errors->all() as $error)
                                 <div>{{ $error }}</div>
                             @endforeach
@@ -98,7 +102,6 @@
 
             <!-- Contenido del Modal -->
             <div class="px-8 py-8">
-                <!-- FORMULARIO CORREGIDO: Cambiado a store-exit -->
                 <form method="POST" action="{{ route('production-records.store-exit') }}" id="confirmForm">
                     @csrf
 
@@ -178,7 +181,6 @@
 
                 // Detectar el formato basado en la longitud del código
                 if (code.length === 20) {
-
                     orderNumber = code.substring(0, 8);
                     sequence = code.substring(8, 14);
                     quantity = code.substring(14, 20);

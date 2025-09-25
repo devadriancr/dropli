@@ -17,6 +17,8 @@ class PaintProductionRecord extends Component
     public $date;
     public bool $realTime = false;
 
+    public $columnsState = [];
+
     public function mount($realTime = false)
     {
         $this->realTime = $realTime;
@@ -34,8 +36,9 @@ class PaintProductionRecord extends Component
             return;
         }
 
-        // Generar los encabezados de hora basados en el turno
+        // Generar los encabezados de hora basados en el turno (anclados a la fecha planeada)
         $this->generateTimeHeaders();
+        $this->computeColumnStates();
 
         // Obtener los planes de producción
         $productionPlans = ProductionPlan::query()
@@ -60,18 +63,59 @@ class PaintProductionRecord extends Component
 
     protected function generateTimeHeaders()
     {
-        $start = Carbon::parse($this->shift->start_time);
-        $end = Carbon::parse($this->shift->end_time);
+        // Anclar fechas a la fecha planeada para evitar confusiones con turnos que crucen medianoche
+        $start = Carbon::parse("{$this->date} {$this->shift->start_time}");
+        $end = Carbon::parse("{$this->date} {$this->shift->end_time}");
 
-        $end = $start->gt($end) ? $end->copy()->addDay() : $end;
+        // Si el turno cruza medianoche, sumar 1 día al end
+        if ($start->gt($end)) {
+            $end = $end->copy()->addDay();
+        }
 
-        // Limpiar headers existentes
         $this->timeHeaders = [];
+        $current = $start->copy();
 
-        // Generar las horas del turno (de inicio a fin-1 hora)
-        while ($start->lt($end)) {
-            $this->timeHeaders[] = $start->format('H:i');
-            $start->addHour();
+        while ($current->lt($end)) {
+            // Usamos formato H:00 para alinear con las keys usadas en el resto del código
+            $this->timeHeaders[] = $current->format('H:00');
+            $current->addHour();
+        }
+    }
+
+    /**
+     * Determina el estado de cada columna con la ventana amarilla de 2.5 horas (150 minutos).
+     * - amarillo: dt <= now && dt >= now - 150min  (incluyente)
+     * - verde: dt < now - 150min  (aunque sea 1 minuto antes)
+     * - futuro: dt > now
+     */
+    protected function computeColumnStates()
+    {
+        // Reconstruir datetimes anclados a la fecha de turno
+        $start = Carbon::parse("{$this->date} {$this->shift->start_time}");
+        $end = Carbon::parse("{$this->date} {$this->shift->end_time}");
+        if ($start->gt($end)) {
+            $end = $end->copy()->addDay();
+        }
+
+        $headerDateTimes = [];
+        $current = $start->copy();
+        foreach ($this->timeHeaders as $header) {
+            $headerDateTimes[$header] = $current->copy();
+            $current->addHour();
+        }
+
+        $now = Carbon::now();
+        $yellowStart = $now->copy()->subMinutes(210);
+
+        $this->columnsState = [];
+        foreach ($headerDateTimes as $header => $dt) {
+            if ($dt->lte($now) && $dt->gte($yellowStart)) {
+                $this->columnsState[$header] = 'yellow';
+            } elseif ($dt->lt($yellowStart)) {
+                $this->columnsState[$header] = 'green';
+            } else {
+                $this->columnsState[$header] = 'future';
+            }
         }
     }
 
@@ -83,51 +127,17 @@ class PaintProductionRecord extends Component
             $partNumber = $plan->partNumber->number;
 
             if (!isset($groupedPlans[$partNumber])) {
-                // $hoursCount = count($this->timeHeaders);
-
-                // $planDistribution = [];
-                // if ($hoursCount > 0) {
-                //     $standardPackQuantity = $plan->partNumber->standard_pack_quantity;
-                //     $plannedQuantity = $plan->planned_quantity;
-
-                //     if ($plannedQuantity > 0 && $standardPackQuantity > 0) {
-                //         $baseQuantity = floor($plannedQuantity / $hoursCount);
-
-                //         $adjustedBase = floor($baseQuantity / $standardPackQuantity) * $standardPackQuantity;
-
-                //         $distributedTotal = $adjustedBase * $hoursCount;
-                //         $remainder = $plannedQuantity - $distributedTotal;
-
-                //         $planDistribution = array_fill_keys($this->timeHeaders, $adjustedBase);
-
-                //         $keys = array_keys($planDistribution);
-                //         $remainingPacks = ceil($remainder / $standardPackQuantity);
-
-                //         for ($i = 0; $i < $remainingPacks && $i < $hoursCount; $i++) {
-                //             $toAdd = min($standardPackQuantity, $remainder);
-                //             $planDistribution[$keys[$i]] += $toAdd;
-                //             $remainder -= $toAdd;
-
-                //             if ($remainder <= 0) break;
-                //         }
-                //     } else {
-                //         $planDistribution = array_fill_keys($this->timeHeaders, null);
-                //     }
-                // } else {
-                //     $planDistribution = array_fill_keys($this->timeHeaders, null);
-                // }
-
                 $groupedPlans[$partNumber] = [
                     'line_name' => $plan->partNumber->previousProcesses->first()->workCenter->area->name ?? '-',
                     'part_number' => $partNumber,
-                    'standard_pack' => $plan->partNumber->standardPack->name,
-                    'standard_pack_quantity' => $plan->partNumber->standard_pack_quantity,
+                    'standard_pack' => $plan->partNumber->standardPack->name ?? '-',
+                    'standard_pack_quantity' => $plan->partNumber->standard_pack_quantity ?? null,
                     'model' => $plan->partNumber->projects->pluck('model')->implode(';'),
                     'planned_quantity' => $plan->planned_quantity,
                     'produced_quantity' => $plan->produced_quantity,
-                    // 'plan' => $planDistribution,
                     'entries' => array_fill_keys($this->timeHeaders, null),
                     'exits' => array_fill_keys($this->timeHeaders, null),
+                    'total_entries' => 0, // Nueva propiedad para el acumulado
                 ];
             }
 
@@ -152,7 +162,10 @@ class PaintProductionRecord extends Component
                     $hourKey = $createdAt->format('H:00');
 
                     if (in_array($hourKey, $this->timeHeaders)) {
+                        // Sumar al acumulado por hora
                         $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
+                        // Sumar al total acumulado
+                        $groupedPlans[$partNumber]['total_entries'] += $record->quantity;
                     }
                 }
             }

@@ -3,7 +3,7 @@
         <!-- Header -->
         <div class="w-full max-w-3xl flex justify-between items-center mb-2">
             <h1 class="text-3xl font-bold text-gray-900">Entrada de Material</h1>
-            <a href="{{ route('production-records.scan-label') }}"
+            <a href="{{ route('production-records.entry-scan') }}"
                class="inline-flex items-center justify-center gap-2 w-full max-w-[200px] py-2 text-white bg-gray-700 hover:bg-gray-800 rounded-lg text-sm transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                      stroke="currentColor" class="w-5 h-5">

@@ -24,7 +24,7 @@ class PaintingProcessExit extends Component
 
     public function loadRecentExits()
     {
-        $twoAndAHalfHoursAgo = Carbon::now()->subHours(2)->subMinutes(30);
+        $twoAndAHalfHoursAgo = Carbon::now()->subMinutes(210);
 
         $this->recentExitRecords = ProductionRecord::with(['partNumber'])
             ->where('record_type', 'exit')
