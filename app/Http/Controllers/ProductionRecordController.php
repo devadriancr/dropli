@@ -15,6 +15,7 @@ use App\Models\ProductionRecord;
 use App\Models\Shift;
 use App\Models\Status;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ProductionRecordController extends Controller
@@ -139,11 +140,31 @@ class ProductionRecordController extends Controller
     }
 
     /**
-     * Show the form for entering a part number.
+     * Show the form for manual part number entry.
      */
-    public function partNumberEntry()
+    public function partNumberEntry(Request $request)
     {
-        return view('production-records.part-number-entry');
+        if (Auth::check()) {
+            $workCenterIds = Auth::user()->workCenters->pluck('id');
+            $partNumbers = PartNumber::whereIn('work_center_id', $workCenterIds)
+                ->orderBy('number')
+                ->get();
+        } else {
+            $partNumbers = PartNumber::with(['workCenter.area'])
+                ->whereHas('workCenter.area', function ($query) {
+                    $query->where('name', 'PAINT');
+                })
+                ->orderBy('number')
+                ->get();
+        }
+
+        // Guardar la URL de origen en la sesión
+        $origin = $request->get('origin');
+        if ($origin) {
+            session(['part_number_entry_origin' => $origin]);
+        }
+
+        return view('production-records.part-number-entry', compact('partNumbers'));
     }
 
     /**
@@ -165,7 +186,17 @@ class ProductionRecordController extends Controller
         $partNumberInput = $request->input('partNumber');
         $quantity = $request->input('quantity');
 
-        $redirect = redirect()->route('production-records.part-number-entry');
+        // Obtener la URL de origen de la sesión para determinar el redireccionamiento
+        $origin = session('part_number_entry_origin');
+
+        // Determinar si es entrada o salida basado en la URL de origen
+        $isEntry = true; // Por defecto asumimos entrada
+        if ($origin) {
+            $isEntry = str_contains($origin, 'entry-scan') || !str_contains($origin, 'exit-scan');
+        }
+
+        // Configurar redirección
+        $redirect = $origin ? redirect($origin) : redirect()->route('production-records.part-number-entry');
 
         // Buscar número de parte
         $partNumber = PartNumber::where('number', $partNumberInput)->where('is_obsolete', false)->first();
@@ -173,47 +204,55 @@ class ProductionRecordController extends Controller
             return $redirect->with('error', "Número de parte no encontrado: {$partNumberInput}");
         }
 
-        // Número de parte siguientes
-        $nextPartNumber = $partNumber->nextProcesses->where('is_obsolete', false)->first();
-        if (!$nextPartNumber) {
-            return $redirect->with('warning', 'No hay procesos siguientes configurados para este número de parte.');
-        }
+        if ($isEntry) {
+            $shift = Shift::getShift()->first();
+            $today = Shift::getPlannedDate();
+            $productionPlan = null;
 
-        // Turno y plan de producción
-        $shift = Shift::getShift()->first();
-        $today = Shift::getPlannedDate();
+            $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
+            if (!$productionPlan) {
+                return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
+            }
 
-        $productionPlan = ProductionPlan::query()
-            ->where('part_number_id', $nextPartNumber->id)
-            ->where('planned_date', $today)
-            ->where('shift_id', $shift->id)
-            ->first();
+            // $exists = ProductionRecord::productionPlanExists($productionPlan->id, '00000000', $partNumber->id, '000000', $quantity, 'entry');
+            // if ($exists) {
+            //     return $redirect->with('error', 'Este número de parte ya ha sido registrado anteriormente.');
+            // }
 
-        if (!$productionPlan) {
-            return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
-        }
+            ProductionRecord::store($productionPlan->id, '00000000', $partNumber->previousProcesses->where('is_obsolete', false)->first()->id, '00000000', $quantity, 'entry');
 
-        // Crear registro
-        ProductionRecord::create([
-            'production_plan_id' => $productionPlan->id,
-            'order_number' => '00000000',
-            'part_number_id' => $partNumber->id,
-            'sequence' => '000000',
-            'quantity' => $quantity,
-        ]);
+            event(new MaterialEntryRegistered());
 
-        // Evento y actualización de producido
-        event(new MaterialEntryRegistered());
-
-        if ($productionPlan->produced_quantity == 0) {
-            $status = Status::where('key', 'in_progress')->first();
-            $productionPlan->update([
-                'produced_quantity' => $quantity,
-                'status_id' => $status->id ?? $productionPlan->status_id,
-            ]);
+            if ($productionPlan->produced_quantity == 0) {
+                $status = Status::where('key', 'in_progress')->first();
+                $productionPlan->update([
+                    'produced_quantity' => $quantity,
+                    'status_id' => $status->id ?? $productionPlan->status_id,
+                ]);
+            } else {
+                $productionPlan->increment('produced_quantity', intval($quantity));
+            }
         } else {
-            $productionPlan->increment('produced_quantity', intval($quantity));
+            $shift = Shift::getShift()->first();
+            $today = Shift::getPlannedDate();
+
+            $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
+            if (!$productionPlan) {
+                return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
+            }
+
+            // $exists = ProductionRecord::productionPlanExists($productionPlan->id, '00000000', $previousPartNumber->id, '000000', $quantity, 'exit');
+            // if ($exists) {
+            //     return $redirect->with('error', 'Este número de parte ya ha sido registrado anteriormente.');
+            // }
+
+            ProductionRecord::store($productionPlan->id, '00000000', $partNumber->id, '000000', $quantity, 'exit');
+
+            event(new MaterialExitRegistered());
         }
+
+        // Limpiar la sesión después de usarla
+        session()->forget('part_number_entry_origin');
 
         return $redirect->with('success', 'Número de parte registrado correctamente');
     }

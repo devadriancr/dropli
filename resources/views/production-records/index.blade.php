@@ -67,7 +67,10 @@
                     </thead>
                     <tbody>
                         @forelse ($productionRecords as $record)
-                            <tr class="border-light-subtle">
+                            <tr class="border-light-subtle record-row
+                                @if($record->record_type == 'entry') record-entry
+                                @elseif($record->record_type == 'exit') record-exit
+                                @endif">
                                 <!-- Centro de Trabajo -->
                                 <td class="py-3">
                                     @if ($record->partNumber && $record->partNumber->workCenter)
@@ -106,7 +109,7 @@
                                     </span>
                                 </td>
 
-                                <!-- Cantidad -->
+                                <!-- Tipo de Registro -->
                                 <td class="py-3">
                                     @if ($record->record_type == 'exit')
                                         <span class="badge-status bg-success bg-opacity-10 text-success">
@@ -131,7 +134,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4">
+                                <td colspan="6" class="text-center py-4">
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
                                         <span class="text-secondary">No se encontraron registros de producción</span>
@@ -192,9 +195,7 @@
             border-color: #f0f0f0 !important;
         }
 
-        .table-hover tbody tr:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            transform: translateY(-1px);
+        .table-hover tbody tr {
             transition: all 0.2s ease;
         }
 
@@ -306,6 +307,48 @@
         .fw-500 {
             font-weight: 500;
         }
+
+        /* ===== ESTILOS PARA EL HOVER DE LAS FILAS ===== */
+        .record-row {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        /* Hover para registros de ENTRADA (azul claro) */
+        .record-entry:hover {
+            background-color: rgba(13, 110, 253, 0.08) !important;
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Hover para registros de SALIDA (verde claro) */
+        .record-exit:hover {
+            background-color: rgba(25, 135, 84, 0.08) !important;
+            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Hover para filas sin tipo definido (gris claro) */
+        .table-hover tbody tr:hover:not(.record-entry):not(.record-exit) {
+            background-color: rgba(108, 117, 125, 0.08) !important;
+            box-shadow: 0 2px 8px rgba(108, 117, 125, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Versión alternativa con colores más intensos (descomenta si prefieres) */
+        /*
+        .record-entry:hover {
+            background-color: #e8f2ff !important;
+        }
+
+        .record-exit:hover {
+            background-color: #e8f6f0 !important;
+        }
+
+        .table-hover tbody tr:hover:not(.record-entry):not(.record-exit) {
+            background-color: #f8f9fa !important;
+        }
+        */
     </style>
 @stop
 
