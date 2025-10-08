@@ -28,13 +28,25 @@ class StorePartNumberNextProcess implements ShouldQueue
     public function handle(): void
     {
         foreach ($this->partNumberSorted as $part) {
-            $currentPart = PartNumber::query()->where('number', $part->CHILD_PART)->first();
-            $currentWorkCenter = WorkCenter::query()->where('number', $part->CHILD_WORK_CENTER)->first();
-            $nextPart =  PartNumber::query()->where('number', $part->PARENT_PART)->first();
-            $nextWorkCenter =  WorkCenter::query()->where('number', $part->PARENT_WORK_CENTER)->first();
+            // Soporte para alias devueltos por la consulta (mayúsc/minúsc)
+            $childNumber = isset($part->child_part) ? $part->child_part : ($part->CHILD_PART ?? null);
+            $parentNumber = isset($part->parent_part) ? $part->parent_part : ($part->PARENT_PART ?? null);
 
-            if (!$currentPart || !$nextPart || !$currentWorkCenter || !$nextWorkCenter) {
-                continue; // Skip if any part or work center is not found
+            if (!$childNumber || !$parentNumber) {
+                continue;
+            }
+
+            $childNumber = trim($childNumber);
+            $parentNumber = trim($parentNumber);
+
+            $currentPart = PartNumber::query()->where('number', $childNumber)->first();
+            $nextPart = PartNumber::query()->where('number', $parentNumber)->first();
+
+            // Si no existen en tu base local los números de parte, saltamos.
+            if (!$currentPart || !$nextPart) {
+                // puedes loggear para revisión si quieres
+                logger()->info("MBM: Omitido porque no existe el part local - child: {$childNumber}, parent: {$parentNumber}");
+                continue;
             }
 
             PartNumberSequence::updateOrCreate(

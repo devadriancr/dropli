@@ -219,7 +219,7 @@ class ProductionRecordController extends Controller
             //     return $redirect->with('error', 'Este número de parte ya ha sido registrado anteriormente.');
             // }
 
-            ProductionRecord::store($productionPlan->id, '00000000', $partNumber->previousProcesses->where('is_obsolete', false)->first()->id, '00000000', $quantity, 'entry');
+            ProductionRecord::store($productionPlan->id, '00000000', $partNumber->previousProcesses->where('is_obsolete', false)->first()->id, '000000', $quantity, 'entry');
 
             event(new MaterialEntryRegistered());
 

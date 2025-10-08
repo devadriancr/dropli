@@ -34,7 +34,7 @@ class GetProductionPlanJob implements ShouldQueue
         $partNumbers = PartNumber::query()
             ->join('work_centers', 'part_numbers.work_center_id', '=', 'work_centers.id')
             ->join('areas', 'work_centers.area_id', '=', 'areas.id')
-            ->where('part_numbers.number', 'NOT LIKE', '%-830')
+            // ->where('part_numbers.number', 'NOT LIKE', '%-830')
             ->pluck('part_numbers.number')
             ->toArray();
 
