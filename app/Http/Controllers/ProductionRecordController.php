@@ -58,6 +58,41 @@ class ProductionRecordController extends Controller
     }
 
     /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(ProductionRecord $productionRecord)
+    {
+        return view('production-records.edit', compact('productionRecord'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, ProductionRecord $productionRecord)
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ], [
+            'quantity.required' => 'La cantidad es obligatoria',
+            'quantity.integer' => 'La cantidad debe ser un número entero',
+            'quantity.min' => 'La cantidad debe ser al menos 1',
+        ]);
+
+        try {
+            // Actualizar solo la cantidad del registro de producción
+            $productionRecord->update([
+                'quantity' => $validated['quantity']
+            ]);
+
+            return redirect()->route('production-records.index')
+                ->with('success', 'Cantidad actualizada correctamente');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with('error', 'Error al actualizar la cantidad: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Show the form for scanning a label.
      */
     public function entryScan()
@@ -78,6 +113,11 @@ class ProductionRecordController extends Controller
 
         if (strlen($entryCode) < 14) {
             return $redirect->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
+        }
+
+        $orderAlreadyExists = ProductionRecord::productionRecordExists($orderNumber, $sequence, $quantity, 'entry');
+        if ($orderAlreadyExists) {
+            return $redirect->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');
         }
 
         if (strlen($entryCode) >= 20 && strlen($entryCode) <= 25) {
@@ -113,7 +153,11 @@ class ProductionRecordController extends Controller
             }
         }
 
-        if (!$productionPlan) {
+        if ($productionPlan === null) {
+            $productionPlan = ProductionPlan::store(null, $nextPart->id, 0, $today, $shift->id);
+        }
+
+        if ($productionPlan == null) {
             return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
         }
 
@@ -210,9 +254,14 @@ class ProductionRecordController extends Controller
             $productionPlan = null;
 
             $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
-            if (!$productionPlan) {
-                return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
+
+            if ($productionPlan === null) {
+                $productionPlan = ProductionPlan::store(null, $partNumber->id, 0, $today, $shift->id);
             }
+
+            // if (!$productionPlan) {
+            //     return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
+            // }
 
             // $exists = ProductionRecord::productionPlanExists($productionPlan->id, '00000000', $partNumber->id, '000000', $quantity, 'entry');
             // if ($exists) {
@@ -277,6 +326,11 @@ class ProductionRecordController extends Controller
 
         $redirect = redirect()->route('production-records.exit-scan');
 
+        $orderAlreadyExists = ProductionRecord::productionRecordExists($orderNumber, $sequence, $quantity, 'exit');
+        if ($orderAlreadyExists) {
+            return $redirect->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');
+        }
+
         if (strlen($exitCode) >= 20 && strlen($exitCode) <= 25) {
             $orderPartNumber = FSO::getPartNumberByOrder($orderNumber);
         } elseif (strlen($exitCode) >= 30) {
@@ -303,7 +357,8 @@ class ProductionRecordController extends Controller
         $today = Shift::getPlannedDate();
 
         $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
-        if (!$productionPlan) {
+
+        if ($productionPlan === null) {
             return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
         }
 

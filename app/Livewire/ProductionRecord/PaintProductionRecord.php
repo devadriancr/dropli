@@ -137,7 +137,7 @@ class PaintProductionRecord extends Component
                     'produced_quantity' => $plan->produced_quantity,
                     'entries' => array_fill_keys($this->timeHeaders, null),
                     'exits' => array_fill_keys($this->timeHeaders, null),
-                    'total_entries' => 0, // Nueva propiedad para el acumulado
+                    'total_entries' => 0,
                 ];
             }
 

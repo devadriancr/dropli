@@ -12,20 +12,15 @@
                 <form method="GET" action="{{ route('home.index') }}" class="form-inline">
                     <div class="form-group mr-2 mb-2">
                         <label for="date" class="mr-2">Fecha:</label>
-                        <input type="date"
-                               id="date"
-                               name="date"
-                               value="{{ $selectedDate }}"
-                               max="{{ \Carbon\Carbon::today()->format('Y-m-d') }}"
-                               class="form-control form-control-sm">
+                        <input type="date" id="date" name="date" value="{{ $selectedDate }}"
+                            max="{{ \Carbon\Carbon::today()->format('Y-m-d') }}" class="form-control form-control-sm">
                     </div>
 
                     <div class="form-group mr-2 mb-2">
                         <label for="shift_id" class="mr-2">Turno:</label>
                         <select id="shift_id" name="shift_id" class="form-control form-control-sm">
-                            @foreach($shifts as $s)
-                                <option value="{{ $s->id }}"
-                                        {{ $selectedShiftId == $s->id ? 'selected' : '' }}>
+                            @foreach ($shifts as $s)
+                                <option value="{{ $s->id }}" {{ $selectedShiftId == $s->id ? 'selected' : '' }}>
                                     {{ $s->name }}
                                 </option>
                             @endforeach
@@ -36,8 +31,14 @@
                         <i class="fas fa-filter"></i> Filtrar
                     </button>
 
-                    <a href="{{ route('home.index') }}" class="btn btn-secondary btn-sm mb-2">
+                    <a href="{{ route('home.index') }}" class="btn btn-secondary btn-sm mb-2 mr-2">
                         <i class="fas fa-sync"></i>
+                    </a>
+
+                    {{-- Botón para descargar PDF --}}
+                    <a href="{{ route('home.production-records-pdf', ['date' => $selectedDate, 'shift_id' => $selectedShiftId]) }}"
+                        class="btn btn-danger btn-sm mb-2" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Descargar PDF
                     </a>
                 </form>
             </div>
@@ -168,7 +169,8 @@
                 </div>
                 <div class="card-body">
                     <div class="chart">
-                        <canvas id="productionChart" style="min-height: 600px; height: 600px; max-height: 600px; max-width: 100%;"></canvas>
+                        <canvas id="productionChart"
+                            style="min-height: 600px; height: 600px; max-height: 600px; max-width: 100%;"></canvas>
                     </div>
                 </div>
             </div>
@@ -181,42 +183,58 @@
         .card {
             border: 1px solid #eaeaea;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s;
         }
+
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
+
         .card-title {
             font-size: 1rem;
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
+
         .card-text {
             font-size: 0.85rem;
         }
+
         h3 {
             font-weight: 700;
             color: #333;
         }
+
         .form-inline .form-group {
             display: flex;
             align-items: center;
             margin-right: 0.5rem;
         }
+
         .form-inline label {
             margin-right: 0.5rem;
             margin-bottom: 0;
             font-weight: 500;
             color: #555;
         }
+
         .float-right {
             float: right;
         }
-        .text-blue { color: #007bff; }
-        .text-red { color: #dc3545; }
-        .text-green { color: #28a745; }
+
+        .text-blue {
+            color: #007bff;
+        }
+
+        .text-red {
+            color: #dc3545;
+        }
+
+        .text-green {
+            color: #28a745;
+        }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -224,14 +242,17 @@
                 float: none !important;
                 margin-top: 15px;
             }
+
             .form-inline .form-group {
                 margin-right: 0;
                 margin-bottom: 10px;
                 width: 100%;
             }
+
             .form-inline .form-group label {
                 min-width: 60px;
             }
+
             .btn {
                 width: 100%;
                 margin-bottom: 5px;
@@ -250,8 +271,7 @@
                 type: 'bar',
                 data: {
                     labels: @json($labels),
-                    datasets: [
-                        {
+                    datasets: [{
                             label: 'Planeado',
                             data: @json($data['planned']),
                             backgroundColor: 'rgba(142, 197, 255)',

@@ -40,11 +40,16 @@
                     </form>
                 </div>
 
-                {{-- Botón de agregar si es necesario --}}
-                {{-- <a href="{{ route('production-plans.create') }}" class="btn btn-primary rounded-3">
-                    <i class="fas fa-plus me-2"></i>
-                    <span>Agregar nuevo</span>
-                </a> --}}
+                <!-- Botón de Sincronizar Todo -->
+                <div>
+                    <form method="POST" action="{{ route('production-plans.sync-all') }}" id="syncAllForm">
+                        @csrf
+                        <button type="button" class="btn btn-primary rounded-3" id="btn-sync-all">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            <span>Sincronizar Todo</span>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -67,7 +72,7 @@
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">
                                 {{ __('Cantidad Producida') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Estado') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Acciones') }}</th>
+                            {{-- <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Acciones') }}</th> --}}
                         </tr>
                     </thead>
                     <tbody>
@@ -130,7 +135,7 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td class="py-3">
+                                {{-- <td class="py-3">
                                     @if ($productionPlan->status && strtolower($productionPlan->status->key) !== 'completed')
                                         <button type="button"
                                             class="btn btn-sm btn-outline-primary rounded-3 btn-save-production"
@@ -142,7 +147,7 @@
                                             <span>Guardar</span>
                                         </button>
                                     @endif
-                                </td>
+                                </td> --}}
                             </tr>
                         @empty
                             <tr>
@@ -396,6 +401,48 @@
                             });
                         }
                     });
+                });
+            });
+
+            // Manejar click en botón de sincronizar todo
+            document.getElementById('btn-sync-all')?.addEventListener('click', function() {
+                const btn = this;
+                const originalText = btn.innerHTML;
+
+                swalWithBootstrapButtons.fire({
+                    title: "¿Sincronizar todos los registros?",
+                    html: `
+                        <div style="font-size: 1rem; margin: 20px 0;">
+                            <p>Se sincronizarán todos los registros que cumplan con:</p>
+                            <ul class="text-start">
+                                <li>Cantidad producida mayor a 0</li>
+                                <li>Estado "En Proceso"</li>
+                                <li>No hayan sido sincronizados previamente</li>
+                            </ul>
+                            <p class="text-warning"><strong>Esta acción no se puede deshacer.</strong></p>
+                        </div>
+                    `,
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "Sí, Sincronizar Todo",
+                    cancelButtonText: "No, Cancelar",
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Cambiar texto del botón y deshabilitar
+                        btn.innerHTML =
+                            '<i class="fas fa-spinner fa-spin me-2"></i><span>Sincronizando...</span>';
+                        btn.disabled = true;
+
+                        // Enviar formulario
+                        document.getElementById('syncAllForm').submit();
+                    } else if (result.dismiss === Swal.DismissReason.cancel) {
+                        swalWithBootstrapButtons.fire({
+                            title: "Cancelado",
+                            text: "No se sincronizaron los registros",
+                            icon: "error"
+                        });
+                    }
                 });
             });
         });

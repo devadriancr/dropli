@@ -57,7 +57,7 @@ class YF013 extends Model
                 'YFETIM' => '',
                 'YFSDT' => '',
                 'YFEDT' => '',
-                'YFQPLA' => $productionPlan->planned_quantity ?? 0,
+                'YFQPLA' => $productionPlan->planned_quantity ?: $productionPlan->produced_quantity,
                 'YFQPRO' => $productionPlan->produced_quantity ?? 0,
                 'YFQSCR' => $accumulatedScrap ?? 0,
                 'YFSCRE' => ($accumulatedScrap ?? 0) == 0 ? '' : 'RJ',

@@ -26,6 +26,15 @@ class ProductionRecord extends Model
         return $this->belongsTo(PartNumber::class, 'part_number_id');
     }
 
+    public static function productionRecordExists(string $orderNumber, string $sequence, int $quantity, string $recordType): bool
+    {
+        return ProductionRecord::where('order_number', $orderNumber)
+            ->where('sequence', $sequence)
+            ->where('quantity', $quantity)
+            ->where('record_type', $recordType)
+            ->exists();
+    }
+
     public static function productionPlanExists(int $productionPlanId, string $orderNumber, int $partNumberId, string $sequence, int $quantity, string $recordType): bool
     {
         return ProductionRecord::query()
