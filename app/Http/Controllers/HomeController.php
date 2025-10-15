@@ -85,7 +85,7 @@ class HomeController extends Controller
         }
 
         foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
-            $partNumber = PartNumber::find($partNumberId);
+            $partNumber = PartNumber::find($partNumberId)->nextProcesses->where('is_obsolete', false);
 
             if ($partNumber) {
                 $piecesPerHook = $partNumber->getCustomAttributeValue('pieces_per_hook');
@@ -113,7 +113,7 @@ class HomeController extends Controller
 
         // JPH Promedio por Turno
         $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
-            ? round($totalHooksUsedPerShift / $effectiveProductionTimePerShift,2)
+            ? round($totalHooksUsedPerShift / $effectiveProductionTimePerShift, 2)
             : 0;
 
         // Man-hours per piece per shift - $manHoursPerPiecePerShift

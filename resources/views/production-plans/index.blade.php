@@ -8,14 +8,14 @@
 
 @section('content')
     {{-- Agregamos las alertas que faltaban --}}
-    @if(session('success'))
+    @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    @if(session('error'))
+    @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -31,8 +31,8 @@
                     <form method="GET" action="{{ route('production-plans.index') }}">
                         <div class="input-group">
                             <input type="text" name="search" class="form-control border-end-0"
-                                placeholder="Buscar órdenes, números de parte, fechas..."
-                                aria-label="Buscar" value="{{ $search ?? '' }}">
+                                placeholder="Buscar órdenes, números de parte, fechas..." aria-label="Buscar"
+                                value="{{ $search ?? '' }}">
                             <button type="submit" class="input-group-text bg-white border-start-0">
                                 <i class="fas fa-search text-secondary"></i>
                             </button>
@@ -54,13 +54,20 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light sticky-top">
                         <tr>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Orden') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Número de Parte') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha Planeada') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Turno Planeado') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad Planeada') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Cantidad Producida') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Número de Orden') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Número de Parte') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Fecha Planeada') }}
+                            </th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Turno Planeado') }}
+                            </th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Cantidad Planeada') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">
+                                {{ __('Cantidad Producida') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Estado') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Acciones') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -70,7 +77,7 @@
                                     <div class="fw-500">{{ $productionPlan->shop_order_number }}</div>
                                 </td>
                                 <td class="py-3">
-                                    @if($productionPlan->partNumber)
+                                    @if ($productionPlan->partNumber)
                                         <div class="fw-500">{{ $productionPlan->partNumber->number }}</div>
                                         <div class="text-muted small">{{ $productionPlan->partNumber->name ?? '-' }}</div>
                                     @else
@@ -78,10 +85,12 @@
                                     @endif
                                 </td>
                                 <td class="py-3 small">
-                                    <div class="fw-500">{{ \Carbon\Carbon::parse($productionPlan->planned_date)->format('Y-m-d') }}</div>
+                                    <div class="fw-500">
+                                        {{ \Carbon\Carbon::parse($productionPlan->planned_date)->format('Y-m-d') }}
+                                    </div>
                                 </td>
                                 <td class="py-3">
-                                    @if($productionPlan->shift)
+                                    @if ($productionPlan->shift)
                                         <span class="badge-status bg-light bg-opacity-10 text-info">
                                             {{ $productionPlan->shift->abbreviation }}
                                         </span>
@@ -100,18 +109,38 @@
                                     </span>
                                 </td>
                                 <td class="py-3">
-                                    @if($productionPlan->status)
-                                        @if (strtolower($productionPlan->status->label) === 'en proceso')
-                                            <span class="badge-status bg-warning bg-opacity-10 text-warning">{{ $productionPlan->status->label }}</span>
-                                        @elseif (strtolower($productionPlan->status->label) === 'completado')
-                                            <span class="badge-status bg-success bg-opacity-10 text-success">{{ $productionPlan->status->label }}</span>
-                                        @elseif (strtolower($productionPlan->status->label) === 'pendiente')
-                                            <span class="badge-status bg-secondary bg-opacity-10 text-secondary">{{ $productionPlan->status->label }}</span>
+                                    @if ($productionPlan->status)
+                                        @if (strtolower($productionPlan->status->key) === 'in_progress')
+                                            <span
+                                                class="badge-status bg-primary bg-opacity-10 text-primary">{{ $productionPlan->status->label }}
+                                            </span>
+                                        @elseif (strtolower($productionPlan->status->key) === 'completed')
+                                            <span
+                                                class="badge-status bg-success bg-opacity-10 text-success">{{ $productionPlan->status->label }}
+                                            </span>
+                                        @elseif (strtolower($productionPlan->status->key) === 'pending')
+                                            <span
+                                                class="badge-status bg-secondary bg-opacity-10 text-secondary">{{ $productionPlan->status->label }}</span>
                                         @else
-                                            <span class="badge-status bg-secondary bg-opacity-10 text-secondary">{{ $productionPlan->status->label }}</span>
+                                            <span
+                                                class="badge-status bg-secondary bg-opacity-10 text-secondary">{{ $productionPlan->status->label }}
+                                            </span>
                                         @endif
                                     @else
                                         <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td class="py-3">
+                                    @if ($productionPlan->status && strtolower($productionPlan->status->key) !== 'completed')
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-primary rounded-3 btn-save-production"
+                                            data-id="{{ $productionPlan->id }}"
+                                            data-planned="{{ $productionPlan->planned_quantity }}"
+                                            data-produced="{{ $productionPlan->produced_quantity ?? 0 }}"
+                                            {{ ($productionPlan->produced_quantity ?? 0) == 0 ? 'disabled' : '' }}>
+                                            <i class="fas fa-check me-2"></i>
+                                            <span>Guardar</span>
+                                        </button>
                                     @endif
                                 </td>
                             </tr>
@@ -121,8 +150,9 @@
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="fas fa-calendar-alt fa-2x text-muted mb-2"></i>
                                         <span class="text-secondary">No se encontraron planes de producción</span>
-                                        @if(!empty($search))
-                                            <a href="{{ route('production-plans.index') }}" class="btn btn-sm btn-link mt-2">
+                                        @if (!empty($search))
+                                            <a href="{{ route('production-plans.index') }}"
+                                                class="btn btn-sm btn-link mt-2">
                                                 Limpiar búsqueda
                                             </a>
                                         @endif
@@ -294,6 +324,7 @@
 @stop
 
 @section('js')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Cerrar alertas automáticamente después de 5 segundos
@@ -306,6 +337,67 @@
                     }
                 });
             }, 5000);
+
+            // Configurar SweetAlert con botones de Bootstrap
+            const swalWithBootstrapButtons = Swal.mixin({
+                customClass: {
+                    confirmButton: "btn btn-success mx-2",
+                    cancelButton: "btn btn-danger mx-2"
+                },
+                buttonsStyling: false
+            });
+
+            // Manejar click en botones de guardar
+            document.querySelectorAll('.btn-save-production').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    const planned = this.dataset.planned;
+                    const produced = this.dataset.produced;
+
+                    swalWithBootstrapButtons.fire({
+                        title: "¿Estás seguro?",
+                        html: `
+                            <div style="font-size: 1.1rem; margin: 20px 0;">
+                                <strong>Cantidad Planeada:</strong> ${planned} &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Cantidad Producida:</strong> ${produced}
+                            </div>
+                        `,
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Sí, Guardar",
+                        cancelButtonText: "No, Cancelar",
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Crear formulario y enviarlo
+                            const form = document.createElement('form');
+                            form.method = 'POST';
+                            form.action = '{{ route('production-plans.store') }}';
+
+                            const csrfToken = document.createElement('input');
+                            csrfToken.type = 'hidden';
+                            csrfToken.name = '_token';
+                            csrfToken.value = '{{ csrf_token() }}';
+
+                            const idInput = document.createElement('input');
+                            idInput.type = 'hidden';
+                            idInput.name = 'id';
+                            idInput.value = id;
+
+                            form.appendChild(csrfToken);
+                            form.appendChild(idInput);
+
+                            document.body.appendChild(form);
+                            form.submit();
+                        } else if (result.dismiss === Swal.DismissReason.cancel) {
+                            swalWithBootstrapButtons.fire({
+                                title: "Cancelado",
+                                text: "No se guardó la información",
+                                icon: "error"
+                            });
+                        }
+                    });
+                });
+            });
         });
     </script>
 @stop

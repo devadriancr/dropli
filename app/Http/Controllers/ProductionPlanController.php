@@ -3,9 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductionPlan;
+use App\Models\ScrapRecord;
 use App\Models\Shift;
+use App\Models\Status;
+use App\Models\YF013;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ProductionPlanController extends Controller
 {
@@ -70,7 +75,32 @@ class ProductionPlanController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'id' => 'required|exists:production_plans,id'
+        ]);
+
+        $productionPlan = ProductionPlan::with(['partNumber.workCenter', 'shift'])->find($request->id);
+        if (!$productionPlan) {
+            throw new Exception('Plan de producción no encontrado');
+        }
+
+        $accumulatedScrap = ScrapRecord::where('part_number_id', $productionPlan->part_number_id)->sum('quantity');
+
+        $infor = YF013::sendToInfor($productionPlan, $accumulatedScrap);
+
+        if ($infor) {
+            $status = Status::where('key', 'completed')->first();
+
+            $productionPlan->update([
+                'synced_to_infor' => true,
+                'synced_at' => now(),
+                'status_id' => $status->id ?? null
+            ]);
+        }
+
+        // YF013::executeInforProcess();
+
+        return redirect()->back()->with('success', 'Datos sincronizados correctamente con Infor');
     }
 
     /**
