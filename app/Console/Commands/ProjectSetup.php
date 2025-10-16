@@ -37,6 +37,7 @@ class ProjectSetup extends Command
         ['Obteniendo información del part number', 'infor:part-number', []],
         ['Obteniendo información del next process', 'infor:next-process', []],
         ['Ejecutando DowntimeSeeder', 'db:seed', ['--class' => 'DowntimeSeeder']],
+        ['Ejecutando ScrapSeeder', 'db:seed', ['--class' => 'ScrapSeeder']],
         ['Ejecutando PartNumberAttributesSeeder', 'db:seed', ['--class' => 'PartNumberAttributesSeeder']],
     ];
 

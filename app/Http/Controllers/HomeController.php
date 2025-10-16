@@ -184,8 +184,10 @@ class HomeController extends Controller
             $end->addDay();
         }
 
+        // ===== MÉTRICAS DE PRODUCCIÓN =====
         $effectiveProductionTimePerShift = $start->diffInMinutes($end);
 
+        // Paros de Línea
         $downtimeRecords = DowntimeRecord::with(['workCenter'])
             ->whereIn('work_center_id', $workCenter)
             ->whereBetween('start_time', [$start, $end])
@@ -194,11 +196,11 @@ class HomeController extends Controller
         $totalDowntimeMinutes = $downtimeRecords->sum('minutes');
         $totalDowntimeCount = $downtimeRecords->count();
 
-        $scrapRecords = ScrapRecord::whereBetween('created_at', [$start, $end])
-            ->get();
-
+        // Scrap
+        $scrapRecords = ScrapRecord::whereBetween('created_at', [$start, $end])->get();
         $totalScrap = $scrapRecords->sum('quantity');
 
+        // Ganchos
         $productionRecords = ProductionRecord::with(['partNumber'])
             ->where('record_type', 'entry')
             ->whereBetween('created_at', [$start, $end])
@@ -241,13 +243,14 @@ class HomeController extends Controller
             ? round($totalHooksUsedPerShift / $effectiveProductionTimePerShift, 2)
             : 0;
 
-        // Obtener datos para la tabla de producción
+        // ===== TABLA DE PRODUCCIÓN =====
         $productionPlans = ProductionPlan::query()
             ->with([
                 'partNumber.workCenter',
                 'partNumber.standardPack',
                 'partNumber.projects',
                 'partNumber.nextProcesses',
+                'partNumber.previousProcesses',
                 'productionRecords'
             ])
             ->where('shift_id', $shift->id)
@@ -260,13 +263,6 @@ class HomeController extends Controller
 
         // Generar timeHeaders
         $timeHeaders = [];
-        $start = Carbon::parse("{$date} {$shift->start_time}");
-        $end = Carbon::parse("{$date} {$shift->end_time}");
-
-        if ($start->gt($end)) {
-            $end->addDay();
-        }
-
         $current = $start->copy();
         while ($current->lt($end)) {
             $timeHeaders[] = $current->format('H:00');
@@ -274,7 +270,6 @@ class HomeController extends Controller
         }
 
         // Procesar registros para la tabla
-        $records = [];
         $groupedPlans = [];
 
         foreach ($productionPlans as $plan) {
@@ -282,6 +277,7 @@ class HomeController extends Controller
 
             if (!isset($groupedPlans[$partNumber])) {
                 $groupedPlans[$partNumber] = [
+                    'order_number' => $plan->shop_order_number ?? '-',
                     'line_name' => $plan->partNumber->previousProcesses->first()->workCenter->area->name ?? '-',
                     'part_number' => $partNumber,
                     'standard_pack' => $plan->partNumber->standardPack->name ?? '-',
@@ -342,16 +338,17 @@ class HomeController extends Controller
 
         $records = array_values($groupedPlans);
 
+        // ===== DATOS PARA LA VISTA =====
         $data = [
+            'date' => $date,
+            'shift' => $shift,
             'effectiveProductionTimePerShift' => $effectiveProductionTimePerShift,
             'totalDowntimeMinutes' => $totalDowntimeMinutes,
             'totalDowntimeCount' => $totalDowntimeCount,
             'totalScrap' => $totalScrap,
-            'totalHooksUsedPerShift' => $totalHooksUsedPerShift,
+            'totalHooksUsedPerShift' => round($totalHooksUsedPerShift, 2),
             'hangingRatePerShift' => $hangingRatePerShift,
             'averageJphPerShift' => $averageJphPerShift,
-            'shift' => $shift,
-            'date' => $date,
             'records' => $records,
             'timeHeaders' => $timeHeaders,
         ];

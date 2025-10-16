@@ -6,8 +6,8 @@ use App\Models\DowntimeReason;
 use App\Models\DowntimeRecord;
 use App\Models\DowntimeType;
 use App\Models\WorkCenter;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class DowntimeSeeder extends Seeder
 {
@@ -28,42 +28,36 @@ class DowntimeSeeder extends Seeder
         foreach ($types as $type) {
             $downtimeTypes[$type] = DowntimeType::create([
                 'name' => $type,
-                'description' => $type . ' downtime type',
+                'description' => ucfirst($type) . ' downtime type',
             ]);
         }
 
-        // 2. Razones de paro
-        $reasons = [
-            [
-                'code' => 'TURNCHANGE',
-                'name' => 'Cambio de Turno',
-                'description' => 'Línea detenida por cambio de turno de operadores',
-                'type' => 'Normal'
-            ],
-            [
-                'code' => 'MATERIAL',
-                'name' => 'Falta de Material',
-                'description' => 'Línea detenida por falta de material',
-                'type' => 'Anormal'
-            ],
-            [
-                'code' => 'MAINT',
-                'name' => 'Mantenimiento',
-                'description' => 'Línea detenida por mantenimiento programado o no programado',
-                'type' => 'Planeado'
-            ],
+        // 2. Razones de paro (solo tipo "Anormal" por ahora)
+        $anormalReasons = [
+            'Tensión del drive B',
+            'Tensión del drive A',
+            'Troll dañado (carga)',
+            'Gancho NG',
+            'Pieza fuera de posición en carga',
+            'Charola sanitaria dañada',
+            'Paro en la entrada del horno',
+            'Bajas temperaturas en el horno de curado',
+            'Falla de rectificador',
+            'Falla de bomba (fosfato)',
+            'Falla de bomba (pintura)',
+            'Falla de bomba (desengrase)',
         ];
 
-        foreach ($reasons as $reason) {
+        foreach ($anormalReasons as $reasonName) {
             DowntimeReason::create([
-                'code' => $reason['code'],
-                'name' => $reason['name'],
-                'description' => $reason['description'],
-                'downtime_type_id' => $downtimeTypes[$reason['type']]->id,
+                // 'code' => Str::slug($reasonName, '_'),
+                'name' => $reasonName,
+                'description' => 'Razón de paro anormal: ' . $reasonName,
+                'downtime_type_id' => $downtimeTypes['Anormal']->id,
             ]);
         }
 
-        // 3. (Opcional) Insertar un registro de paro ficticio
+        // 3. Registro de paro ficticio (opcional)
         if (WorkCenter::exists()) {
             DowntimeRecord::create([
                 'downtime_reason_id' => DowntimeReason::first()->id,

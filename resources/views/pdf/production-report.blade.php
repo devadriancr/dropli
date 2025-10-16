@@ -2,265 +2,411 @@
 <html lang="es">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Registro de Producción</title>
-    <style>
-        /* Fuente Arial para TODO el documento */
-        * {
-            font-family: Arial, sans-serif !important;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Diario de Producción</title>
 
-        /* Página */
+    <style>
         @page {
             size: letter landscape;
             margin: 15mm;
         }
 
-        /* Reset mínimo */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body {
-            font-size: 10px;
-            color: #000;
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 12px;
-            font-family: Arial, sans-serif;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif !important;
         }
 
-        /* Tablas */
-        table {
+        body {
+            color: #222;
+            font-size: 8px;
+            padding: 12px;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        /* ===== TABLAS CON BORDES REDONDEADOS ===== */
+        .card-table {
+            width: 100%;
+            border: 0.5px solid #666;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .card-table table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
-            font-family: Arial, sans-serif;
-        }
-        th, td {
-            border: 1px solid #000;
-            padding: 6px 8px;
-            vertical-align: middle;
-            text-align: left;
-            font-size: 10px;
-            font-family: Arial, sans-serif;
+            border-spacing: 0;
         }
 
-        /* Cabecera principal compacta */
-        .main-header td {
+        .card-table th,
+        .card-table td {
+            padding: 5px 6px;
+            border: 0.5px solid #666;
+            font-size: 8px;
             vertical-align: middle;
-            font-family: Arial, sans-serif;
-        }
-        .logo-cell {
-            width: 12%;
-            padding: 4px;
             text-align: center;
-            font-family: Arial, sans-serif;
+            font-family: Arial, Helvetica, sans-serif !important;
         }
-        .logo-cell img {
+
+        /* ===== TABLA INTERNA (sin bordes) ===== */
+        .inner-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inner-table td {
+            border: none;
+            padding: 2px 4px;
+            font-size: 8px;
+            vertical-align: middle;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        .inner-table td:first-child {
+            font-weight: 700;
+            text-align: left;
+            width: 70%;
+        }
+
+        .inner-table td:last-child {
+            font-weight: 400;
+            text-align: right;
+            width: 30%;
+            padding-right: 8px;
+        }
+
+        /* ===== ESTILOS DEL ENCABEZADO ===== */
+        .code-cell {
+            text-align: center !important;
+            padding: 6px !important;
+            font-weight: 700;
+        }
+
+        .header-title {
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .header-logo {
+            width: 85px;
             display: block;
-            max-width: 60px;
-            height: auto;
             margin: 0 auto;
         }
 
-        .title-cell {
-            text-align: center;
-            vertical-align: middle;
-            font-weight: 700;
-            font-size: 12px;
-            padding: 6px;
-            font-family: Arial, sans-serif;
-        }
-
-        .meta-cell {
-            padding: 4px 8px;
-            font-size: 10px;
-            vertical-align: middle;
-            text-align: left;
-            font-family: Arial, sans-serif;
-        }
-
-        .code-cell {
-            padding: 4px 8px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 10px;
-            font-family: Arial, sans-serif;
-        }
-
-        /* Metrics */
+        /* ===== TABLA DE MÉTRICAS ===== */
         .metrics-table td {
-            text-align: center;
-            padding: 6px 8px;
-            font-size: 10px;
-            font-family: Arial, sans-serif;
-        }
-        .metrics-value {
-            font-weight: 700;
-            font-family: Arial, sans-serif;
+            padding: 6px;
         }
 
-        /* Production */
-        .production-table {
-            font-size: 9px;
-            font-family: Arial, sans-serif;
-        }
-        .production-table thead th {
-            background: #f0f0f0;
-            text-align: center;
+        .metric-label {
+            background-color: #f5f5f5;
             font-weight: 700;
-            padding: 6px;
-            font-family: Arial, sans-serif;
         }
+
+        /* ===== TABLA DE PRODUCCIÓN CON BORDES DELGADOS Y REDONDEADOS ===== */
+        .production-wrapper {
+            border: 0.5px solid #666;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .production-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        .production-table thead th {
+            background-color: #e8e8e8;
+            font-weight: 700;
+            text-align: center;
+            padding: 6px 4px;
+            font-size: 8px;
+            border: 0.5px solid #666;
+            vertical-align: middle;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
         .production-table tbody td {
             text-align: center;
-            padding: 5px;
-            font-family: Arial, sans-serif;
-        }
-        .fixed-column {
-            background: #fafafa;
-            text-align: left;
-            font-weight: 500;
-            font-family: Arial, sans-serif;
-        }
-        .sub-header {
-            background: #e8e8e8;
-            font-weight: 700;
-            text-align: center;
-            font-family: Arial, sans-serif;
+            padding: 5px 3px;
+            font-size: 8px;
+            border: 0.5px solid #666;
+            vertical-align: middle;
+            white-space: normal;
+            font-weight: 400 !important;
+            font-family: Arial, Helvetica, sans-serif !important;
         }
 
-        /* Evitar cortes internos */
-        .part-group-wrapper, .part-row, tbody.part-group-body {
+        /* Columnas fijas */
+        .production-table .fixed-column {
+            background-color: #fafafa;
+            text-align: left;
+            font-weight: 400 !important;
+            padding-left: 8px;
+            border: 0.5px solid #666;
+            white-space: normal;
+            word-break: break-word;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        /* ===== COLUMNA TIPO (Entrada/Salida) ===== */
+        .type-cell {
+            padding: 6px 4px;
+            vertical-align: middle;
+            white-space: normal;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        .type-stack {
+            display: inline-block;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .type-stack .type-entry,
+        .type-stack .type-exit {
+            display: block;
+            font-weight: 400 !important;
+            font-size: 8px;
+            margin-bottom: 2px;
+            color: #222;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        /* ===== CELDAS HORARIAS ===== */
+        .hour-cell,
+        .production-table th.hour-header {
+            width: 38px;
+            max-width: 38px;
+            min-width: 28px;
+            padding: 4px 2px;
+            white-space: normal;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        .cell-stack {
+            display: block;
+            line-height: 1;
+            width: 100%;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        .cell-stack .entry-val,
+        .cell-stack .exit-val {
+            display: block;
+            font-weight: 400 !important;
+            font-size: 8px;
+            color: #222;
+            font-family: Arial, Helvetica, sans-serif !important;
+        }
+
+        /* ===== UTILIDADES ===== */
+        .part-group-wrapper {
             page-break-inside: avoid;
             break-inside: avoid;
         }
 
-        /* Pie / paginación */
-        .page-number {
+        .empty-state {
             text-align: center;
-            margin-top: 8px;
-            font-size: 9px;
-            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f9f9f9;
+            border: 0.5px solid #666;
+        }
+
+        @media print {
+            body {
+                font-size: 8px;
+            }
+
+            .production-table td,
+            .production-table th {
+                font-size: 8px;
+            }
         }
     </style>
+
 </head>
 
 <body>
-    <!-- CABECERA: 5 columnas x 4 filas - MEJORADA PERO MANTENIENDO ESTRUCTURA -->
-    <table class="main-header" role="presentation">
-        <tr>
-            <!-- Columna 1: Logo (rowspan 3) -->
-            <td class="logo-cell" rowspan="3">
-                <img src="{{ public_path('images/ykm.png') }}" alt="Logo">
-            </td>
-
-            <!-- Columnas 2-4: Título (colspan 3, rowspan 4) -->
-            <td class="title-cell" colspan="3" rowspan="4">
-                REGISTRO DIARIO DE PRODUCCIÓN
-            </td>
-
-            <!-- Columna 5 - fila 1: Revisión -->
-            <td class="meta-cell">Revisión: <strong>1</strong></td>
-        </tr>
-
-        <tr>
-            <!-- Columna 5 - fila 2: Fecha de Elaboración -->
-            <td class="meta-cell">Fecha de Elaboración: <strong>{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</strong></td>
-        </tr>
-
-        <tr>
-            <!-- Columna 5 - fila 3: Última Revisión -->
-            <td class="meta-cell">Última Revisión: <strong>-</strong></td>
-        </tr>
-
-        <tr>
-            <!-- Fila 4: en columna 1 va FOR-PIN-01 -->
-            <td class="code-cell">FOR-PIN-01</td>
-
-            <!-- Columna 5 - fila 4: Área -->
-            <td class="meta-cell">Área: <strong>PINTURA</strong></td>
-        </tr>
-    </table>
-
-    <!-- Tabla de Métricas (compacta) -->
-    <table class="metrics-table" role="presentation">
-        <tbody>
-            <tr>
-                <td style="width:10%;">Fecha</td>
-                <td style="width:15%;" class="metrics-value">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</td>
-                <td style="width:10%;">Turno</td>
-                <td style="width:15%;" class="metrics-value">{{ $shift->name }}</td>
-                <td style="width:10%;">Hora Inicio</td>
-                <td style="width:15%;" class="metrics-value">{{ $shift->start_time }}</td>
-                <td style="width:10%;">Hora Fin</td>
-                <td style="width:15%;" class="metrics-value">{{ $shift->end_time }}</td>
-            </tr>
-            <tr>
-                <td>Tiempo Efectivo</td>
-                <td class="metrics-value">{{ $effectiveProductionTimePerShift ?? '-' }} Min</td>
-                <td>Tiempo Paros</td>
-                <td class="metrics-value">{{ $totalDowntimeMinutes ?? '-' }} Min</td>
-                <td>Total Paros</td>
-                <td class="metrics-value">{{ $totalDowntimeCount ?? '-' }}</td>
-                <td>Scrap</td>
-                <td class="metrics-value">{{ $totalScrap ?? '-' }}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- Tabla de Producción - MANTENIENDO ESTRUCTURA ORIGINAL -->
-    @if (count($records) > 0)
-        <table class="production-table" role="grid">
-            <thead>
+    <!-- ===== ENCABEZADO ===== -->
+    <div class="card-table">
+        <table>
+            <tbody>
                 <tr>
-                    <th rowspan="2" width="8%">Estación</th>
-                    <th rowspan="2" width="12%">Núm. Parte</th>
-                    <th rowspan="2" width="10%">Paq. Estándar</th>
-                    <th rowspan="2" width="12%">Modelo</th>
-                    <th rowspan="2" width="8%">Cant. Plan</th>
-                    <th rowspan="2" width="8%">Cant. Real</th>
-                    <th colspan="{{ count($timeHeaders) + 1 }}">REGISTRO POR HORA</th>
+                    <td rowspan="3" style="width: 20%;">
+                        <img src="{{ public_path('images/ykm.png') }}" alt="Logo YKM" class="header-logo">
+                    </td>
+
+                    <td colspan="4" rowspan="4" class="header-title"
+                        style="vertical-align: middle; text-align: center;">
+                        REGISTRO DIARIO DE PRODUCCIÓN
+                    </td>
+
+                    <td>
+                        <table class="inner-table">
+                            <tr>
+                                <td>REVISIÓN</td>
+                                <td>1</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <table class="inner-table">
+                            <tr>
+                                <td>FECHA DE ELABORACIÓN</td>
+                                <td>17-JULIO-2023</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <table class="inner-table">
+                            <tr>
+                                <td>ÚLTIMA REVISIÓN</td>
+                                <td>17-JULIO-2023</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="code-cell">FOR-PIN-01</td>
+                    <td>
+                        <table class="inner-table">
+                            <tr>
+                                <td>ÁREA</td>
+                                <td>PINTURA</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ===== MÉTRICAS ===== -->
+    <div class="card-table metrics-table">
+        <table>
+            <tbody>
+                <tr>
+                    <td class="metric-label">Fecha</td>
+                    <td class="metric-value">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</td>
+                    <td class="metric-label">Hora de Inicio de Producción</td>
+                    <td class="metric-value">{{ $shift->start_time }}</td>
+                    <td class="metric-label">Total de Ganchos Primarios Utilizados</td>
+                    <td class="metric-value">{{ $totalHooksUsedPerShift ?? '-' }}</td>
                 </tr>
                 <tr>
-                    <th class="sub-header">Tipo</th>
+                    <td class="metric-label">Turno</td>
+                    <td class="metric-value">{{ $shift->name }}</td>
+                    <td class="metric-label">Hora de Termino de Producción</td>
+                    <td class="metric-value">{{ $shift->end_time }}</td>
+                    <td class="metric-label">Tasa de Colgado por Turno</td>
+                    <td class="metric-value">{{ $hangingRatePerShift ?? '-' }} %</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Total de Piezas de Scrap</td>
+                    <td class="metric-value">{{ $totalScrap ?? '-' }}</td>
+                    <td class="metric-label">Tiempo Efectivo de Producción</td>
+                    <td class="metric-value">{{ $effectiveProductionTimePerShift ?? '-' }} Min</td>
+                    <td class="metric-label">JPH Promedio por Turno</td>
+                    <td class="metric-value">{{ $averageJphPerShift ?? '-' }}</td>
+                </tr>
+                <tr>
+                    <td class="metric-label">Total de Paros</td>
+                    <td class="metric-value">{{ $totalDowntimeCount ?? '-' }}</td>
+                    <td class="metric-label">Tiempo Total de Paros</td>
+                    <td class="metric-value">{{ $totalDowntimeCount ?? '0' }} Min</td>
+                    <td class="metric-label"></td>
+                    <td class="metric-value"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ===== TABLA DE PRODUCCIÓN ===== -->
+    <div class="production-wrapper">
+        <table class="production-table">
+            <thead>
+                <tr>
+                    <th style="width:6%;">No. Order</th>
+                    <th style="width:8%;">Estación</th>
+                    <th style="width:8%;">Modelo</th>
+                    <th style="width:8%;">Núm. Parte</th>
+                    <th style="width:6%;">Cant. Plan</th>
+                    <th style="width:6%;">Cant. Real</th>
+                    <th style="width:6%;"></th>
                     @foreach ($timeHeaders as $header)
-                        <th class="sub-header" style="width:3%;">{{ $header }}</th>
+                        <th class="hour-header">{{ $header }}</th>
                     @endforeach
                 </tr>
             </thead>
+
             <tbody>
                 @foreach ($records as $record)
-                    <tr class="part-row part-group-wrapper">
-                        <td rowspan="2" class="fixed-column" style="font-family: Arial, sans-serif;">{{ $record['line_name'] }}</td>
-                        <td rowspan="2" class="fixed-column" style="font-family: Arial, sans-serif;">{{ $record['part_number'] }}</td>
-                        <td rowspan="2" class="fixed-column" style="font-family: Arial, sans-serif;">{{ $record['standard_pack'] }} - {{ $record['standard_pack_quantity'] }}</td>
-                        <td rowspan="2" class="fixed-column" style="font-family: Arial, sans-serif;">{{ $record['model'] ?: '-' }}</td>
-                        <td rowspan="2" class="fixed-column" style="font-family: Arial, sans-serif;">{{ $record['planned_quantity'] }}</td>
-                        <td rowspan="2" class="fixed-column" style="font-family: Arial, sans-serif;">{{ number_format($record['total_entries']) }}</td>
+                    <tr class="part-group-wrapper record-group">
+                        <td class="fixed-column">{{ $record['order_number'] }}</td>
+                        <td class="fixed-column">{{ $record['line_name'] }}</td>
+                        <td class="fixed-column">{{ $record['model'] ?: '-' }}</td>
+                        <td class="fixed-column">{{ $record['part_number'] }}</td>
+                        <td class="fixed-column">{{ $record['planned_quantity'] ?? '-' }}</td>
+                        <td class="fixed-column">{{ number_format($record['total_entries'] ?? 0) }}</td>
 
-                        <td class="sub-header">Entrada</td>
+                        <td class="type-cell">
+                            <div class="type-stack">
+                                <span class="type-entry">Entrada</span>
+                                <span class="type-exit">Salida</span>
+                            </div>
+                        </td>
+
                         @foreach ($timeHeaders as $header)
-                            <td>{{ $record['entries'][$header] !== 0 ? number_format($record['entries'][$header]) : '-' }}</td>
-                        @endforeach
-                    </tr>
-                    <tr class="part-row part-group-wrapper">
-                        <td class="sub-header">Salida</td>
-                        @foreach ($timeHeaders as $header)
-                            <td>{{ $record['exits'][$header] !== 0 ? number_format($record['exits'][$header]) : '-' }}</td>
+                            @php
+                                $entry = $record['entries'][$header] ?? null;
+                                $exit = $record['exits'][$header] ?? null;
+                            @endphp
+
+                            <td class="hour-cell">
+                                <div class="cell-stack">
+                                    <span class="entry-val">
+                                        @if (is_numeric($entry) && $entry != 0)
+                                            {{ number_format($entry) }}
+                                        @elseif ($entry === 0)
+                                            0
+                                        @else
+                                            -
+                                        @endif
+                                    </span>
+
+                                    <span class="exit-val">
+                                        @if (is_numeric($exit) && $exit != 0)
+                                            {{ number_format($exit) }}
+                                        @elseif ($exit === 0)
+                                            0
+                                        @else
+                                            -
+                                        @endif
+                                    </span>
+                                </div>
+                            </td>
                         @endforeach
                     </tr>
                 @endforeach
             </tbody>
         </table>
-    @else
-        <table role="presentation">
-            <tr>
-                <td style="text-align:center;padding:20px;background:#f9f9f9;border:1px solid #000;font-family:Arial,sans-serif;">
-                    <strong>No hay planes de producción</strong><br>
-                    No se encontraron planes para el turno actual.
-                </td>
-            </tr>
-        </table>
-    @endif
+    </div>
 </body>
 
 </html>
