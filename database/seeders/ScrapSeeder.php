@@ -38,7 +38,7 @@ class ScrapSeeder extends Seeder
                 'code' => $reason['code'],
                 'name' => $reason['name'],
                 'scrap_category_id' => $category->id,
-                'description' => null, // Puedes agregar descripción si quieres
+                'description' => null,
             ]);
         }
     }

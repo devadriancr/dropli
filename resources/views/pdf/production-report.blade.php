@@ -231,6 +231,33 @@
                 font-size: 8px;
             }
         }
+
+        /* ===== CONTENEDOR DE TABLAS DE DETALLES ===== */
+        .details-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .details-wrapper {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .details-wrapper .card-table {
+            width: 100%;
+        }
+
+        .details-title {
+            font-weight: 700;
+            font-size: 10px;
+            margin-bottom: 6px;
+            text-align: left;
+        }
+
+        .card-table thead th {
+            background-color: #e8e8e8;
+        }
     </style>
 
 </head>
@@ -329,7 +356,7 @@
                     <td class="metric-label">Total de Paros</td>
                     <td class="metric-value">{{ $totalDowntimeCount ?? '-' }}</td>
                     <td class="metric-label">Tiempo Total de Paros</td>
-                    <td class="metric-value">{{ $totalDowntimeCount ?? '0' }} Min</td>
+                    <td class="metric-value">{{ $totalDowntimeMinutes ?? '0' }} Min</td>
                     <td class="metric-label"></td>
                     <td class="metric-value"></td>
                 </tr>
@@ -363,7 +390,7 @@
                         <td class="fixed-column">{{ $record['model'] ?: '-' }}</td>
                         <td class="fixed-column">{{ $record['part_number'] }}</td>
                         <td class="fixed-column">{{ $record['planned_quantity'] ?? '-' }}</td>
-                        <td class="fixed-column">{{ number_format($record['total_entries'] ?? 0) }}</td>
+                        <td class="fixed-column">{{ number_format($record['total_exits'] ?? 0) }}</td>
 
                         <td class="type-cell">
                             <div class="type-stack">
@@ -406,6 +433,65 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+
+    <!-- ===== TABLAS DE DETALLES (SCRAP Y PAROS) ===== -->
+    <!-- Tabla de Scrap (Izquierda) -->
+    @if (count($scrapRecords) > 0)
+        <div class="details-container">
+            <div class="details-wrapper">
+                <div class="details-title">Detalles de Scrap</div>
+                <div class="card-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Razón de Scrap</th>
+                                <th>No. Parte</th>
+                                <th>Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($scrapRecords as $scrapRecord)
+                                <tr>
+                                    <td>{{ $scrapRecord->scrapReason->code }}</td>
+                                    <td>{{ $scrapRecord->scrapReason->name }}</td>
+                                    <td>{{ $scrapRecord->partNumber->number }}</td>
+                                    <td>{{ $scrapRecord->quantity }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+    @endif
+
+    <!-- Tabla de Paros de Línea (Derecha) -->
+    @if (count($downtimeRecords) > 0)
+        <div class="details-wrapper">
+            <div class="details-title">Detalles de Paros de Línea</div>
+            <div class="card-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo de Paro de Línea</th>
+                            <th>Razón de Paro de Línea</th>
+                            <th>Tiempo (Min)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($downtimeRecords as $downtimeRecord)
+                            <tr>
+                                <td>{{ $downtimeRecord->downtimeReason->downtimeType->name }}</td>
+                                <td>{{ $downtimeRecord->downtimeReason->name }}</td>
+                                <td>{{ $downtimeRecord->minutes ?? 0 }} Min</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
     </div>
 </body>
 

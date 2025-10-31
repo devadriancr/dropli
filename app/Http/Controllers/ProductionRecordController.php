@@ -157,9 +157,9 @@ class ProductionRecordController extends Controller
             $productionPlan = ProductionPlan::store(null, $nextPart->id, 0, $today, $shift->id);
         }
 
-        if ($productionPlan == null) {
-            return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
-        }
+        // if ($productionPlan == null) {
+        //     return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
+        // }
 
         $exists = ProductionRecord::productionPlanExists($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'entry');
         if ($exists) {
@@ -173,11 +173,8 @@ class ProductionRecordController extends Controller
         if ($productionPlan->produced_quantity == 0) {
             $status = Status::where('key', 'in_progress')->first();
             $productionPlan->update([
-                'produced_quantity' => $quantity,
                 'status_id' => $status->id ?? $productionPlan->status_id,
             ]);
-        } else {
-            $productionPlan->increment('produced_quantity', intval($quantity));
         }
 
         return $redirect->with('success', 'Etiqueta registrada correctamente');
@@ -272,15 +269,15 @@ class ProductionRecordController extends Controller
 
             event(new MaterialEntryRegistered());
 
-            if ($productionPlan->produced_quantity == 0) {
-                $status = Status::where('key', 'in_progress')->first();
-                $productionPlan->update([
-                    'produced_quantity' => $quantity,
-                    'status_id' => $status->id ?? $productionPlan->status_id,
-                ]);
-            } else {
-                $productionPlan->increment('produced_quantity', intval($quantity));
-            }
+            // if ($productionPlan->produced_quantity == 0) {
+            //     $status = Status::where('key', 'in_progress')->first();
+            //     $productionPlan->update([
+            //         'produced_quantity' => $quantity,
+            //         'status_id' => $status->id ?? $productionPlan->status_id,
+            //     ]);
+            // } else {
+            //     $productionPlan->increment('produced_quantity', intval($quantity));
+            // }
         } else {
             $shift = Shift::getShift()->first();
             $today = Shift::getPlannedDate();
@@ -298,6 +295,14 @@ class ProductionRecordController extends Controller
             ProductionRecord::store($productionPlan->id, '00000000', $partNumber->id, '000000', $quantity, 'exit');
 
             event(new MaterialExitRegistered());
+
+            if ($productionPlan->produced_quantity == 0) {
+                $productionPlan->update([
+                    'produced_quantity' => $quantity
+                ]);
+            } else {
+                $productionPlan->increment('produced_quantity', intval($quantity));
+            }
         }
 
         // Limpiar la sesión después de usarla
@@ -371,15 +376,15 @@ class ProductionRecordController extends Controller
 
         event(new MaterialExitRegistered());
 
-        // if ($productionPlan->produced_quantity == 0) {
-        //     $status = Status::where('key', 'in_progress')->first();
-        //     $productionPlan->update([
-        //         'produced_quantity' => $quantity,
-        //         'status_id' => $status->id ?? $productionPlan->status_id,
-        //     ]);
-        // } else {
-        //     $productionPlan->increment('produced_quantity', intval($quantity));
-        // }
+        if ($productionPlan->produced_quantity == 0) {
+            $status = Status::where('key', 'in_progress')->first();
+            $productionPlan->update([
+                'produced_quantity' => $quantity,
+                'status_id' => $status->id ?? $productionPlan->status_id,
+            ]);
+        } else {
+            $productionPlan->increment('produced_quantity', intval($quantity));
+        }
 
         return $redirect->with('success', 'Etiqueta registrada correctamente');
     }

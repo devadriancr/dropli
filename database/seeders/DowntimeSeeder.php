@@ -3,11 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\DowntimeReason;
-use App\Models\DowntimeRecord;
 use App\Models\DowntimeType;
-use App\Models\WorkCenter;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class DowntimeSeeder extends Seeder
 {
@@ -32,7 +29,7 @@ class DowntimeSeeder extends Seeder
             ]);
         }
 
-        // 2. Razones de paro (solo tipo "Anormal" por ahora)
+        // 2. Razones de paro para tipo "Anormal"
         $anormalReasons = [
             'Tensión del drive B',
             'Tensión del drive A',
@@ -50,21 +47,30 @@ class DowntimeSeeder extends Seeder
 
         foreach ($anormalReasons as $reasonName) {
             DowntimeReason::create([
-                // 'code' => Str::slug($reasonName, '_'),
                 'name' => $reasonName,
-                'description' => 'Razón de paro anormal: ' . $reasonName,
                 'downtime_type_id' => $downtimeTypes['Anormal']->id,
             ]);
         }
 
-        // 3. Registro de paro ficticio (opcional)
-        if (WorkCenter::exists()) {
-            DowntimeRecord::create([
-                'downtime_reason_id' => DowntimeReason::first()->id,
-                'work_center_id' => WorkCenter::first()->id,
-                'minutes' => 15,
-                'start_time' => now()->subMinutes(15),
-                'end_time' => now(),
+        // 3. Razones de paro para tipo "Planeado"
+        $plannedReasons = [
+            'Chorei de inicio',
+            'Break primero',
+            'Break segundo',
+            'Comedor',
+            'Box lunch',
+            'Simulacros',
+            'Limpieza de equipos',
+            'Mantenimiento preventivo',
+            'Junta informativa mensual',
+            'Faltante de material',
+            'Cambio de turno'
+        ];
+
+        foreach ($plannedReasons as $reasonName) {
+            DowntimeReason::create([
+                'name' => $reasonName,
+                'downtime_type_id' => $downtimeTypes['Planeado']->id,
             ]);
         }
     }

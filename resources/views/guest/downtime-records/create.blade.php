@@ -31,10 +31,9 @@
                     <!-- Header dentro del card y centrado -->
                     <div class="text-center mb-6">
                         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Registro de Paro</h1>
-                        <p class="text-gray-600 dark:text-gray-400 mt-2">Registra los paros de línea</p>
                     </div>
 
-                    <form action="{{ route('guest.downtime-records.store') }}" method="POST" class="space-y-6">
+                    <form action="{{ route('guest.downtime-records.store') }}" method="POST" id="downtimeForm" class="space-y-6">
                         @csrf
 
                         <!-- Work Center y Downtime Reason en una fila -->
@@ -70,7 +69,7 @@
                                     <option value="">Seleccione una razón</option>
                                     @foreach($downtimeReasons as $reason)
                                         <option value="{{ $reason->id }}" {{ old('downtime_reason_id') == $reason->id ? 'selected' : '' }}>
-                                            {{ $reason->code }} - {{ $reason->name }}
+                                            {{ $reason->name }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -125,15 +124,39 @@
 
                         <!-- Submit Button -->
                         <div class="pt-4">
-                            <button type="submit"
-                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-200 ease-in-out">
+                            <button type="submit" id="submitBtn"
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition duration-200 ease-in-out flex items-center justify-center">
                                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                Guardar Registro
+                                <span id="submitText">Guardar Registro</span>
+                                <div id="submitSpinner" class="hidden ml-2">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                </div>
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <!-- Spinner -->
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-700"></div>
+
+                <!-- Texto -->
+                <div class="text-center">
+                    <p class="text-lg font-semibold text-gray-800">Procesando...</p>
+                    <p class="text-sm text-gray-600 mt-2">Guardando información, por favor espere</p>
+                </div>
+
+                <!-- Barra de progreso opcional -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-gray-600 h-2 rounded-full animate-pulse w-3/4"></div>
                 </div>
             </div>
         </div>
@@ -229,12 +252,90 @@
 
     <script>
         $(document).ready(function() {
-            // Inicializar Select2
-            $('#work_center_id, #downtime_reason_id').select2({
-                placeholder: 'Seleccione una opción...',
-                allowClear: true,
-                width: '100%'
-            });
+            // Elementos para el loading
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const downtimeForm = document.getElementById('downtimeForm');
+
+            // Función para mostrar loading
+            function showLoading() {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            }
+
+            // Función para ocultar loading
+            function hideLoading() {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+
+            // Función para mostrar loading en el botón de envío
+            function showSubmitLoading() {
+                submitText.classList.add('hidden');
+                submitSpinner.classList.remove('hidden');
+                submitBtn.disabled = true;
+            }
+
+            // Función para ocultar loading en el botón de envío
+            function hideSubmitLoading() {
+                submitText.classList.remove('hidden');
+                submitSpinner.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+
+            // Función para obtener la fecha en formato YYYY-MM-DDTHH:MM para datetime-local
+            function formatDateForInput(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+            }
+
+            // Función para obtener solo la fecha (sin hora) para comparación
+            function getDateWithoutTime(date) {
+                return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            }
+
+            // Función para configurar las restricciones de fecha (solo hoy y ayer)
+            function setupDateRestrictions() {
+                // Obtener fecha actual en zona horaria local (Centro de México)
+                const now = new Date();
+
+                // Crear fechas para hoy y ayer (sin hora)
+                const today = getDateWithoutTime(now);
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+
+                // Establecer valores por defecto si no hay valores existentes
+                if (!$('#start_time').val()) {
+                    $('#start_time').val(formatDateForInput(now));
+                }
+                if (!$('#end_time').val()) {
+                    // Por defecto, poner 5 minutos después del start_time
+                    const startTime = $('#start_time').val() ? new Date($('#start_time').val()) : now;
+                    const endTime = new Date(startTime);
+                    endTime.setMinutes(endTime.getMinutes() + 5);
+                    $('#end_time').val(formatDateForInput(endTime));
+                }
+
+                // Calcular minutos iniciales
+                calculateMinutes();
+            }
+
+            // Función para validar si una fecha está dentro del rango permitido (hoy o ayer)
+            function isValidDate(date) {
+                const dateToCheck = getDateWithoutTime(date);
+                const today = getDateWithoutTime(new Date());
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+
+                return dateToCheck.getTime() === today.getTime() ||
+                       dateToCheck.getTime() === yesterday.getTime();
+            }
 
             // Función para calcular minutos
             function calculateMinutes() {
@@ -255,8 +356,24 @@
                 }
             }
 
+            // Inicializar Select2
+            $('#work_center_id, #downtime_reason_id').select2({
+                placeholder: 'Seleccione una opción...',
+                allowClear: true,
+                width: '100%'
+            });
+
             // Calcular minutos cuando cambien las fechas
-            $('#start_time, #end_time').change(calculateMinutes);
+            $('#start_time, #end_time').change(function() {
+                const inputDate = new Date($(this).val());
+
+                if (!isValidDate(inputDate)) {
+                    alert('Solo se permiten fechas de hoy y ayer');
+                    $(this).val(''); // Limpiar el campo
+                }
+
+                calculateMinutes();
+            });
 
             // Focus automático
             setTimeout(function() {
@@ -272,10 +389,57 @@
                 $('#downtime_reason_id').next('.select2-container').find('.select2-selection').css('border-color', '#ef4444');
             @endif
 
-            // Calcular minutos inicial si hay valores
-            if ($('#start_time').val() && $('#end_time').val()) {
-                calculateMinutes();
-            }
+            // Configurar restricciones de fecha al cargar la página
+            setupDateRestrictions();
+
+            // Manejar el envío del formulario
+            downtimeForm.addEventListener('submit', function(e) {
+                // Validar que los campos de fecha estén dentro del rango permitido
+                const startTime = new Date($('#start_time').val());
+                const endTime = new Date($('#end_time').val());
+
+                if (!isValidDate(startTime)) {
+                    e.preventDefault();
+                    alert('La hora de inicio debe ser de hoy o ayer');
+                    $('#start_time').focus();
+                    return false;
+                }
+
+                if (!isValidDate(endTime)) {
+                    e.preventDefault();
+                    alert('La hora de fin debe ser de hoy o ayer');
+                    $('#end_time').focus();
+                    return false;
+                }
+
+                if (endTime <= startTime) {
+                    e.preventDefault();
+                    alert('La hora de fin debe ser posterior a la hora de inicio');
+                    $('#end_time').focus();
+                    return false;
+                }
+
+                // Mostrar loading en el botón y overlay general
+                showSubmitLoading();
+                showLoading();
+
+                // Prevenir envío duplicado
+                let formSubmitted = false;
+
+                if (!formSubmitted) {
+                    formSubmitted = true;
+                    return true;
+                } else {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // También manejar el evento submit con jQuery para mayor compatibilidad
+            $('#downtimeForm').on('submit', function() {
+                showSubmitLoading();
+                showLoading();
+            });
         });
     </script>
 </x-guest-layout>

@@ -64,9 +64,12 @@
 
                     <!-- Botón de envío -->
                     <div class="mt-8">
-                        <button type="submit"
-                            class="w-full px-6 py-4 text-white bg-gray-700 hover:bg-gray-800 rounded-lg font-medium text-lg transition-colors">
-                            Registrar
+                        <button type="submit" id="submitBtn"
+                            class="w-full px-6 py-4 text-white bg-gray-700 hover:bg-gray-800 rounded-lg font-medium text-lg transition-colors flex items-center justify-center">
+                            <span id="submitText">Registrar</span>
+                            <div id="submitSpinner" class="hidden ml-2">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            </div>
                         </button>
                     </div>
 
@@ -103,6 +106,27 @@
         </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <!-- Spinner -->
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-700"></div>
+
+                <!-- Texto -->
+                <div class="text-center">
+                    <p class="text-lg font-semibold text-gray-800">Procesando...</p>
+                    <p class="text-sm text-gray-600 mt-2">Guardando información, por favor espere</p>
+                </div>
+
+                <!-- Barra de progreso opcional -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-gray-600 h-2 rounded-full animate-pulse w-3/4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- CDN Resources -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -110,6 +134,39 @@
 
     <script>
         $(document).ready(function() {
+            // Elementos para el loading
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const scanForm = document.getElementById('scanForm');
+
+            // Función para mostrar loading
+            function showLoading() {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            }
+
+            // Función para ocultar loading
+            function hideLoading() {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+
+            // Función para mostrar loading en el botón de envío
+            function showSubmitLoading() {
+                submitText.classList.add('hidden');
+                submitSpinner.classList.remove('hidden');
+                submitBtn.disabled = true;
+            }
+
+            // Función para ocultar loading en el botón de envío
+            function hideSubmitLoading() {
+                submitText.classList.remove('hidden');
+                submitSpinner.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+
             // Inicializar Select2 para el número de parte
             $('#partNumber').select2({
                 placeholder: 'Buscar número de parte...',
@@ -141,6 +198,9 @@
             $('#quantity').on('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    // Mostrar loading antes de enviar
+                    showSubmitLoading();
+                    showLoading();
                     $('#scanForm').submit();
                 }
             });
@@ -158,6 +218,31 @@
                     e.preventDefault();
                     $('#quantity').focus();
                 }
+            });
+
+            // Manejar el envío del formulario
+            scanForm.addEventListener('submit', function(e) {
+                // Mostrar loading en el botón y overlay general
+                showSubmitLoading();
+                showLoading();
+
+                // Opcional: prevenir envío duplicado
+                let formSubmitted = false;
+
+                if (!formSubmitted) {
+                    formSubmitted = true;
+                    // Permitir que el formulario se envíe normalmente
+                    return true;
+                } else {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // También manejar el evento submit con jQuery para mayor compatibilidad
+            $('#scanForm').on('submit', function() {
+                showSubmitLoading();
+                showLoading();
             });
         });
     </script>

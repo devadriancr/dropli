@@ -48,6 +48,7 @@ class ProductionPlan extends Model
             ->where('part_number_id', $partNumberId)
             ->where('planned_date', $today)
             ->where('shift_id', $shiftId)
+            ->where('synced_to_infor', false)
             ->first();
     }
 

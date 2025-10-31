@@ -113,7 +113,7 @@
                                 <!-- Nueva celda para Cant. Real -->
                                 <td rowspan="2"
                                     class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border text-center">
-                                    {{ number_format($record['total_entries']) }}
+                                    {{ number_format($record['total_exits']) }}
                                 </td>
 
                                 <!-- Celda de entrada -->
@@ -126,7 +126,7 @@
                                     @php $state = $columnsState[$header] ?? 'future'; @endphp
                                     <td
                                         class="px-4 py-2 whitespace-nowrap text-sm text-center border
-                    @if ($state === 'yellow') bg-yellow-50 text-yellow-800 @elseif($state === 'green') bg-green-50 text-green-800 @endif">
+                                        @if ($state === 'yellow') bg-yellow-50 text-yellow-800 @elseif($state === 'green') bg-green-50 text-green-800 @endif">
                                         @if ($record['entries'][$header] !== null && $record['entries'][$header] !== 0)
                                             {{ number_format($record['entries'][$header]) }}
                                         @elseif($record['entries'][$header] === 0)
@@ -149,7 +149,7 @@
                                     @php $state = $columnsState[$header] ?? 'future'; @endphp
                                     <td
                                         class="px-4 py-2 whitespace-nowrap text-sm text-center border
-                    @if ($state === 'yellow') bg-yellow-50 text-yellow-800 @elseif($state === 'green') bg-green-50 text-green-800 @endif">
+                                        @if ($state === 'yellow') bg-yellow-50 text-yellow-800 @elseif($state === 'green') bg-green-50 text-green-800 @endif">
                                         @if ($record['exits'][$header] !== null && $record['exits'][$header] !== 0)
                                             {{ number_format($record['exits'][$header]) }}
                                         @elseif($record['exits'][$header] === 0)

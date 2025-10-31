@@ -48,17 +48,23 @@ class HomeController extends Controller
             $end->addDay();
         }
 
-        // Tiempo Efectivo de Producción
-        $effectiveProductionTimePerShift = $start->diffInMinutes($end);
-
         // Paros de Línea
         $downtimeRecords = DowntimeRecord::with(['workCenter'])
             ->whereIn('work_center_id', $workCenter)
             ->whereBetween('start_time', [$start, $end])
             ->get();
 
-        $totalDowntimeMinutes = $downtimeRecords->sum('minutes');
+        $totalDowntimeMinutes = DowntimeRecord::whereIn('work_center_id', $workCenter)
+            ->whereBetween('start_time', [$start, $end])
+            ->whereHas('downtimeReason.downtimeType', function ($query) {
+                $query->where('name', 'Planeado');
+            })
+            ->sum('minutes');
+
         $totalDowntimeCount = $downtimeRecords->count();
+
+        // Tiempo Efectivo de Producción
+        $effectiveProductionTimePerShift = $start->diffInMinutes($end) - $totalDowntimeMinutes;
 
         // Scrap
         $scrapRecords = ScrapRecord::whereBetween('created_at', [$start, $end])
@@ -86,18 +92,25 @@ class HomeController extends Controller
         }
 
         foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
-            $partNumber = PartNumber::find($partNumberId)->nextProcesses->where('is_obsolete', false)->first();
+            $partNumber = PartNumber::with(['nextProcesses' => function ($query) {
+                $query->where('is_obsolete', false);
+            }])->find($partNumberId);
 
-            if ($partNumber) {
-                $piecesPerHook = $partNumber->getCustomAttributeValue('pieces_per_hook');
+            foreach ($partNumber->nextProcesses as $nextPart) {
+                $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
 
-                if ($piecesPerHook && $piecesPerHook > 0) {
-                    $hooksByPartNumber[$partNumberId] = [
-                        'part_number' => $partNumber->number,
-                        'total_quantity' => $totalQuantity,
-                        'pieces_per_hook' => $piecesPerHook,
-                        'total_hooks' => $totalQuantity / $piecesPerHook
-                    ];
+                if ($productionPlan) {
+                    $piecesPerHook = $nextPart->getCustomAttributeValue('pieces_per_hook');
+
+                    if ($piecesPerHook && $piecesPerHook > 0) {
+                        $hooksByPartNumber[$partNumberId] = [
+                            'part_number' => $nextPart->number,
+                            'total_quantity' => $totalQuantity,
+                            'pieces_per_hook' => $piecesPerHook,
+                            'total_hooks' => $totalQuantity / $piecesPerHook
+                        ];
+                        break; // Salir del bucle una vez encontrado un plan de producción válido
+                    }
                 }
             }
         }
@@ -114,7 +127,7 @@ class HomeController extends Controller
 
         // JPH Promedio por Turno
         $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
-            ? round($totalHooksUsedPerShift / $effectiveProductionTimePerShift, 2)
+            ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60), 2)
             : 0;
 
         // Man-hours per piece per shift - $manHoursPerPiecePerShift
@@ -185,16 +198,23 @@ class HomeController extends Controller
         }
 
         // ===== MÉTRICAS DE PRODUCCIÓN =====
-        $effectiveProductionTimePerShift = $start->diffInMinutes($end);
-
         // Paros de Línea
         $downtimeRecords = DowntimeRecord::with(['workCenter'])
             ->whereIn('work_center_id', $workCenter)
             ->whereBetween('start_time', [$start, $end])
             ->get();
 
-        $totalDowntimeMinutes = $downtimeRecords->sum('minutes');
+        $totalDowntimeMinutes = DowntimeRecord::whereIn('work_center_id', $workCenter)
+            ->whereBetween('start_time', [$start, $end])
+            ->whereHas('downtimeReason.downtimeType', function ($query) {
+                $query->where('name', 'Planeado');
+            })
+            ->sum('minutes');
+
         $totalDowntimeCount = $downtimeRecords->count();
+
+        // Tiempo Efectivo de Producción
+        $effectiveProductionTimePerShift = $start->diffInMinutes($end) - $totalDowntimeMinutes;
 
         // Scrap
         $scrapRecords = ScrapRecord::whereBetween('created_at', [$start, $end])->get();
@@ -218,16 +238,25 @@ class HomeController extends Controller
         }
 
         foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
-            $partNumber = PartNumber::find($partNumberId)->nextProcesses->where('is_obsolete', false)->first();
-            if ($partNumber) {
-                $piecesPerHook = $partNumber->getCustomAttributeValue('pieces_per_hook');
-                if ($piecesPerHook && $piecesPerHook > 0) {
-                    $hooksByPartNumber[$partNumberId] = [
-                        'part_number' => $partNumber->number,
-                        'total_quantity' => $totalQuantity,
-                        'pieces_per_hook' => $piecesPerHook,
-                        'total_hooks' => $totalQuantity / $piecesPerHook
-                    ];
+            $partNumber = PartNumber::with(['nextProcesses' => function ($query) {
+                $query->where('is_obsolete', false);
+            }])->find($partNumberId);
+
+            foreach ($partNumber->nextProcesses as $nextPart) {
+                $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
+
+                if ($productionPlan) {
+                    $piecesPerHook = $nextPart->getCustomAttributeValue('pieces_per_hook');
+
+                    if ($piecesPerHook && $piecesPerHook > 0) {
+                        $hooksByPartNumber[$partNumberId] = [
+                            'part_number' => $nextPart->number,
+                            'total_quantity' => $totalQuantity,
+                            'pieces_per_hook' => $piecesPerHook,
+                            'total_hooks' => $totalQuantity / $piecesPerHook
+                        ];
+                        break;
+                    }
                 }
             }
         }
@@ -239,8 +268,8 @@ class HomeController extends Controller
             ? round(((($cycleTimeSeconds / 60) * $totalHooksUsedPerShift) / $effectiveProductionTimePerShift) * 100, 2)
             : 0;
 
-        $averageJphPerShift = ($totalHooksUsedPerShift != 0)
-            ? round($totalHooksUsedPerShift / $effectiveProductionTimePerShift, 2)
+        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
+            ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60), 2)
             : 0;
 
         // ===== TABLA DE PRODUCCIÓN =====
@@ -287,7 +316,7 @@ class HomeController extends Controller
                     'produced_quantity' => $plan->produced_quantity,
                     'entries' => array_fill_keys($timeHeaders, 0),
                     'exits' => array_fill_keys($timeHeaders, 0),
-                    'total_entries' => 0,
+                    'total_exits' => 0,
                 ];
             }
 
@@ -306,7 +335,6 @@ class HomeController extends Controller
                         $hourKey = $createdAt->format('H:00');
                         if (in_array($hourKey, $timeHeaders)) {
                             $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
-                            $groupedPlans[$partNumber]['total_entries'] += $record->quantity;
                         }
                     }
                 }
@@ -324,6 +352,7 @@ class HomeController extends Controller
                 $hourKey = $createdAt->format('H:00');
                 if (in_array($hourKey, $timeHeaders)) {
                     $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
+                    $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
                 }
             }
         }
@@ -351,11 +380,13 @@ class HomeController extends Controller
             'averageJphPerShift' => $averageJphPerShift,
             'records' => $records,
             'timeHeaders' => $timeHeaders,
+            'downtimeRecords' => $downtimeRecords,
+            'scrapRecords' => $scrapRecords,
         ];
 
         $pdf = PDF::loadView('pdf.production-report', $data);
         $pdf->setPaper('letter', 'landscape');
 
-        return $pdf->download('registro-produccion-' . $date . '-' . $shift->name . '.pdf');
+        return $pdf->download('FOR-PIN-01_' . Carbon::parse($date)->format('Ymd') . $shift->abbreviation . '_' . Carbon::now()->format('YmdHis') . '.pdf');
     }
 }
