@@ -166,6 +166,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
         /* Estilos Select2 igual que el scrap */
@@ -259,6 +261,9 @@
             const loadingOverlay = document.getElementById('loadingOverlay');
             const downtimeForm = document.getElementById('downtimeForm');
 
+            // Variable para controlar si el formulario ya se está enviando
+            let formSubmitting = false;
+
             // Función para mostrar loading
             function showLoading() {
                 loadingOverlay.classList.remove('hidden');
@@ -302,10 +307,10 @@
 
             // Función para configurar las restricciones de fecha (solo hoy y ayer)
             function setupDateRestrictions() {
-                // Obtener fecha actual en zona horaria local (Centro de México)
+                // Obtener fecha actual en zona horaria local
                 const now = new Date();
 
-                // Crear fechas para hoy y ayer (sin hora)
+                // Crear fechas para hoy y ayer
                 const today = getDateWithoutTime(now);
                 const yesterday = new Date(today);
                 yesterday.setDate(today.getDate() - 1);
@@ -326,15 +331,36 @@
                 calculateMinutes();
             }
 
-            // Función para validar si una fecha está dentro del rango permitido (hoy o ayer)
-            function isValidDate(date) {
+            // Función para validar si una fecha está dentro del rango permitido
+            function isValidDate(date, isStartTime = true) {
                 const dateToCheck = getDateWithoutTime(date);
                 const today = getDateWithoutTime(new Date());
                 const yesterday = new Date(today);
                 yesterday.setDate(today.getDate() - 1);
 
-                return dateToCheck.getTime() === today.getTime() ||
-                       dateToCheck.getTime() === yesterday.getTime();
+                if (isStartTime) {
+                    // Para hora de inicio: permitir hoy y ayer
+                    return dateToCheck.getTime() === today.getTime() ||
+                           dateToCheck.getTime() === yesterday.getTime();
+                } else {
+                    // Para hora de fin: solo permitir hoy
+                    return dateToCheck.getTime() === today.getTime();
+                }
+            }
+
+            // Función para mostrar SweetAlert2
+            function showDateError(message) {
+                // Ocultar loading si está activo
+                hideSubmitLoading();
+                hideLoading();
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Fecha no válida',
+                    text: message,
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '#3b82f6'
+                });
             }
 
             // Función para calcular minutos
@@ -366,10 +392,17 @@
             // Calcular minutos cuando cambien las fechas
             $('#start_time, #end_time').change(function() {
                 const inputDate = new Date($(this).val());
+                const isStartTime = $(this).attr('id') === 'start_time';
 
-                if (!isValidDate(inputDate)) {
-                    alert('Solo se permiten fechas de hoy y ayer');
+                if (!isValidDate(inputDate, isStartTime)) {
+                    if (isStartTime) {
+                        showDateError('La hora de inicio solo puede ser de hoy o ayer');
+                    } else {
+                        showDateError('La hora de fin solo puede ser de hoy');
+                    }
                     $(this).val(''); // Limpiar el campo
+                    calculateMinutes();
+                    return;
                 }
 
                 calculateMinutes();
@@ -394,51 +427,49 @@
 
             // Manejar el envío del formulario
             downtimeForm.addEventListener('submit', function(e) {
+                // Si ya se está enviando, prevenir envío duplicado
+                if (formSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+
                 // Validar que los campos de fecha estén dentro del rango permitido
                 const startTime = new Date($('#start_time').val());
                 const endTime = new Date($('#end_time').val());
 
-                if (!isValidDate(startTime)) {
+                if (!isValidDate(startTime, true)) {
                     e.preventDefault();
-                    alert('La hora de inicio debe ser de hoy o ayer');
+                    showDateError('La hora de inicio solo puede ser de hoy o ayer');
                     $('#start_time').focus();
                     return false;
                 }
 
-                if (!isValidDate(endTime)) {
+                if (!isValidDate(endTime, false)) {
                     e.preventDefault();
-                    alert('La hora de fin debe ser de hoy o ayer');
+                    showDateError('La hora de fin solo puede ser de hoy');
                     $('#end_time').focus();
                     return false;
                 }
 
                 if (endTime <= startTime) {
                     e.preventDefault();
-                    alert('La hora de fin debe ser posterior a la hora de inicio');
+                    showDateError('La hora de fin debe ser posterior a la hora de inicio');
                     $('#end_time').focus();
                     return false;
                 }
 
-                // Mostrar loading en el botón y overlay general
+                // Si pasa la validación, marcar que se está enviando y mostrar loading
+                formSubmitting = true;
                 showSubmitLoading();
                 showLoading();
 
-                // Prevenir envío duplicado
-                let formSubmitted = false;
-
-                if (!formSubmitted) {
-                    formSubmitted = true;
-                    return true;
-                } else {
-                    e.preventDefault();
-                    return false;
-                }
+                // El formulario se enviará normalmente
             });
 
             // También manejar el evento submit con jQuery para mayor compatibilidad
             $('#downtimeForm').on('submit', function() {
-                showSubmitLoading();
-                showLoading();
+                // Esta función ahora está manejada por el event listener nativo
+                // Solo mostramos el loading si pasa la validación
             });
         });
     </script>

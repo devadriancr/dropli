@@ -7,29 +7,26 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
-use Illuminate\Support\Arr;
 
 class FetchPartNumberNextProcess implements ShouldQueue
 {
     use Queueable;
 
+    public $tries = 3;
+    public $timeout = 300; // 5 minutos
+    public $backoff = 60; // Reintentar después de 1 minuto
+
     protected $partNumber;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(string $partNumber)
     {
         $this->partNumber = trim(Str::ascii($partNumber));
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
         try {
-            // 1) Intentamos búsqueda exacta por BPROD o BCHLD
+            // 1) Búsqueda exacta por BPROD o BCHLD
             $sqlExact = <<<SQL
             SELECT DISTINCT
                 TRIM(BCHLD) AS child_part,
@@ -43,8 +40,7 @@ class FetchPartNumberNextProcess implements ShouldQueue
                 $this->partNumber,
             ]);
 
-            // 2) Si no encontramos resultados, intentamos buscar por "prefijo"
-            // quitando sufijos alfabéticos (ej. ABC123A -> ABC123) y haciendo LIKE 'ABC123%'
+            // 2) Si no hay resultados, búsqueda por prefijo
             if (empty($results)) {
                 $base = preg_replace('/[A-Za-z]+$/', '', $this->partNumber);
 
@@ -66,23 +62,22 @@ class FetchPartNumberNextProcess implements ShouldQueue
                 }
             }
 
-            // Convertir a colección y ordenar (similar al flujo anterior)
-            $partNumberSorted = collect($results)->unique(function ($item) {
-                // Unicidad por child+parent
-                $child = isset($item->child_part) ? $item->child_part : ($item->CHILD_PART ?? null);
-                $parent = isset($item->parent_part) ? $item->parent_part : ($item->PARENT_PART ?? null);
-
-                return trim((string)$child) . '::' . trim((string)$parent);
-            })->sortByDesc(function ($item) {
-                // ordenar por parent para mantener comportamiento previo
-                return isset($item->parent_part) ? $item->parent_part : ($item->PARENT_PART ?? null);
-            })->values();
+            // Procesar y ordenar resultados
+            $partNumberSorted = collect($results)
+                ->unique(function ($item) {
+                    $child = $item->child_part ?? $item->CHILD_PART ?? null;
+                    $parent = $item->parent_part ?? $item->PARENT_PART ?? null;
+                    return trim((string)$child) . '::' . trim((string)$parent);
+                })
+                ->sortBy(function ($item) {
+                    return $item->parent_part ?? $item->PARENT_PART ?? null;
+                })
+                ->values();
 
             if ($partNumberSorted->isNotEmpty()) {
-                // Despachar al job que lo guarda (usa la misma estructura que tenías)
                 StorePartNumberNextProcess::dispatch($partNumberSorted);
             } else {
-                logger()->warning("No se encontraron relaciones MBM para: {$this->partNumber}");
+                logger()->debug("MBM Fetch: Sin relaciones encontradas para: {$this->partNumber}");
             }
         } catch (Throwable $e) {
             $this->handleQueryError($e);
@@ -91,21 +86,29 @@ class FetchPartNumberNextProcess implements ShouldQueue
 
     protected function handleQueryError(Throwable $e): void
     {
-        // Manejo similar al anterior
+        // Errores conocidos de DB2 que no son críticos
         if (
             strpos($e->getMessage(), 'SQL0802') !== false ||
             strpos($e->getMessage(), 'SQL0204') !== false
         ) {
-            logger()->warning("El número de parte {$this->partNumber} no tiene proceso siguiente válido");
+            logger()->debug("MBM Fetch: Part sin proceso siguiente válido: {$this->partNumber}");
             return;
         }
 
-        logger()->error("Error al obtener procesos desde MBM para {$this->partNumber}: " . $e->getMessage());
-        $this->release(300); // reintentar en 5 minutos
+        logger()->error("MBM Fetch: Error para {$this->partNumber}", [
+            'error' => $e->getMessage(),
+            'part_number' => $this->partNumber
+        ]);
+
+        // Reintentar con backoff
+        $this->release($this->backoff);
     }
 
     public function failed(Throwable $exception): void
     {
-        logger()->critical("Job fallido para {$this->partNumber}: " . $exception->getMessage());
+        logger()->critical("MBM Fetch: Job fallido definitivamente para {$this->partNumber}", [
+            'error' => $exception->getMessage(),
+            'part_number' => $this->partNumber
+        ]);
     }
 }
