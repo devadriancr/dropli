@@ -39,6 +39,7 @@ class ProjectSetup extends Command
         ['Ejecutando DowntimeSeeder', 'db:seed', ['--class' => 'DowntimeSeeder']],
         ['Ejecutando ScrapSeeder', 'db:seed', ['--class' => 'ScrapSeeder']],
         ['Ejecutando PartNumberAttributesSeeder', 'db:seed', ['--class' => 'PartNumberAttributesSeeder']],
+        ['Ejecutando RolePermissionSeeder', 'db:seed', ['--class' => 'RolePermissionSeeder']],
     ];
 
     /**

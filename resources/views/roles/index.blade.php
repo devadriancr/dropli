@@ -1,9 +1,9 @@
 @extends('adminlte::page')
 
-@section('title', 'Usuarios')
+@section('title', 'Roles')
 
 @section('content_header')
-    <h1>{{ __('Usuarios') }}</h1>
+    <h1>{{ __('Roles') }}</h1>
 @stop
 
 @section('content')
@@ -27,9 +27,9 @@
             <div class="d-flex justify-content-between align-items-center">
                 <!-- Buscador -->
                 <div class="search-box">
-                    <form method="GET" action="{{ route('users.index') }}">
+                    <form method="GET" action="{{ route('roles.index') }}">
                         <div class="input-group">
-                            <input type="text" name="search" class="form-control border-end-0" placeholder="Buscar usuario..."
+                            <input type="text" name="search" class="form-control border-end-0" placeholder="Buscar rol..."
                                 aria-label="Buscar" value="{{ $search ?? '' }}">
                             <button type="submit" class="input-group-text bg-white border-start-0">
                                 <i class="fas fa-search text-secondary"></i>
@@ -39,7 +39,7 @@
                 </div>
 
                 <!-- Botón Agregar -->
-                <a href="{{ route('users.create') }}" class="btn btn-primary rounded-3">
+                <a href="{{ route('roles.create') }}" class="btn btn-primary rounded-3">
                     <i class="fas fa-plus me-2"></i>
                     <span>Agregar nuevo</span>
                 </a>
@@ -52,81 +52,48 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                         <tr>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Usuario') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Email') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Rol') }}</th>
-                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Estaciones de Trabajo') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Permisos') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">{{ __('Acciones') }}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($users as $user)
-                            <tr class="border-light-subtle">
-                                <td class="py-3">
-                                    <div class="d-flex align-items-center">
-                                        <img src="{{ $user->profile_photo_url }}" alt="{{ $user->name }}"
-                                             class="rounded-circle me-3" width="40" height="40">
-                                        <div>
-                                            <div class="ml-2 fw-500">{{ $user->name }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-3">
-                                    <div class="fw-500">{{ $user->email }}</div>
-                                </td>
-                                <td class="py-3">
-                                    @if($user->roles->count() > 0)
-                                        @foreach($user->roles as $role)
-                                            <span class="badge-status bg-info bg-opacity-10 text-info">
-                                                {{ $role->name }}
-                                            </span>
-                                        @endforeach
-                                    @else
-                                        <span class="badge-status bg-secondary bg-opacity-10 text-secondary">
-                                            Sin rol
+                        @forelse ($roles as $role)
+                            @if($role->name !== 'Administrator')
+                                <tr class="border-light-subtle">
+                                    <td class="py-3">
+                                        <div class="fw-500">{{ $role->name }}</div>
+                                    </td>
+                                    <td class="py-3">
+                                        <span class="badge-status bg-primary bg-opacity-10 text-primary">
+                                            {{ $role->permissions_count }} {{ $role->permissions_count == 1 ? 'permiso' : 'permisos' }}
                                         </span>
-                                    @endif
-                                </td>
-                                <td class="py-3">
-                                    @if($user->workCenters->count() > 0)
-                                        <div class="d-flex flex-wrap gap-1">
-                                            @foreach($user->workCenters as $workCenter)
-                                                <span class="badge-status bg-primary bg-opacity-10 text-primary mr-2 mt-1">
-                                                    {{ $workCenter->name }}
-                                                </span>
-                                            @endforeach
+                                    </td>
+                                    <td class="py-3">
+                                        <div class="d-flex gap-2">
+                                            <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-outline-primary rounded-3">
+                                                <i class="fas fa-edit me-2"></i>
+                                                <span>Editar</span>
+                                            </a>
+                                            <form action="{{ route('roles.destroy', $role) }}" method="POST" style="display:inline;" class="delete-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
+                                                    <i class="fas fa-trash me-2"></i>
+                                                    <span>Eliminar</span>
+                                                </button>
+                                            </form>
                                         </div>
-                                    @else
-                                        <span class="badge-status bg-secondary bg-opacity-10 text-secondary">
-                                            Sin estaciones
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="py-3">
-                                    <div class="d-flex gap-2">
-                                        <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-outline-primary rounded-3">
-                                            <i class="fas fa-edit me-2"></i>
-                                            <span>Editar</span>
-                                        </a>
-                                        <form action="{{ route('users.destroy', $user) }}" method="POST" style="display:inline;" class="delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
-                                                <i class="fas fa-trash me-2"></i>
-                                                <span>Eliminar</span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                            @endif
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4">
+                                <td colspan="3" class="text-center py-4">
                                     <div class="d-flex flex-column align-items-center">
-                                        <i class="fas fa-users fa-2x text-muted mb-2"></i>
-                                        <span class="text-secondary">No se encontraron usuarios</span>
+                                        <span class="text-secondary">No se encontraron roles</span>
                                         @if (!empty($search))
-                                            <a href="{{ route('users.index') }}" class="btn btn-sm btn-link mt-2">
+                                            <a href="{{ route('roles.index') }}" class="btn btn-sm btn-link mt-2">
                                                 Limpiar búsqueda
                                             </a>
                                         @endif
@@ -140,27 +107,27 @@
         </div>
 
         <!-- Pie de página con paginación -->
-        @if ($users->hasPages() || $users->total() > 0)
+        @if ($roles->hasPages() || $roles->total() > 0)
             <div class="card-footer bg-white border-0 py-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <!-- Información de resultados -->
                     <div class="text-muted small">
-                        Mostrando {{ $users->firstItem() }} a {{ $users->lastItem() }} de
-                        {{ $users->total() }} resultados
+                        Mostrando {{ $roles->firstItem() }} a {{ $roles->lastItem() }} de
+                        {{ $roles->total() }} resultados
                     </div>
 
                     <!-- Controles de paginación -->
-                    @if ($users->hasPages())
+                    @if ($roles->hasPages())
                         <nav aria-label="Page navigation">
                             <ul class="pagination mb-0">
                                 {{-- Previous Page Link --}}
-                                @if ($users->onFirstPage())
+                                @if ($roles->onFirstPage())
                                     <li class="page-item disabled">
                                         <span class="page-link" aria-hidden="true">&laquo;</span>
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $users->previousPageUrl() }}" rel="prev"
+                                        <a class="page-link" href="{{ $roles->previousPageUrl() }}" rel="prev"
                                             aria-label="Previous">
                                             &laquo;
                                         </a>
@@ -168,8 +135,8 @@
                                 @endif
 
                                 {{-- Pagination Elements --}}
-                                @foreach ($users->getUrlRange(1, $users->lastPage()) as $page => $url)
-                                    @if ($page == $users->currentPage())
+                                @foreach ($roles->getUrlRange(1, $roles->lastPage()) as $page => $url)
+                                    @if ($page == $roles->currentPage())
                                         <li class="page-item active" aria-current="page">
                                             <span class="page-link">{{ $page }}</span>
                                         </li>
@@ -181,9 +148,9 @@
                                 @endforeach
 
                                 {{-- Next Page Link --}}
-                                @if ($users->hasMorePages())
+                                @if ($roles->hasMorePages())
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ $users->nextPageUrl() }}" rel="next"
+                                        <a class="page-link" href="{{ $roles->nextPageUrl() }}" rel="next"
                                             aria-label="Next">
                                             &raquo;
                                         </a>
@@ -354,10 +321,6 @@
 
         .fw-500 {
             font-weight: 500;
-        }
-
-        .rounded-circle {
-            object-fit: cover;
         }
     </style>
 @stop

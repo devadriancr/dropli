@@ -34,6 +34,23 @@
 
                 <div class="row mb-3">
                     <div class="col-md-6">
+                        <label for="role" class="form-label fw-bold text-secondary">{{ __('Rol') }}</label>
+                        <select name="role" id="role" class="form-control @error('role') is-invalid @enderror" required>
+                            <option value="">Seleccionar rol</option>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->id }}" {{ old('role') == $role->id ? 'selected' : '' }}>
+                                    {{ $role->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('role')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
                         <label for="password" class="form-label fw-bold text-secondary">{{ __('Contraseña') }}</label>
                         <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror"
                                required>
@@ -80,10 +97,10 @@
 
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('users.index') }}" class="btn btn-outline-secondary rounded-3">
-                        <i class="fas fa-times me-2"></i> {{ __('Cancelar') }}
+                        Cancelar
                     </a>
                     <button type="submit" class="btn btn-primary rounded-3">
-                        <i class="fas fa-save me-2"></i> {{ __('Crear Usuario') }}
+                        Crear Usuario
                     </button>
                 </div>
             </form>
@@ -114,12 +131,7 @@
 
         .btn {
             border-radius: 8px !important;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .btn i {
-            margin-right: 0.5rem !important;
+            font-weight: 500;
         }
 
         .work-centers-container {
