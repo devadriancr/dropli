@@ -16,6 +16,8 @@ return new class extends Migration
             $table->foreignId('part_number_id')->nullable()->constrained('part_numbers');
             $table->foreignId('scrap_reason_id')->nullable()->constrained('scrap_reasons');
             $table->integer('quantity')->default(0);
+            $table->boolean('synced_to_infor')->default(false);
+            $table->timestamp('synced_at')->nullable();
             $table->timestamps();
 
             $table->index(['part_number_id', 'scrap_reason_id']);

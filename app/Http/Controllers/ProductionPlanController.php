@@ -3,9 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\ProductionPlan;
+use App\Models\ScrapRecord;
 use App\Models\Shift;
+use App\Models\Status;
+use App\Models\YF013;
 use Carbon\Carbon;
+use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ProductionPlanController extends Controller
 {
@@ -70,9 +75,38 @@ class ProductionPlanController extends Controller
      */
     public function store(Request $request)
     {
-        //
-    }
+        $request->validate([
+            'id' => 'required|exists:production_plans,id'
+        ]);
 
+        $productionPlan = ProductionPlan::with(['partNumber.workCenter', 'shift'])->find($request->id);
+        if (!$productionPlan) {
+            throw new Exception('Plan de producción no encontrado');
+        }
+
+        // Obtener solo el scrap NO sincronizado
+        $unsyncedScrap = ScrapRecord::getUnsyncedScrap($productionPlan->part_number_id);
+        $accumulatedScrap = $unsyncedScrap->sum('quantity');
+
+        $infor = YF013::sendToInfor($productionPlan, $accumulatedScrap);
+
+        if ($infor) {
+            $status = Status::where('key', 'completed')->first();
+
+            $productionPlan->update([
+                'synced_to_infor' => true,
+                'synced_at' => now(),
+                'status_id' => $status->id ?? null
+            ]);
+
+            // Marcar el scrap como sincronizado
+            if ($unsyncedScrap->isNotEmpty()) {
+                ScrapRecord::markAsSynced($unsyncedScrap);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Datos sincronizados correctamente con Infor');
+    }
     /**
      * Display the specified resource.
      */
@@ -103,5 +137,97 @@ class ProductionPlanController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    /**
+     * Sync all eligible production plans to Infor
+     */
+    public function syncAll(Request $request)
+    {
+        try {
+            $now = now();
+            $startOfWeek = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+            $endOfWeek = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+
+            // Obtener planes de producción que cumplan con los criterios
+            $eligiblePlans = ProductionPlan::with(['partNumber.workCenter', 'shift'])
+                ->whereBetween('planned_date', [$startOfWeek, $endOfWeek])
+                ->where('produced_quantity', '>', 0) // Solo los que tienen cantidad producida
+                ->where(function ($query) {
+                    $query->where('synced_to_infor', false)
+                        ->orWhereNull('synced_to_infor');
+                })
+                ->whereNull('synced_at') // Que no hayan sido sincronizados antes
+                ->whereHas('status', function ($q) {
+                    $q->where('key', 'in_progress'); // Solo los que están en proceso
+                })
+                ->get();
+
+            if ($eligiblePlans->isEmpty()) {
+                return redirect()->back()->with('info', 'No hay registros elegibles para sincronizar.');
+            }
+
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($eligiblePlans as $productionPlan) {
+                try {
+                    // Obtener solo el scrap NO sincronizado para este número de parte
+                    $unsyncedScrap = ScrapRecord::getUnsyncedScrap($productionPlan->part_number_id);
+                    $accumulatedScrap = $unsyncedScrap->sum('quantity');
+
+                    // Si no hay scrap para sincronizar, usar 0
+                    if ($accumulatedScrap == 0 && $unsyncedScrap->isEmpty()) {
+                        $accumulatedScrap = 0;
+                    }
+
+                    // Enviar a Infor
+                    $infor = YF013::sendToInfor($productionPlan, $accumulatedScrap);
+
+                    if ($infor) {
+                        $status = Status::where('key', 'completed')->first();
+
+                        // Actualizar el plan de producción
+                        $productionPlan->update([
+                            'synced_to_infor' => true,
+                            'synced_at' => now(),
+                            'status_id' => $status->id ?? null
+                        ]);
+
+                        // Marcar los registros de scrap como sincronizados
+                        if ($unsyncedScrap->isNotEmpty()) {
+                            ScrapRecord::markAsSynced($unsyncedScrap);
+                        }
+
+                        $successCount++;
+                    } else {
+                        $errorCount++;
+                        $errors[] = "Error al sincronizar orden: {$productionPlan->shop_order_number}";
+                    }
+                } catch (Exception $e) {
+                    $errorCount++;
+                    $errors[] = "Error con orden {$productionPlan->shop_order_number}: " . $e->getMessage();
+                    Log::error("Error sincronizando plan de producción {$productionPlan->id}: " . $e->getMessage());
+                }
+            }
+
+            $message = "Se sincronizaron {$successCount} registros correctamente.";
+            if ($errorCount > 0) {
+                $message .= " {$errorCount} registros tuvieron errores.";
+
+                // Log de errores detallados
+                foreach ($errors as $error) {
+                    Log::error("Error en syncAll: " . $error);
+                }
+            }
+
+            // YF013::executeInforProcess();
+
+            return redirect()->back()->with('success', $message);
+        } catch (Exception $e) {
+            Log::error("Error en syncAll: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al sincronizar los registros: ' . $e->getMessage());
+        }
     }
 }

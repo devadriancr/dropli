@@ -137,7 +137,7 @@ class PaintProductionRecord extends Component
                     'produced_quantity' => $plan->produced_quantity,
                     'entries' => array_fill_keys($this->timeHeaders, null),
                     'exits' => array_fill_keys($this->timeHeaders, null),
-                    'total_entries' => 0, // Nueva propiedad para el acumulado
+                    'total_exits' => 0,
                 ];
             }
 
@@ -162,10 +162,7 @@ class PaintProductionRecord extends Component
                     $hourKey = $createdAt->format('H:00');
 
                     if (in_array($hourKey, $this->timeHeaders)) {
-                        // Sumar al acumulado por hora
                         $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
-                        // Sumar al total acumulado
-                        $groupedPlans[$partNumber]['total_entries'] += $record->quantity;
                     }
                 }
             }
@@ -182,6 +179,7 @@ class PaintProductionRecord extends Component
 
                 if (in_array($hourKey, $this->timeHeaders)) {
                     $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
+                    $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
                 }
             }
         }

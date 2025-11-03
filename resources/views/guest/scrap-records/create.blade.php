@@ -28,7 +28,7 @@
                     <div class="text-center mb-6">
                         <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Registro de Scrap</h1>
                     </div>
-                    <form action="{{ route('guest.scrap-records.store') }}" method="POST" class="space-y-6">
+                    <form action="{{ route('guest.scrap-records.store') }}" method="POST" id="scrapForm" class="space-y-6">
                         @csrf
                         <div>
                             <label for="part_number_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -82,14 +82,39 @@
                         </div>
 
                         <div class="flex justify-center pt-4">
-                            <x-button type="submit" class="w-full flex items-center justify-center gap-2 px-8 py-3 min-w-48">
+                            <button type="submit" id="submitBtn"
+                                    class="w-full flex items-center justify-center gap-2 px-8 py-3 min-w-48 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition duration-200 ease-in-out">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                Guardar Registro
-                            </x-button>
+                                <span id="submitText">Guardar Registro</span>
+                                <div id="submitSpinner" class="hidden ml-2">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                </div>
+                            </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <!-- Spinner -->
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-700"></div>
+
+                <!-- Texto -->
+                <div class="text-center">
+                    <p class="text-lg font-semibold text-gray-800">Procesando...</p>
+                    <p class="text-sm text-gray-600 mt-2">Guardando información, por favor espere</p>
+                </div>
+
+                <!-- Barra de progreso opcional -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-gray-600 h-2 rounded-full animate-pulse w-3/4"></div>
                 </div>
             </div>
         </div>
@@ -185,6 +210,39 @@
 
     <script>
         $(document).ready(function() {
+            // Elementos para el loading
+            const submitBtn = document.getElementById('submitBtn');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const scrapForm = document.getElementById('scrapForm');
+
+            // Función para mostrar loading
+            function showLoading() {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            }
+
+            // Función para ocultar loading
+            function hideLoading() {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+
+            // Función para mostrar loading en el botón de envío
+            function showSubmitLoading() {
+                submitText.classList.add('hidden');
+                submitSpinner.classList.remove('hidden');
+                submitBtn.disabled = true;
+            }
+
+            // Función para ocultar loading en el botón de envío
+            function hideSubmitLoading() {
+                submitText.classList.remove('hidden');
+                submitSpinner.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+
             // Inicializar Select2 para Part Number con búsqueda mejorada
             $('#part_number_id').select2({
                 placeholder: 'Buscar por número de parte...',
@@ -214,6 +272,47 @@
                 placeholder: 'Seleccione una razón...',
                 allowClear: true,
                 width: '100%'
+            });
+
+            // Focus automático en el primer campo
+            setTimeout(function() {
+                $('#part_number_id').select2('focus');
+            }, 100);
+
+            // Permitir enviar el formulario con Enter en el campo de cantidad
+            $('#quantity').on('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Mostrar loading antes de enviar
+                    showSubmitLoading();
+                    showLoading();
+                    $('#scrapForm').submit();
+                }
+            });
+
+            // Manejar el envío del formulario
+            scrapForm.addEventListener('submit', function(e) {
+                // Mostrar loading en el botón y overlay general
+                showSubmitLoading();
+                showLoading();
+
+                // Opcional: prevenir envío duplicado
+                let formSubmitted = false;
+
+                if (!formSubmitted) {
+                    formSubmitted = true;
+                    // Permitir que el formulario se envíe normalmente
+                    return true;
+                } else {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // También manejar el evento submit con jQuery para mayor compatibilidad
+            $('#scrapForm').on('submit', function() {
+                showSubmitLoading();
+                showLoading();
             });
         });
     </script>

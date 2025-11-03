@@ -18,10 +18,12 @@ return new class extends Migration
             $table->integer('sequence_order')->default(1);
             $table->integer('lead_time_hours')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->timestamp('last_synced_at')->nullable();
             $table->timestamps();
 
-            $table->index(['current_part_number_id', 'sequence_order']);
-            $table->unique(['current_part_number_id', 'next_part_number_id']);
+            $table->index(['current_part_number_id', 'is_active', 'last_synced_at'], 'idx_sync_lookup');
+
+            $table->unique(['current_part_number_id', 'next_part_number_id'], 'unique_part_sequence');
         });
     }
 

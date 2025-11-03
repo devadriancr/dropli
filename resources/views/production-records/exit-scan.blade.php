@@ -6,12 +6,12 @@
 
             <div class="flex flex-wrap gap-2 justify-center">
                 <!-- Botón de Captura Manual (mismo estilo que Paros de Línea) -->
-                <a href="{{ route('production-records.part-number-entry') }}"
-                   class="inline-flex items-center gap-2 px-4 py-3 text-gray-900 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm">
+                <a href="{{ route('production-records.part-number-entry', ['origin' => url()->current()]) }}"
+                    class="inline-flex items-center gap-2 px-4 py-3 text-gray-900 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                         stroke="currentColor" class="w-5 h-5">
+                        stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round"
-                              d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                            d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                     </svg>
                     Captura Manual
                 </a>
@@ -140,12 +140,36 @@
                             class="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-lg transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit"
-                            class="flex-1 px-6 py-4 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-medium text-lg transition-colors">
-                            Guardar
+                        <button type="submit" id="saveBtn"
+                            class="flex-1 px-6 py-4 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-medium text-lg transition-colors flex items-center justify-center">
+                            <span id="saveText">Guardar</span>
+                            <div id="saveSpinner" class="hidden ml-2">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            </div>
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div class="flex flex-col items-center justify-center space-y-4">
+                <!-- Spinner -->
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-700"></div>
+
+                <!-- Texto -->
+                <div class="text-center">
+                    <p class="text-lg font-semibold text-gray-800">Procesando...</p>
+                    <p class="text-sm text-gray-600 mt-2">Por favor espere un momento</p>
+                </div>
+
+                <!-- Barra de progreso opcional -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div class="bg-gray-600 h-2 rounded-full animate-pulse w-3/4"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -157,6 +181,10 @@
             const modal = document.getElementById('confirmModal');
             const cancelBtn = document.getElementById('cancelBtn');
             const confirmForm = document.getElementById('confirmForm');
+            const saveBtn = document.getElementById('saveBtn');
+            const saveText = document.getElementById('saveText');
+            const saveSpinner = document.getElementById('saveSpinner');
+            const loadingOverlay = document.getElementById('loadingOverlay');
 
             // Elementos del modal
             const orderNumberEl = document.getElementById('orderNumber');
@@ -165,6 +193,32 @@
             const hiddenOrderNumber = document.getElementById('hiddenOrderNumber');
             const hiddenSequence = document.getElementById('hiddenSequence');
             const hiddenexitCode = document.getElementById('hiddenexitCode');
+
+            // Función para mostrar loading
+            function showLoading() {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            }
+
+            // Función para ocultar loading
+            function hideLoading() {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+
+            // Función para mostrar loading en el botón de guardar
+            function showSaveLoading() {
+                saveText.classList.add('hidden');
+                saveSpinner.classList.remove('hidden');
+                saveBtn.disabled = true;
+            }
+
+            // Función para ocultar loading en el botón de guardar
+            function hideSaveLoading() {
+                saveText.classList.remove('hidden');
+                saveSpinner.classList.add('hidden');
+                saveBtn.disabled = false;
+            }
 
             // Mantener focus en el input principal solo cuando el modal esté cerrado
             exitCode.focus();
@@ -177,47 +231,55 @@
 
             // Función para procesar el código escaneado
             function processCode(code) {
-                let orderNumber, sequence, quantity;
+                showLoading(); // Mostrar loading al procesar el código
 
-                // Detectar el formato basado en la longitud del código
-                if (code.length === 20) {
-                    orderNumber = code.substring(0, 8);
-                    sequence = code.substring(8, 14);
-                    quantity = code.substring(14, 20);
-                } else if (code.length >= 30) {
-                    orderNumber = code.substring(0, 7);
-                    sequence = code.substring(7, 10);
-                    quantity = code.substring(20,26);
-                } else {
-                    alert('Formato de código no reconocido. Debe tener 20 caracteres o el nuevo formato.');
-                    return;
-                }
+                // Simular un pequeño delay para el procesamiento
+                setTimeout(() => {
+                    let orderNumber, sequence, quantity;
 
-                // Convertir cantidad a número y remover ceros a la izquierda
-                const quantityNumber = parseInt(quantity, 10);
+                    // Detectar el formato basado en la longitud del código
+                    if (code.length === 20) {
+                        orderNumber = code.substring(0, 8);
+                        sequence = code.substring(8, 14);
+                        quantity = code.substring(14, 20);
+                    } else if (code.length >= 30) {
+                        orderNumber = code.substring(0, 7);
+                        sequence = code.substring(7, 10);
+                        quantity = code.substring(20, 26);
+                    } else {
+                        hideLoading();
+                        alert('Formato de código no reconocido. Debe tener 20 caracteres o el nuevo formato.');
+                        return;
+                    }
 
-                // Validar que los datos extraídos sean válidos
-                if (!orderNumber || !sequence || isNaN(quantityNumber)) {
-                    alert('Error al procesar el código. Verifique el formato.');
-                    return;
-                }
+                    // Convertir cantidad a número y remover ceros a la izquierda
+                    const quantityNumber = parseInt(quantity, 10);
 
-                // Llenar la información en el modal
-                orderNumberEl.textContent = orderNumber;
-                sequenceEl.textContent = sequence;
-                quantityInput.value = quantityNumber;
+                    // Validar que los datos extraídos sean válidos
+                    if (!orderNumber || !sequence || isNaN(quantityNumber)) {
+                        hideLoading();
+                        alert('Error al procesar el código. Verifique el formato.');
+                        return;
+                    }
 
-                // Llenar campos ocultos
-                hiddenOrderNumber.value = orderNumber;
-                hiddenSequence.value = sequence;
-                hiddenexitCode.value = code;
+                    // Llenar la información en el modal
+                    orderNumberEl.textContent = orderNumber;
+                    sequenceEl.textContent = sequence;
+                    quantityInput.value = quantityNumber;
 
-                // Mostrar modal
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
+                    // Llenar campos ocultos
+                    hiddenOrderNumber.value = orderNumber;
+                    hiddenSequence.value = sequence;
+                    hiddenexitCode.value = code;
 
-                // Focus en el input de cantidad
-                setTimeout(() => quantityInput.focus(), 100);
+                    // Ocultar loading y mostrar modal
+                    hideLoading();
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+
+                    // Focus en el input de cantidad
+                    setTimeout(() => quantityInput.focus(), 100);
+                }, 500); // Pequeño delay para que se vea el loading
             }
 
             // Event listeners
@@ -266,6 +328,20 @@
                 if (e.target === modal) {
                     cancelBtn.click();
                 }
+            });
+
+            // Manejar el envío del formulario de confirmación
+            confirmForm.addEventListener('submit', (e) => {
+                showSaveLoading(); // Mostrar loading en el botón de guardar
+                showLoading(); // Mostrar loading overlay general
+
+                // Permitir que el formulario se envíe normalmente
+                // El loading se ocultará cuando la página se recargue
+            });
+
+            // También mostrar loading si se envía el formulario principal directamente
+            document.getElementById('scanForm').addEventListener('submit', () => {
+                showLoading();
             });
 
             // DEBUG: Para verificar que los datos se envían correctamente

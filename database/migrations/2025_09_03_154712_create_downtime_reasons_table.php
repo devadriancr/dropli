@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('downtime_reasons', function (Blueprint $table) {
             $table->id();
-            $table->string('code')->unique();
+            $table->string('code')->nullable();
             $table->string('name')->nullable();
             $table->string('description')->nullable();
             $table->foreignId('downtime_type_id')->nullable()->constrained('downtime_types');

@@ -38,12 +38,6 @@
                         </div>
                     </form>
                 </div>
-
-                {{-- Agregamos botón de agregar si es necesario --}}
-                {{-- <a href="{{ route('production-records.create') }}" class="btn btn-primary rounded-3">
-                    <i class="fas fa-plus me-2"></i>
-                    <span>Agregar nuevo</span>
-                </a> --}}
             </div>
         </div>
 
@@ -63,11 +57,16 @@
                                 {{ __('Entrada') }} / {{ __('Salida') }}</th>
                             <th class="fw-bold text-secondary text-uppercase border-light-subtle">
                                 {{ __('Fecha de Creación') }}</th>
+                            <th class="fw-bold text-secondary text-uppercase border-light-subtle text-center">
+                                {{ __('Acciones') }}</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($productionRecords as $record)
-                            <tr class="border-light-subtle">
+                            <tr
+                                class="border-light-subtle record-row
+                                @if ($record->record_type == 'entry') record-entry
+                                @elseif($record->record_type == 'exit') record-exit @endif">
                                 <!-- Centro de Trabajo -->
                                 <td class="py-3">
                                     @if ($record->partNumber && $record->partNumber->workCenter)
@@ -106,7 +105,7 @@
                                     </span>
                                 </td>
 
-                                <!-- Cantidad -->
+                                <!-- Tipo de Registro -->
                                 <td class="py-3">
                                     @if ($record->record_type == 'exit')
                                         <span class="badge-status bg-success bg-opacity-10 text-success">
@@ -128,10 +127,28 @@
                                     <div class="fw-500">{{ $record->created_at->format('Y-m-d') }}</div>
                                     <div class="text-muted">{{ $record->created_at->format('H:i:s') }}</div>
                                 </td>
+
+                                <!-- Acciones -->
+                                <td class="py-3 text-center">
+                                    <div class="d-flex justify-content-center gap-2 align-items-center">
+                                        @if ($record->productionPlan->synced_to_infor === false)
+                                            <a href="{{ route('production-records.edit', $record) }}"
+                                                class="btn btn-sm btn-outline-primary rounded-3">
+                                                <i class="fas fa-edit me-1"></i>
+                                                <span>Editar</span>
+                                            </a>
+                                        @else
+                                            <span class="text-success small fw-500">
+                                                <i class="fas fa-check-circle me-1"></i>
+                                                Registrado en Infor
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center py-4">
+                                <td colspan="7" class="text-center py-4">
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
                                         <span class="text-secondary">No se encontraron registros de producción</span>
@@ -178,7 +195,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Aplicar fuente a elementos específicos sin afectar AdminLTE */
+        /* Tus estilos CSS existentes... */
         .card,
         .btn,
         .form-control,
@@ -187,14 +204,11 @@
             font-family: 'Roboto', sans-serif !important;
         }
 
-        /* Estilos adicionales para la tabla */
         .border-light-subtle {
             border-color: #f0f0f0 !important;
         }
 
-        .table-hover tbody tr:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            transform: translateY(-1px);
+        .table-hover tbody tr {
             transition: all 0.2s ease;
         }
 
@@ -202,7 +216,6 @@
             border-radius: 12px !important;
         }
 
-        /* Mejoras en jerarquía tipográfica */
         .table thead th {
             font-weight: 700 !important;
             font-size: 0.85rem;
@@ -212,7 +225,6 @@
             font-size: 0.875rem;
         }
 
-        /* Buscador sin contorno azul */
         .search-box .input-group {
             width: 380px;
         }
@@ -233,14 +245,12 @@
             font-size: 1rem;
         }
 
-        /* Quitar contorno azul al enfocar */
         .search-box .form-control:focus {
             border-color: #dee2e6 !important;
             box-shadow: none !important;
             outline: none !important;
         }
 
-        /* Badges simétricos */
         .badge-status {
             display: inline-block;
             min-width: 60px;
@@ -251,7 +261,6 @@
             font-weight: 500;
         }
 
-        /* Estilos para la paginación */
         .pagination {
             margin-bottom: 0;
         }
@@ -282,18 +291,15 @@
             opacity: 0.5;
         }
 
-        /* Estilos para el contador de resultados */
         .text-muted.small {
             font-size: 0.85rem;
             color: #6c757d;
         }
 
-        /* Ajustes de espaciado para paginación */
         .card-footer .pagination {
             margin-bottom: 0;
         }
 
-        /* Alertas */
         .alert {
             border-radius: 8px;
         }
@@ -305,6 +311,42 @@
 
         .fw-500 {
             font-weight: 500;
+        }
+
+        /* ===== ESTILOS PARA EL HOVER DE LAS FILAS ===== */
+        .record-row {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .record-entry:hover {
+            background-color: rgba(13, 110, 253, 0.08) !important;
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .record-exit:hover {
+            background-color: rgba(25, 135, 84, 0.08) !important;
+            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .table-hover tbody tr:hover:not(.record-entry):not(.record-exit) {
+            background-color: rgba(108, 117, 125, 0.08) !important;
+            box-shadow: 0 2px 8px rgba(108, 117, 125, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Estilos para los botones de acción */
+        .btn-sm {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.85rem;
+            /* display: inline-flex; */
+            /* align-items: center; */
+        }
+
+        .gap-2 {
+            gap: 0.5rem;
         }
     </style>
 @stop

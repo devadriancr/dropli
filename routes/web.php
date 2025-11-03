@@ -13,6 +13,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::resource('home',  App\Http\Controllers\HomeController::class);
+    Route::resource('roles', App\Http\Controllers\RoleController::class)->except(['show']);
     Route::resource('users', App\Http\Controllers\UserController::class);
     Route::resource('customers', App\Http\Controllers\CustomerController::class)->except(['show']);
     Route::resource('projects', App\Http\Controllers\ProjectController::class)->except(['show']);
@@ -32,6 +33,10 @@ Route::middleware([
     Route::resource('scrap-categories', App\Http\Controllers\ScrapCategoryController::class);
     Route::resource('scrap-reasons', App\Http\Controllers\ScrapReasonController::class);
     Route::resource('scrap-records', App\Http\Controllers\ScrapRecordController::class);
+
+    Route::get('/production-records/pdf', [App\Http\Controllers\HomeController::class, 'productionRecordsPdf'])->name('home.production-records-pdf');
+
+    Route::post('/production-plans/sync-all', [App\Http\Controllers\ProductionPlanController::class, 'syncAll'])->name('production-plans.sync-all');
 });
 
 Route::prefix('guest')->group(function () {

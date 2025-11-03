@@ -7,6 +7,7 @@ use App\Models\WorkCenter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -17,10 +18,13 @@ class UserController extends Controller
     {
         $search = $request->input('search');
 
-        $users = User::with('workCenters')
+        $users = User::with('workCenters', 'roles')
+            ->whereDoesntHave('roles', function ($query) {
+                $query->whereIn('name', ['Administrator', 'Admin', 'administrator', 'admin']);
+            })
             ->when($search, function ($query, $search) {
                 return $query->where('name', 'like', "%{$search}%")
-                           ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             })
             ->orderBy('name')
             ->paginate(10);
@@ -34,7 +38,11 @@ class UserController extends Controller
     public function create()
     {
         $workCenters = WorkCenter::orderBy('number')->get();
-        return view('users.create', compact('workCenters'));
+        $roles = Role::where('guard_name', 'web')
+            ->whereNotIn('name', ['Administrator', 'Admin', 'administrator', 'admin'])
+            ->orderBy('name')
+            ->get();
+        return view('users.create', compact('workCenters', 'roles'));
     }
 
     /**
@@ -46,22 +54,47 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'exists:roles,id'],
             'work_centers' => ['nullable', 'array'],
             'work_centers.*' => ['exists:work_centers,id']
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        try {
+            // Verificar que el rol no sea de administrador
+            $role = Role::where('id', $request->role)
+                ->where('guard_name', 'web')
+                ->firstOrFail();
 
-        if ($request->has('work_centers')) {
-            $user->workCenters()->sync($request->work_centers);
+            if (in_array(strtolower($role->name), ['administrator', 'admin'])) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'No se puede asignar un rol de administrador.');
+            }
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            // Asignar el rol al usuario
+            $user->assignRole($role);
+
+            if ($request->has('work_centers')) {
+                $user->workCenters()->sync($request->work_centers);
+            }
+
+            return redirect()->route('users.index')
+                ->with('success', 'Usuario creado exitosamente.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'El rol seleccionado no existe.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al crear el usuario: ' . $e->getMessage());
         }
-
-        return redirect()->route('users.index')
-            ->with('success', 'Usuario creado exitosamente.');
     }
 
     /**
@@ -77,9 +110,19 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $user->load('workCenters');
+        // Verificar que el usuario no sea administrador
+        if ($user->hasRole(['Administrator', 'Admin', 'administrator', 'admin'])) {
+            return redirect()->route('users.index')
+                ->with('error', 'No se puede editar un usuario administrador.');
+        }
+
+        $user->load('workCenters', 'roles');
         $workCenters = WorkCenter::orderBy('number')->get();
-        return view('users.edit', compact('user', 'workCenters'));
+        $roles = Role::where('guard_name', 'web')
+            ->whereNotIn('name', ['Administrator', 'Admin', 'administrator', 'admin'])
+            ->orderBy('name')
+            ->get();
+        return view('users.edit', compact('user', 'workCenters', 'roles'));
     }
 
     /**
@@ -87,27 +130,58 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Verificar que el usuario no sea administrador
+        if ($user->hasRole(['Administrator', 'Admin', 'administrator', 'admin'])) {
+            return redirect()->route('users.index')
+                ->with('error', 'No se puede actualizar un usuario administrador.');
+        }
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'exists:roles,id'],
             'work_centers' => ['nullable', 'array'],
             'work_centers.*' => ['exists:work_centers,id']
         ]);
 
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-        ]);
+        try {
+            // Verificar que el nuevo rol no sea de administrador - USANDO EL GUARD CORRECTO
+            $role = Role::where('id', $request->role)
+                ->where('guard_name', 'web')
+                ->firstOrFail();
 
-        if ($request->filled('password')) {
-            $user->update(['password' => Hash::make($request->password)]);
+            if (in_array(strtolower($role->name), ['administrator', 'admin'])) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'No se puede asignar un rol de administrador.');
+            }
+
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+            ]);
+
+            if ($request->filled('password')) {
+                $user->update(['password' => Hash::make($request->password)]);
+            }
+
+            // Sincronizar el rol del usuario
+            $user->syncRoles([$role]);
+
+            $user->workCenters()->sync($request->work_centers ?? []);
+
+            return redirect()->route('users.index')
+                ->with('success', 'Usuario actualizado exitosamente.');
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'El rol seleccionado no existe.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error al actualizar el usuario: ' . $e->getMessage());
         }
-
-        $user->workCenters()->sync($request->work_centers ?? []);
-
-        return redirect()->route('users.index')
-            ->with('success', 'Usuario actualizado exitosamente.');
     }
 
     /**
@@ -115,10 +189,21 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        $user->workCenters()->detach();
-        $user->delete();
+        // Verificar que el usuario no sea administrador
+        if ($user->hasRole(['Administrator', 'Admin', 'administrator', 'admin'])) {
+            return redirect()->route('users.index')
+                ->with('error', 'No se puede eliminar un usuario administrador.');
+        }
 
-        return redirect()->route('users.index')
-            ->with('success', 'Usuario eliminado exitosamente.');
+        try {
+            $user->workCenters()->detach();
+            $user->delete();
+
+            return redirect()->route('users.index')
+                ->with('success', 'Usuario eliminado exitosamente.');
+        } catch (\Exception $e) {
+            return redirect()->route('users.index')
+                ->with('error', 'Error al eliminar el usuario: ' . $e->getMessage());
+        }
     }
 }

@@ -12,68 +12,72 @@ class FetchPartNumberNextProcess implements ShouldQueue
 {
     use Queueable;
 
+    public $tries = 3;
+    public $timeout = 300; // 5 minutos
+    public $backoff = 60; // Reintentar después de 1 minuto
+
     protected $partNumber;
 
-    /**
-     * Create a new job instance.
-     */
-    public function __construct(String $partNumber)
+    public function __construct(string $partNumber)
     {
         $this->partNumber = trim(Str::ascii($partNumber));
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
         try {
-            $sql = <<<SQL
-            WITH NextProcess AS (
-                SELECT DISTINCT
-                    CAST(F.RPROD AS VARCHAR(50)) AS ChildPart,
-                    CAST(F.RWRKC AS VARCHAR(20)) AS ChildWorkCenter,
-                    CAST(F.ROPDS2 AS VARCHAR(20)) AS NextWorkCenter
-                FROM LX834F01.FRT AS F
-                INNER JOIN LX834F01.IIM AS I ON CAST(F.RPROD AS VARCHAR(50)) = CAST(I.IPROD AS VARCHAR(50))
-                WHERE TRIM(CAST(I.IPROD AS VARCHAR(50))) = ?
-            ),
-            ParentParts AS (
-                SELECT DISTINCT
-                    CAST(Y.MCFPRO AS VARCHAR(50)) AS ParentPart,
-                    CAST(F.RWRKC AS VARCHAR(20)) AS ParentWorkCenter,
-                    CAST(F.ROPDS2 AS VARCHAR(20)) AS ParentNextProcess
-                FROM LX834FU01.YMCOM AS Y
-                INNER JOIN LX834F01.FRT AS F ON CAST(Y.MCFPRO AS VARCHAR(50)) = CAST(F.RPROD AS VARCHAR(50))
-                INNER JOIN LX834F01.IIM AS I ON CAST(F.RPROD AS VARCHAR(50)) = CAST(I.IPROD AS VARCHAR(50))
-                WHERE TRIM(CAST(I.IMPLC AS VARCHAR(10))) NOT LIKE 'OBSOLETE'
-                    AND TRIM(CAST(Y.MCCPRO AS VARCHAR(50))) = ?
-                    AND TRIM(CAST(Y.MCFPRO AS VARCHAR(50))) <> ?
-            )
+            // 1) Búsqueda exacta por BPROD o BCHLD
+            $sqlExact = <<<SQL
             SELECT DISTINCT
-                TRIM(CAST(N.ChildPart AS VARCHAR(50))) AS child_part,
-                TRIM(CAST(N.ChildWorkCenter AS VARCHAR(20))) AS child_work_center,
-                TRIM(CAST(P.ParentPart AS VARCHAR(50))) AS parent_part,
-                TRIM(CAST(P.ParentWorkCenter AS VARCHAR(20))) AS parent_work_center
-            FROM ParentParts AS P
-            INNER JOIN NextProcess AS N
-                ON CAST(P.ParentWorkCenter AS VARCHAR(20)) = CAST(N.NextWorkCenter AS VARCHAR(20))
-                OR CAST(P.ParentNextProcess AS VARCHAR(20)) = CAST(N.NextWorkCenter AS VARCHAR(20))
+                TRIM(BCHLD) AS child_part,
+                TRIM(BPROD) AS parent_part
+            FROM LX834F01.MBM
+            WHERE TRIM(BPROD) = ? OR TRIM(BCHLD) = ?
             SQL;
 
-            $results = DB::connection('infor-live')->select($sql, [
+            $results = DB::connection('infor-live')->select($sqlExact, [
                 $this->partNumber,
                 $this->partNumber,
-                $this->partNumber
             ]);
 
-            $partNumberSorted = collect($results)->sortByDesc('parent_part');
+            // 2) Si no hay resultados, búsqueda por prefijo
+            if (empty($results)) {
+                $base = preg_replace('/[A-Za-z]+$/', '', $this->partNumber);
 
-            // Solo despachar si hay resultados
+                if (!empty($base) && $base !== $this->partNumber) {
+                    $likeParam = $base . '%';
+
+                    $sqlLike = <<<SQL
+                    SELECT DISTINCT
+                        TRIM(BCHLD) AS child_part,
+                        TRIM(BPROD) AS parent_part
+                    FROM LX834F01.MBM
+                    WHERE TRIM(BPROD) LIKE ? OR TRIM(BCHLD) LIKE ?
+                    SQL;
+
+                    $results = DB::connection('infor-live')->select($sqlLike, [
+                        $likeParam,
+                        $likeParam,
+                    ]);
+                }
+            }
+
+            // Procesar y ordenar resultados
+            $partNumberSorted = collect($results)
+                ->unique(function ($item) {
+                    $child = $item->child_part ?? $item->CHILD_PART ?? null;
+                    $parent = $item->parent_part ?? $item->PARENT_PART ?? null;
+                    return trim((string)$child) . '::' . trim((string)$parent);
+                })
+                ->sortBy(function ($item) {
+                    return $item->parent_part ?? $item->PARENT_PART ?? null;
+                })
+                ->values();
+
             if ($partNumberSorted->isNotEmpty()) {
                 StorePartNumberNextProcess::dispatch($partNumberSorted);
             } else {
-                // logger()->warning("No se encontraron procesos siguientes para: {$this->partNumber}");
+                logger()->debug("MBM Fetch: Sin relaciones encontradas para: {$this->partNumber}");
             }
         } catch (Throwable $e) {
             $this->handleQueryError($e);
@@ -82,26 +86,29 @@ class FetchPartNumberNextProcess implements ShouldQueue
 
     protected function handleQueryError(Throwable $e): void
     {
-        // Verificar si es el error específico de falta de procesos
+        // Errores conocidos de DB2 que no son críticos
         if (
             strpos($e->getMessage(), 'SQL0802') !== false ||
             strpos($e->getMessage(), 'SQL0204') !== false
         ) {
-
-            logger()->warning("El número de parte {$this->partNumber} no tiene proceso siguiente válido");
+            logger()->debug("MBM Fetch: Part sin proceso siguiente válido: {$this->partNumber}");
             return;
         }
 
-        // Registrar otros errores y reintentar
-        logger()->error("Error al obtener proceso siguiente para {$this->partNumber}: " . $e->getMessage());
+        logger()->error("MBM Fetch: Error para {$this->partNumber}", [
+            'error' => $e->getMessage(),
+            'part_number' => $this->partNumber
+        ]);
 
-        // Reintentar después de 5 minutos (opcional)
-        $this->release(300);
+        // Reintentar con backoff
+        $this->release($this->backoff);
     }
 
     public function failed(Throwable $exception): void
     {
-        // Lógica para manejar fallos permanentes
-        logger()->critical("Job fallido para {$this->partNumber}: " . $exception->getMessage());
+        logger()->critical("MBM Fetch: Job fallido definitivamente para {$this->partNumber}", [
+            'error' => $exception->getMessage(),
+            'part_number' => $this->partNumber
+        ]);
     }
 }

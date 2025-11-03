@@ -10,7 +10,15 @@ class ScrapRecord extends Model
     protected $fillable = [
         'part_number_id',
         'scrap_reason_id',
-        'quantity'
+        'quantity',
+        'production_plan_id',
+        'synced_to_infor',
+        'synced_at'
+    ];
+
+    protected $casts = [
+        'synced_to_infor' => 'boolean',
+        'synced_at' => 'datetime'
     ];
 
     /**
@@ -27,5 +35,39 @@ class ScrapRecord extends Model
     public function scrapReason(): BelongsTo
     {
         return $this->belongsTo(ScrapReason::class, 'scrap_reason_id');
+    }
+
+    /**
+     * Get the production plan that owns the scrap record
+     */
+    public function productionPlan(): BelongsTo
+    {
+        return $this->belongsTo(ProductionPlan::class, 'production_plan_id');
+    }
+
+    /**
+     * Get unsynced scrap records for a part number
+     */
+    public static function getUnsyncedScrap($partNumberId)
+    {
+        return static::where('part_number_id', $partNumberId)
+            ->where('synced_to_infor', false)
+            ->whereNull('synced_at')
+            ->get();
+    }
+
+    /**
+     * Mark scrap records as synced
+     */
+    public static function markAsSynced($scrapRecords)
+    {
+        if ($scrapRecords->isNotEmpty()) {
+            return static::whereIn('id', $scrapRecords->pluck('id'))
+                ->update([
+                    'synced_to_infor' => true,
+                    'synced_at' => now()
+                ]);
+        }
+        return false;
     }
 }

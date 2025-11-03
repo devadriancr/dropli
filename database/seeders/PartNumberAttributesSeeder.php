@@ -83,10 +83,12 @@ class PartNumberAttributesSeeder extends Seeder
 
         $processed = 0;
         $errors = 0;
+        $notFound = [];
 
         foreach ($attributesData as $data) {
             try {
-                $partNumberStr = trim($data[0]);
+                // Normaliza el número de parte eliminando todos los espacios
+                $partNumberStr = preg_replace('/\s+/', '', trim($data[0]));
                 $attributeKey = $data[1];
                 $attributeValue = $data[2];
 
@@ -94,9 +96,15 @@ class PartNumberAttributesSeeder extends Seeder
                 $partNumber = PartNumber::where('number', $partNumberStr)->first();
 
                 if (!$partNumber) {
-                    Log::warning("PartNumber no encontrado: {$partNumberStr}");
-                    $errors++;
-                    continue;
+                    // Intenta buscar sin normalizar por si acaso
+                    $partNumber = PartNumber::where('number', trim($data[0]))->first();
+
+                    if (!$partNumber) {
+                        $notFound[] = $partNumberStr;
+                        Log::warning("PartNumber no encontrado: {$partNumberStr}");
+                        $errors++;
+                        continue;
+                    }
                 }
 
                 // Asignar atributo al número de parte actual
