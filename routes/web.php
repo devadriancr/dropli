@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\ProductionReceiptReportController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ScrapRecordController;
+use App\Livewire\MaterialReceptionReport;
 
 Route::get('/', function () {
     return redirect()->route('production-records.summary');
@@ -76,3 +78,6 @@ Route::get('painting-process-tracking', function () {
 Route::get('production-records-summary', function () {
     return view('guest.painting-production-summary');
 })->name('production-records.summary');
+
+
+Route::resource('test', ProductionReceiptReportController::class);
