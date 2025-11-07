@@ -14,8 +14,20 @@ class ProductionReceiptReportController extends Controller
     public function index()
     {
         $today = Carbon::today();
-        $startDate = $today->copy()->subWeek()->startOfWeek(Carbon::MONDAY)->format('Ymd');
-        $endDate   = $today->copy()->endOfWeek(Carbon::SUNDAY)->format('Ymd');
+
+        // Fecha de inicio: Lunes de la semana pasada
+        $startDate = $today->copy()->subWeek()->startOfWeek(Carbon::MONDAY);
+
+        // Fecha de fin: Domingo de la semana actual
+        $endDate = $today->copy()->endOfWeek(Carbon::SUNDAY);
+
+        // Generar todas las fechas del rango (14 días)
+        $allDates = [];
+        $current = $startDate->copy();
+        while ($current->lte($endDate)) {
+            $allDates[] = $current->format('Y-m-d');
+            $current->addDay();
+        }
 
         $sql = <<<SQL
         SELECT
@@ -69,10 +81,10 @@ class ProductionReceiptReportController extends Controller
         SQL;
 
         $results = DB::connection('infor-live')->select($sql, [
-            $startDate,
-            $endDate,   // para H.PDDTE
-            $startDate,
-            $endDate,   // para T.TTDTE
+            $startDate->format('Ymd'),
+            $endDate->format('Ymd'),
+            $startDate->format('Ymd'),
+            $endDate->format('Ymd'),
         ]);
 
         // --- Procesar resultados ---
@@ -93,10 +105,21 @@ class ProductionReceiptReportController extends Controller
                 ? round(($receivedQty / $orderedQty) * 100, 2)
                 : 0;
 
+            // Convertir fecha de Ymd a Y-m-d
+            $dateFormatted = null;
+            if (preg_match('/^\d{8}$/', $dateYmd)) {
+                try {
+                    $dateFormatted = Carbon::createFromFormat('Ymd', $dateYmd)->format('Y-m-d');
+                } catch (\Throwable $e) {
+                    $dateFormatted = null;
+                }
+            }
+
             $rows[] = [
                 'item_number'       => $itemNumber,
                 'item_class'        => $itemClass,
                 'date_ymd'          => $dateYmd,
+                'date_formatted'    => $dateFormatted,
                 'vendor_number'     => $vendorNo,
                 'vendor_name'       => $vendorName,
                 'work_center_no'    => $wrkNo,
@@ -107,25 +130,20 @@ class ProductionReceiptReportController extends Controller
             ];
         }
 
-        // --- Agrupar por día ---
-        $grouped = collect($rows)->groupBy('date_ymd')->map(function ($items, $dateYmd) {
-            // Formato legible
-            $readableDate = null;
-            if (preg_match('/^\d{8}$/', $dateYmd)) {
-                try {
-                    $readableDate = Carbon::createFromFormat('Ymd', $dateYmd)->toDateString();
-                } catch (\Throwable $e) {
-                    $readableDate = null;
-                }
-            }
+        // --- Crear estructura con TODAS las fechas ---
+        $grouped = collect($allDates)->mapWithKeys(function ($date) use ($rows) {
+            // Filtrar items de esta fecha
+            $itemsForDate = collect($rows)->filter(function ($row) use ($date) {
+                return $row['date_formatted'] === $date;
+            });
 
             // Totales del día
-            $orderedTotal  = $items->sum('ordered_qty');
-            $receivedTotal = $items->sum('received_qty');
-            $percentageTotal = $orderedTotal > 0 ? round(($receivedTotal / $orderedTotal) * 100, 2) : 0;
+            $orderedTotal  = $itemsForDate->sum('ordered_qty');
+            $receivedTotal = $itemsForDate->sum('received_qty');
+            $percentageTotal = $orderedTotal > 0 ? round(($receivedTotal / $orderedTotal) * 100, 2) : null;
 
             // Agrupar items por número de parte
-            $itemsByPart = $items->groupBy('item_number')->map(function ($perPart, $part) {
+            $itemsByPart = $itemsForDate->groupBy('item_number')->map(function ($perPart, $part) {
                 return [
                     'item_number'      => $part,
                     'item_class'       => $perPart->first()['item_class'],
@@ -142,16 +160,17 @@ class ProductionReceiptReportController extends Controller
             })->values();
 
             return [
-                'date_ymd'        => $dateYmd,
-                'date'            => $readableDate,
-                'ordered_total'   => $orderedTotal,
-                'received_total'  => $receivedTotal,
-                'percentage_total' => $percentageTotal,
-                'items'           => $itemsByPart,
+                $date => [
+                    'date'             => $date,
+                    'ordered_total'    => $orderedTotal,
+                    'received_total'   => $receivedTotal,
+                    'percentage_total' => $percentageTotal,
+                    'items'            => $itemsByPart,
+                ]
             ];
         });
 
-        $final = $grouped->sortKeys()->values();
+        $final = $grouped->values();
 
         return view('test', ['final' => $final]);
     }
