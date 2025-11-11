@@ -27,7 +27,7 @@ class ProjectSetup extends Command
         ['Ejecutando CustomerSeeder', 'db:seed', ['--class' => 'CustomerSeeder']],
         ['Ejecutando ShiftSeeder', 'db:seed', ['--class' => 'ShiftSeeder']],
         ['Ejecutando StatusesSeeder', 'db:seed', ['--class' => 'StatusesSeeder']],
-        ['Obteniendo información del proyecto', 'info:project', []],
+        ['Obteniendo información del proyecto', 'infor:project', []],
         ['Ejecutando ProjectPrefixSeeder', 'db:seed', ['--class' => 'ProjectPrefixSeeder']],
         ['Obteniendo información del item class', 'infor:item-class', []],
         ['Obteniendo información del standard pack', 'infor:standard-pack', []],
@@ -49,19 +49,48 @@ class ProjectSetup extends Command
     public function handle()
     {
         $total = count($this->steps);
-        $this->info("🔄 Iniciando setup de Dropli: {$total} pasos");
+
+        $this->info("=========================================================");
+        $this->info("       🚀 INICIANDO CONFIGURACIÓN DE PROYECTO DROPLI      ");
+        $this->info("=========================================================");
+        $this->newLine();
+        $this->comment("Total de pasos a ejecutar: {$total}");
 
         // Inicia barra de progreso
         $this->output->progressStart($total);
 
         foreach ($this->steps as [$description, $command, $arguments]) {
-            // Ajuste para migraciones fresh
+            // 1. Ajuste para migraciones fresh
             if ($command === 'migrate' && $this->option('fresh')) {
                 $command = 'migrate:fresh';
             }
 
-            $this->line("👉 {$description}...");
+            // 2. Determinar el color y prefijo de la sección
+            $prefix = '';
+            $colorTag = 'fg=white;bg=blue'; // Default/Otros
+
+            if (str_starts_with($command, 'migrate')) {
+                $colorTag = 'fg=white;bg=cyan';
+                $prefix = '🔨 DB Migraciones: ';
+            } elseif (str_starts_with($command, 'db:seed')) {
+                $colorTag = 'fg=black;bg=yellow';
+                $prefix = '🌱 DB Seeder: ';
+            } elseif (str_starts_with($command, 'infor:')) {
+                $colorTag = 'fg=white;bg=green';
+                $prefix = '📡 Sincronización API: ';
+            }
+
+            // 3. Mostrar el paso actual con color de fondo (El "Overlay")
+            $this->line(""); // Espacio de separación
+            $this->line("<{$colorTag}> " . $prefix . $description . " </>");
+            $this->line("");
+
+            // 4. Ejecutar el comando
             $this->call($command, $arguments);
+
+            // 5. Mostrar confirmación de éxito
+            $this->line("    <info> [OK] </info> Comando ejecutado exitosamente: <comment>{$command}</comment>");
+
             $this->output->progressAdvance();
         }
 

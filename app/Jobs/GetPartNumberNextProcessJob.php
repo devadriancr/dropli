@@ -32,8 +32,8 @@ class GetPartNumberNextProcessJob implements ShouldQueue
 
         $duration = now()->diffInSeconds($startTime);
 
-        logger()->info("MBM Sync: Sincronización iniciada", [
-            'total_parts' => $totalParts,
+        logger()->info("MBM Sync: Sincronización masiva completada", [
+            'total_parts_dispatched' => $totalParts,
             'duracion_segundos' => $duration
         ]);
     }
