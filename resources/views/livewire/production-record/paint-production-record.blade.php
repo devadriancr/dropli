@@ -1,6 +1,6 @@
 <div>
     <div class="w-full h-screen flex flex-col bg-gray-100" x-data="productionRecord">
-        <!-- Header compacto (modificado: botón Login/Dashboard ahora junto al turno) -->
+        <!-- Header compacto (modificado: menú de opciones agregado) -->
         <div class="px-6 py-4 mx-4 mt-4 bg-white border border-gray-200 rounded-lg">
             <div class="flex items-center justify-between">
                 <!-- Izquierda: título y punto realTime -->
@@ -15,11 +15,11 @@
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <!-- Fecha y Turno -->
+                    <!-- Fecha y Turno (solo horas y minutos) -->
                     @if ($shift)
                         <span
                             class="px-3 py-1 text-sm font-semibold bg-blue-50 text-blue-800 rounded-full whitespace-nowrap">
-                            {{ $date }}
+                            {{ \Carbon\Carbon::parse($date)->format('d-m-Y') }}
                         </span>
                         <span
                             class="px-3 py-1 text-sm font-semibold bg-blue-50 text-blue-800 rounded-full whitespace-nowrap">
@@ -27,9 +27,83 @@
                         </span>
                         <span
                             class="px-3 py-1 text-sm font-semibold bg-blue-50 text-blue-800 rounded-full whitespace-nowrap">
-                            {{ $shift->start_time }} - {{ $shift->end_time }}
+                            {{ \Carbon\Carbon::parse($shift->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($shift->end_time)->format('H:i') }}
                         </span>
                     @endif
+
+                    <!-- Menú de opciones (tres puntos) -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" @click.away="open = false"
+                            class="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path
+                                    d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown menu -->
+                        <div x-show="open" x-transition:enter="transition ease-out duration-100"
+                            x-transition:enter-start="transform opacity-0 scale-95"
+                            x-transition:enter-end="transform opacity-100 scale-100"
+                            x-transition:leave="transition ease-in duration-75"
+                            x-transition:leave-start="transform opacity-100 scale-100"
+                            x-transition:leave-end="transform opacity-0 scale-95"
+                            class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                            style="display: none;">
+
+                            <!-- Opción: Entrada -->
+                            <a href="{{ route('production-records.entry-scan') }}"
+                                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-blue-600"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                                        clip-rule="evenodd" />
+                                </svg>
+                                <span>Entrada</span>
+                            </a>
+
+                            <!-- Opción: Salida -->
+                            <a href="{{ route('production-records.exit-scan') }}"
+                                class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-green-50 hover:text-green-800 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-green-600"
+                                    viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                                        clip-rule="evenodd" transform="rotate(180 10 10)" />
+                                </svg>
+                                <span>Salida</span>
+                            </a>
+
+                            <!-- Separador -->
+                            <div class="border-t border-gray-100 my-1"></div>
+
+                            <!-- Opción: Login/Dashboard -->
+                            @auth
+                                <a href="{{ url('/home') }}"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-600"
+                                        viewBox="0 0 20 20" fill="currentColor">
+                                        <path
+                                            d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                                    </svg>
+                                    <span>Panel Administrativo</span>
+                                </a>
+                            @else
+                                <a href="{{ route('login') }}"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3 text-gray-600"
+                                        viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd"
+                                            d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Iniciar Sesión</span>
+                                </a>
+                            @endauth
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
