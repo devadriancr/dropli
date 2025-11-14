@@ -17,7 +17,7 @@
                 </a>
 
                 <!-- Botón de Paros de Línea -->
-                <a href="{{ route('guest.downtime-records.create', ['origin' => url()->current()]) }}"
+                {{-- <a href="{{ route('guest.downtime-records.create', ['origin' => url()->current()]) }}"
                     class="inline-flex items-center gap-2 px-4 py-3 text-gray-900 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -25,10 +25,10 @@
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Paros de Línea
-                </a>
+                </a> --}}
 
                 <!-- Botón de Scrap -->
-                <a href="{{ route('guest.scrap-records.create', ['origin' => url()->current()]) }}"
+                {{-- <a href="{{ route('guest.scrap-records.create', ['origin' => url()->current()]) }}"
                     class="inline-flex items-center gap-2 px-4 py-3 text-red-700 border border-red-300 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -36,7 +36,7 @@
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                     Scrap
-                </a>
+                </a> --}}
             </div>
         </div>
 

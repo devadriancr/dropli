@@ -82,7 +82,15 @@ class DowntimeRecordController extends Controller
         ]);
 
         try {
-            DowntimeRecord::create($request->all());
+            DowntimeRecord::create(
+                [
+                    'downtime_reason_id' => $request['downtime_reason_id'],
+                    'work_center_id' => $request['work_center_id'],
+                    'minutes' => $request['minutes'],
+                    'start_time' => Carbon::parse($request['start_time'])->format('Y-m-d H:i'),
+                    'end_time' => Carbon::parse($request['end_time'])->format('Y-m-d H:i'),
+                ]
+            );
 
             // Obtener la URL de origen de la sesión
             $origin = session('downtime_origin');

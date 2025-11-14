@@ -8,7 +8,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('infor:production-plan')->cron('*/30 * * * *');
+Schedule::command('infor:production-plan')->cron('0,30 * * * *');
 
 Schedule::command('infor:item-class')->cron('0 0 * * *');
 Schedule::command('infor:work-center')->cron('0 0 * * *');

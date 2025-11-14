@@ -131,12 +131,14 @@
                                 <!-- Acciones -->
                                 <td class="py-3 text-center">
                                     <div class="d-flex justify-content-center gap-2 align-items-center">
-                                        @if ($record->productionPlan->synced_to_infor === false)
-                                            <a href="{{ route('production-records.edit', $record) }}"
-                                                class="btn btn-sm btn-outline-primary rounded-3">
-                                                <i class="fas fa-edit me-1"></i>
-                                                <span>Editar</span>
-                                            </a>
+                                        @if ($record->productionPlan->synced_to_infor == false)
+                                            @can('edit production records')
+                                                <a href="{{ route('production-records.edit', $record) }}"
+                                                    class="btn btn-sm btn-outline-primary rounded-3">
+                                                    <i class="fas fa-edit me-1"></i>
+                                                    <span>Editar</span>
+                                                </a>
+                                            @endcan
                                         @else
                                             <span class="text-success small fw-500">
                                                 <i class="fas fa-check-circle me-1"></i>

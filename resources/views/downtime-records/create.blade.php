@@ -14,11 +14,12 @@
 
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label for="work_center_id" class="form-label fw-bold text-secondary">{{ __('Centro de Trabajo') }} *</label>
+                        <label for="work_center_id" class="form-label fw-bold text-secondary">{{ __('Centro de Trabajo') }} * </label>
                         <select name="work_center_id" id="work_center_id" class="form-control select2 border-light-subtle @error('work_center_id') is-invalid @enderror" required>
                             <option value="">{{ __('Seleccione un centro de trabajo') }}</option>
-                            @foreach($workCenters as $workCenter)
-                                <option value="{{ $workCenter->id }}" {{ old('work_center_id') == $workCenter->id ? 'selected' : '' }}>
+                            @foreach ($workCenters as $workCenter)
+                                <option value="{{ $workCenter->id }}"
+                                    {{ old('work_center_id') == $workCenter->id ? 'selected' : '' }}>
                                     {{ $workCenter->number }} - {{ $workCenter->name }}
                                 </option>
                             @endforeach
@@ -29,14 +30,13 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="downtime_reason_id" class="form-label fw-bold text-secondary">{{ __('Razón de Paro') }} *</label>
+                        <label for="downtime_reason_id" class="form-label fw-bold text-secondary">{{ __('Razón de Paro') }} * </label>
                         <select name="downtime_reason_id" id="downtime_reason_id" class="form-control select2 border-light-subtle @error('downtime_reason_id') is-invalid @enderror" required>
                             <option value="">{{ __('Seleccione una razón') }}</option>
-                            @foreach($downtimeReasons as $reason)
-                                <option value="{{ $reason->id }}" {{ old('downtime_reason_id') == $reason->id ? 'selected' : '' }}
-                                        data-type="{{ $reason->downtimeType->name ?? '' }}">
-                                    {{ $reason->code }} - {{ $reason->name }}
-                                    @if($reason->downtimeType)
+                            @foreach ($downtimeReasons as $reason)
+                                <option value="{{ $reason->id }}" {{ old('downtime_reason_id') == $reason->id ? 'selected' : '' }} data-type="{{ $reason->downtimeType->name ?? '' }}">
+                                    {{ $reason->name }}
+                                    @if ($reason->downtimeType)
                                         ({{ $reason->downtimeType->name }})
                                     @endif
                                 </option>
@@ -50,10 +50,10 @@
 
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label for="start_time" class="form-label fw-bold text-secondary">{{ __('Hora de Inicio') }} *</label>
+                        <label for="start_time" class="form-label fw-bold text-secondary">{{ __('Hora de Inicio') }} * </label>
                         <input type="datetime-local" name="start_time" id="start_time"
-                               class="form-control border-light-subtle @error('start_time') is-invalid @enderror"
-                               value="{{ old('start_time') }}" required>
+                            class="form-control border-light-subtle @error('start_time') is-invalid @enderror"
+                            value="{{ old('start_time') }}" required>
                         @error('start_time')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -62,8 +62,8 @@
                     <div class="col-md-4">
                         <label for="end_time" class="form-label fw-bold text-secondary">{{ __('Hora de Fin') }} *</label>
                         <input type="datetime-local" name="end_time" id="end_time"
-                               class="form-control border-light-subtle @error('end_time') is-invalid @enderror"
-                               value="{{ old('end_time') }}" required>
+                            class="form-control border-light-subtle @error('end_time') is-invalid @enderror"
+                            value="{{ old('end_time') }}" required>
                         @error('end_time')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -72,8 +72,8 @@
                     <div class="col-md-4">
                         <label for="minutes" class="form-label fw-bold text-secondary">{{ __('Minutos') }} *</label>
                         <input type="number" name="minutes" id="minutes" step="0.01" min="0"
-                               class="form-control border-light-subtle @error('minutes') is-invalid @enderror"
-                               value="{{ old('minutes') }}" required readonly>
+                            class="form-control border-light-subtle @error('minutes') is-invalid @enderror"
+                            value="{{ old('minutes') }}" required readonly>
                         @error('minutes')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -280,12 +280,13 @@
             }, 100);
 
             // Manejar errores de validación para Select2
-            @if($errors->has('work_center_id'))
+            @if ($errors->has('work_center_id'))
                 $('#work_center_id').next('.select2-container').find('.select2-selection').addClass('is-invalid');
             @endif
 
-            @if($errors->has('downtime_reason_id'))
-                $('#downtime_reason_id').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+            @if ($errors->has('downtime_reason_id'))
+                $('#downtime_reason_id').next('.select2-container').find('.select2-selection').addClass(
+                    'is-invalid');
             @endif
 
             // Calcular minutos inicial si hay valores

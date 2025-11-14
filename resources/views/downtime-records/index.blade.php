@@ -7,17 +7,16 @@
 @stop
 
 @section('content')
-    @if(session('success'))
+    @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    @if(session('error'))
+    @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
-            {{-- CORREGIDO: Faltaba comilla de cierre --}}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
@@ -40,10 +39,12 @@
                 </div>
 
                 <!-- Botón Agregar -->
-                <a href="{{ route('downtime-records.create') }}" class="btn btn-primary rounded-3">
-                    <i class="fas fa-plus me-2"></i>
-                    <span>Agregar nuevo</span>
-                </a>
+                @can('create downtime records')
+                    <a href="{{ route('downtime-records.create') }}" class="btn btn-primary rounded-3">
+                        <i class="fas fa-plus me-2"></i>
+                        <span>Agregar nuevo</span>
+                    </a>
+                @endcan
             </div>
         </div>
 
@@ -66,7 +67,7 @@
                         @forelse ($downtimeRecords as $record)
                             <tr class="border-light-subtle">
                                 <td class="py-3">
-                                    @if($record->workCenter)
+                                    @if ($record->workCenter)
                                         <div class="fw-500">{{ $record->workCenter->number }}</div>
                                         <div class="text-muted small">{{ $record->workCenter->name }}</div>
                                     @else
@@ -74,7 +75,7 @@
                                     @endif
                                 </td>
                                 <td class="py-3">
-                                    @if($record->downtimeReason)
+                                    @if ($record->downtimeReason)
                                         <div class="fw-500">{{ $record->downtimeReason->code }}</div>
                                         <div class="text-muted small">{{ $record->downtimeReason->name }}</div>
                                     @else
@@ -82,7 +83,7 @@
                                     @endif
                                 </td>
                                 <td class="py-3">
-                                    @if($record->downtimeReason && $record->downtimeReason->downtimeType)
+                                    @if ($record->downtimeReason && $record->downtimeReason->downtimeType)
                                         <span class="badge-status bg-secondary bg-opacity-10 text-secondary">
                                             {{ $record->downtimeReason->downtimeType->name }}
                                         </span>
@@ -103,18 +104,22 @@
                                 </td>
                                 <td class="py-3">
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('downtime-records.edit', $record) }}" class="btn btn-sm btn-outline-primary rounded-3">
-                                            <i class="fas fa-edit me-2"></i>
-                                            <span>Actualizar</span>
-                                        </a>
-                                        <form action="{{ route('downtime-records.destroy', $record) }}" method="POST" style="display:inline;" class="delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
-                                                <i class="fas fa-trash me-2"></i>
-                                                <span>Eliminar</span>
-                                            </button>
-                                        </form>
+                                        @can('edit downtime records')
+                                            <a href="{{ route('downtime-records.edit', $record) }}" class="btn btn-sm btn-outline-primary rounded-3">
+                                                <i class="fas fa-edit me-2"></i>
+                                                <span>Actualizar</span>
+                                            </a>
+                                        @endcan
+                                        @can('delete downtime records')
+                                            <form action="{{ route('downtime-records.destroy', $record) }}" method="POST" style="display:inline;" class="delete-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
+                                                    <i class="fas fa-trash me-2"></i>
+                                                    <span>Eliminar</span>
+                                                </button>
+                                            </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>
@@ -344,7 +349,9 @@
                         });
                     } else {
                         // Fallback a confirm nativo
-                        if (confirm('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+                        if (confirm(
+                                '¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.'
+                            )) {
                             this.submit();
                         }
                     }

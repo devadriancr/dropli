@@ -322,6 +322,7 @@ return [
         // ],
         [
             'header' => 'CONFIGURACIÓN',
+            'can' => ['view users', 'view roles', 'view customers', 'view projects', 'view project prefixes', 'view departments', 'view areas', 'view work centers', 'view shifts', 'view item classes', 'view standard packs', 'view part numbers', 'view downtime types', 'view downtime reasons', 'view scrap categories', 'view scrap reasons']
         ],
         [
             'text' => 'Identidad y Acceso',
@@ -435,26 +436,31 @@ return [
 
         [
             'header' => 'PRODUCCIÓN',
+            'can' => ['view production plans', 'view production records', 'view downtime records', 'view scrap records']
         ],
         [
             'text' => 'Plan de Producción',
             'route' => 'production-plans.index',
             'icon' => 'fas fa-fw fa-calendar-alt',
+            'can' => 'view production plans'
         ],
         [
             'text' => 'Registros de Producción',
             'route' => 'production-records.index',
             'icon' => 'fas fa-fw fa-clipboard-list',
+            'can' => 'view production records'
         ],
         [
             'text' => 'Registros de Paro',
             'route' => 'downtime-records.index',
             'icon' => 'fas fa-fw fa-history',
+            'can' => 'view downtime records'
         ],
         [
             'text' => 'Registros de Scrap',
             'route' => 'scrap-records.index',
             'icon' => 'fas fa-fw fa-trash-alt',
+            'can' => 'view scrap records'
         ],
 
         // [

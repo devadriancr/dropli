@@ -7,14 +7,14 @@
 @stop
 
 @section('content')
-    @if(session('success'))
+    @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    @if(session('error'))
+    @if (session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -39,10 +39,12 @@
                 </div>
 
                 <!-- Botón Agregar -->
-                <a href="{{ route('scrap-records.create') }}" class="btn btn-primary rounded-3">
-                    <i class="fas fa-plus me-2"></i>
-                    <span>Agregar nuevo</span>
-                </a>
+                @can('create scrap records')
+                    <a href="{{ route('scrap-records.create') }}" class="btn btn-primary rounded-3">
+                        <i class="fas fa-plus me-2"></i>
+                        <span>Agregar nuevo</span>
+                    </a>
+                @endcan
             </div>
         </div>
 
@@ -64,7 +66,7 @@
                         @forelse ($scrapRecords as $record)
                             <tr class="border-light-subtle">
                                 <td class="py-3">
-                                    @if($record->partNumber)
+                                    @if ($record->partNumber)
                                         <div class="fw-500">{{ $record->partNumber->number }}</div>
                                         <div class="text-muted small">{{ $record->partNumber->name ?? '-' }}</div>
                                     @else
@@ -72,7 +74,7 @@
                                     @endif
                                 </td>
                                 <td class="py-3">
-                                    @if($record->scrapReason)
+                                    @if ($record->scrapReason)
                                         <div class="fw-500">{{ $record->scrapReason->code }}</div>
                                         <div class="text-muted small">{{ $record->scrapReason->name }}</div>
                                     @else
@@ -89,18 +91,22 @@
                                 </td>
                                 <td class="py-3">
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('scrap-records.edit', $record) }}" class="btn btn-sm btn-outline-primary rounded-3">
-                                            <i class="fas fa-edit me-2"></i>
-                                            <span>Actualizar</span>
-                                        </a>
-                                        <form action="{{ route('scrap-records.destroy', $record) }}" method="POST" style="display:inline;" class="delete-form">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
-                                                <i class="fas fa-trash me-2"></i>
-                                                <span>Eliminar</span>
-                                            </button>
-                                        </form>
+                                        @can('edit scrap records')
+                                            <a href="{{ route('scrap-records.edit', $record) }}" class="btn btn-sm btn-outline-primary rounded-3">
+                                                <i class="fas fa-edit me-2"></i>
+                                                <span>Actualizar</span>
+                                            </a>
+                                        @endcan
+                                        @can('delete scrap records')
+                                            <form action="{{ route('scrap-records.destroy', $record) }}" method="POST" style="display:inline;" class="delete-form">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
+                                                    <i class="fas fa-trash me-2"></i>
+                                                    <span>Eliminar</span>
+                                                </button>
+                                            </form>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>
@@ -161,9 +167,9 @@
         }
 
         /* ELIMINAMOS estos estilos problemáticos:
-        .content-wrapper { padding: 0 !important; }
-        .wrapper { min-height: 100vh !important; }
-        */
+                    .content-wrapper { padding: 0 !important; }
+                    .wrapper { min-height: 100vh !important; }
+                    */
 
         /* Estilos adicionales para la tabla */
         .border-light-subtle {
@@ -317,7 +323,9 @@
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
 
-                    if (confirm('¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.')) {
+                    if (confirm(
+                            '¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.'
+                        )) {
                         this.submit();
                     }
                 });
