@@ -13,8 +13,8 @@ class FetchPartNumberNextProcess implements ShouldQueue
     use Queueable;
 
     public $tries = 3;
-    public $timeout = 300; // 5 minutos
-    public $backoff = 60; // Reintentar después de 1 minuto
+    public $timeout = 300;
+    public $backoff = 60;
 
     protected $partNumber;
 
@@ -26,67 +26,105 @@ class FetchPartNumberNextProcess implements ShouldQueue
     public function handle(): void
     {
         try {
-            // 1) Búsqueda exacta por BPROD o BCHLD
-            $sqlExact = <<<SQL
+            // Buscar relaciones donde el parte actual es PADRE (BPROD)
+            $sqlAsParent = <<<SQL
             SELECT DISTINCT
-                TRIM(BCHLD) AS child_part,
-                TRIM(BPROD) AS parent_part
+                TRIM(BPROD) AS parent_part,
+                TRIM(BCHLD) AS child_part
             FROM LX834F01.MBM
-            WHERE TRIM(BPROD) = ? OR TRIM(BCHLD) = ?
+            WHERE TRIM(BPROD) = ?
             SQL;
 
-            $results = DB::connection('infor-live')->select($sqlExact, [
-                $this->partNumber,
-                $this->partNumber,
-            ]);
+            $parentResults = DB::connection('infor-live')->select($sqlAsParent, [$this->partNumber]);
 
-            // 2) Si no hay resultados, búsqueda por prefijo
-            if (empty($results)) {
-                $base = preg_replace('/[A-Za-z]+$/', '', $this->partNumber);
+            // Buscar relaciones donde el parte actual es HIJO (BCHLD)
+            $sqlAsChild = <<<SQL
+            SELECT DISTINCT
+                TRIM(BPROD) AS parent_part,
+                TRIM(BCHLD) AS child_part
+            FROM LX834F01.MBM
+            WHERE TRIM(BCHLD) = ?
+            SQL;
 
-                if (!empty($base) && $base !== $this->partNumber) {
-                    $likeParam = $base . '%';
+            $childResults = DB::connection('infor-live')->select($sqlAsChild, [$this->partNumber]);
 
-                    $sqlLike = <<<SQL
-                    SELECT DISTINCT
-                        TRIM(BCHLD) AS child_part,
-                        TRIM(BPROD) AS parent_part
-                    FROM LX834F01.MBM
-                    WHERE TRIM(BPROD) LIKE ? OR TRIM(BCHLD) LIKE ?
-                    SQL;
+            // Combinar resultados
+            $allResults = array_merge($parentResults, $childResults);
 
-                    $results = DB::connection('infor-live')->select($sqlLike, [
-                        $likeParam,
-                        $likeParam,
-                    ]);
-                }
+            // Si no hay resultados, intentar búsqueda flexible
+            if (empty($allResults)) {
+                $allResults = $this->flexibleSearch();
             }
 
-            // Procesar y ordenar resultados
-            $partNumberSorted = collect($results)
-                ->unique(function ($item) {
-                    $child = $item->child_part ?? $item->CHILD_PART ?? null;
+            // Procesar y limpiar resultados
+            $processedResults = collect($allResults)
+                ->filter(function ($item) {
                     $parent = $item->parent_part ?? $item->PARENT_PART ?? null;
-                    return trim((string)$child) . '::' . trim((string)$parent);
+                    $child = $item->child_part ?? $item->CHILD_PART ?? null;
+
+                    return !empty(trim((string)$parent)) && !empty(trim((string)$child));
                 })
-                ->sortBy(function ($item) {
-                    return $item->parent_part ?? $item->PARENT_PART ?? null;
+                ->unique(function ($item) {
+                    $parent = $item->parent_part ?? $item->PARENT_PART ?? null;
+                    $child = $item->child_part ?? $item->CHILD_PART ?? null;
+                    return trim((string)$parent) . '::' . trim((string)$child);
                 })
                 ->values();
 
-            if ($partNumberSorted->isNotEmpty()) {
-                StorePartNumberNextProcess::dispatch($partNumberSorted);
+            if ($processedResults->isNotEmpty()) {
+                logger()->info("MBM Fetch: Relaciones encontradas para {$this->partNumber}", [
+                    'count' => $processedResults->count(),
+                    'relations' => $processedResults->toArray()
+                ]);
+
+                StorePartNumberNextProcess::dispatch($processedResults, $this->partNumber);
             } else {
-                logger()->debug("MBM Fetch: Sin relaciones encontradas para: {$this->partNumber}");
+                logger()->warning("MBM Fetch: Sin relaciones encontradas para: {$this->partNumber}");
             }
         } catch (Throwable $e) {
             $this->handleQueryError($e);
         }
     }
 
+    protected function flexibleSearch()
+    {
+        $results = [];
+
+        // Búsqueda por coincidencia parcial
+        $likeParam = $this->partNumber . '%';
+
+        $sqlLike = <<<SQL
+        SELECT DISTINCT
+            TRIM(BPROD) AS parent_part,
+            TRIM(BCHLD) AS child_part
+        FROM LX834F01.MBM
+        WHERE TRIM(BPROD) LIKE ? OR TRIM(BCHLD) LIKE ?
+        SQL;
+
+        $likeResults = DB::connection('infor-live')->select($sqlLike, [$likeParam, $likeParam]);
+        $results = array_merge($results, $likeResults);
+
+        // Búsqueda sin espacios ni guiones
+        $cleanPartNumber = str_replace([' ', '-'], '', $this->partNumber);
+        if ($cleanPartNumber !== $this->partNumber) {
+            $sqlClean = <<<SQL
+            SELECT DISTINCT
+                TRIM(BPROD) AS parent_part,
+                TRIM(BCHLD) AS child_part
+            FROM LX834F01.MBM
+            WHERE REPLACE(REPLACE(BPROD, ' ', ''), '-', '') = ?
+               OR REPLACE(REPLACE(BCHLD, ' ', ''), '-', '') = ?
+            SQL;
+
+            $cleanResults = DB::connection('infor-live')->select($sqlClean, [$cleanPartNumber, $cleanPartNumber]);
+            $results = array_merge($results, $cleanResults);
+        }
+
+        return $results;
+    }
+
     protected function handleQueryError(Throwable $e): void
     {
-        // Errores conocidos de DB2 que no son críticos
         if (
             strpos($e->getMessage(), 'SQL0802') !== false ||
             strpos($e->getMessage(), 'SQL0204') !== false
@@ -100,7 +138,6 @@ class FetchPartNumberNextProcess implements ShouldQueue
             'part_number' => $this->partNumber
         ]);
 
-        // Reintentar con backoff
         $this->release($this->backoff);
     }
 

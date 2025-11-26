@@ -188,6 +188,7 @@ class ProductionRecordController extends Controller
         if (Auth::check()) {
             $workCenterIds = Auth::user()->workCenters->pluck('id');
             $partNumbers = PartNumber::whereIn('work_center_id', $workCenterIds)
+                ->where('is_obsolete', false)
                 ->orderBy('number')
                 ->get();
         } else {
@@ -195,6 +196,7 @@ class ProductionRecordController extends Controller
                 ->whereHas('workCenter.area', function ($query) {
                     $query->where('name', 'PAINT');
                 })
+                ->where('is_obsolete', false)
                 ->orderBy('number')
                 ->get();
         }
@@ -251,7 +253,6 @@ class ProductionRecordController extends Controller
             $productionPlan = null;
 
             $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
-
             if ($productionPlan === null) {
                 $productionPlan = ProductionPlan::store(null, $partNumber->id, 0, $today, $shift->id);
             }
@@ -283,8 +284,8 @@ class ProductionRecordController extends Controller
             $today = Shift::getPlannedDate();
 
             $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
-            if (!$productionPlan) {
-                return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
+            if ($productionPlan === null) {
+                $productionPlan = ProductionPlan::store(null, $partNumber->id, 0, $today, $shift->id);
             }
 
             // $exists = ProductionRecord::productionPlanExists($productionPlan->id, '00000000', $previousPartNumber->id, '000000', $quantity, 'exit');

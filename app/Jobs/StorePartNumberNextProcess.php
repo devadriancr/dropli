@@ -14,128 +14,112 @@ class StorePartNumberNextProcess implements ShouldQueue
     use Queueable;
 
     protected $partNumberSorted;
+    protected $originalPartNumber;
     protected $syncTimestamp;
 
-    public function __construct($partNumberSorted)
+    public function __construct($partNumberSorted, string $originalPartNumber = null)
     {
         $this->partNumberSorted = $partNumberSorted;
+        $this->originalPartNumber = $originalPartNumber;
         $this->syncTimestamp = Carbon::now();
     }
 
     public function handle(): void
     {
         if ($this->partNumberSorted->isEmpty()) {
-            return;
-        }
-
-        // Agrupar por número de parte hijo (current_part_number)
-        $groupedByChild = $this->partNumberSorted->groupBy(function ($part) {
-            return isset($part->child_part) ? trim($part->child_part) : trim($part->CHILD_PART ?? '');
-        });
-
-        foreach ($groupedByChild as $childNumber => $relations) {
-            $this->syncPartNumberRelations($childNumber, $relations);
-        }
-    }
-
-    /**
-     * Sincroniza las relaciones de un número de parte específico
-     * Estrategia: Upsert + Marcado de obsoletos (mantiene histórico completo)
-     */
-    protected function syncPartNumberRelations(string $childNumber, $relations): void
-    {
-        $currentPart = PartNumber::query()->where('number', $childNumber)->first();
-
-        if (!$currentPart) {
-            logger()->info("MBM Sync: Part number no encontrado en sistema local: {$childNumber}");
+            logger()->info("MBM Store: No hay datos para procesar");
             return;
         }
 
         try {
-            DB::transaction(function () use ($currentPart, $relations, $childNumber) {
+            // Procesar cada relación individualmente
+            foreach ($this->partNumberSorted as $relation) {
+                $this->processSingleRelation($relation);
+            }
 
-                // Preparar datos para upsert masivo
-                $upsertData = [];
-                $activeNextPartIds = [];
+            logger()->info("MBM Store: Procesamiento completado", [
+                'total_relations' => $this->partNumberSorted->count(),
+                'original_part' => $this->originalPartNumber
+            ]);
 
-                foreach ($relations as $index => $part) {
-                    $parentNumber = isset($part->parent_part)
-                        ? trim($part->parent_part)
-                        : trim($part->PARENT_PART ?? '');
+        } catch (\Exception $e) {
+            logger()->error("MBM Store: Error en procesamiento masivo", [
+                'error' => $e->getMessage(),
+                'original_part' => $this->originalPartNumber
+            ]);
+            throw $e;
+        }
+    }
 
-                    if (!$parentNumber) {
-                        continue;
-                    }
+    protected function processSingleRelation($relation): void
+    {
+        $childNumber = isset($relation->child_part)
+            ? trim($relation->child_part)
+            : trim($relation->CHILD_PART ?? '');
 
-                    $nextPart = PartNumber::query()->where('number', $parentNumber)->first();
+        $parentNumber = isset($relation->parent_part)
+            ? trim($relation->parent_part)
+            : trim($relation->PARENT_PART ?? '');
 
-                    if (!$nextPart) {
-                        logger()->debug("MBM Sync: Next part no encontrado: {$parentNumber} para {$childNumber}");
-                        continue;
-                    }
+        if (empty($childNumber) || empty($parentNumber)) {
+            logger()->debug("MBM Store: Relación inválida - Child: {$childNumber}, Parent: {$parentNumber}");
+            return;
+        }
 
-                    $activeNextPartIds[] = $nextPart->id;
+        // Buscar los part numbers en la base de datos local
+        $currentPart = PartNumber::where('number', $childNumber)->first();
+        $nextPart = PartNumber::where('number', $parentNumber)->first();
 
-                    $upsertData[] = [
+        if (!$currentPart) {
+            logger()->info("MBM Store: Part number hijo no encontrado: {$childNumber}");
+            return;
+        }
+
+        if (!$nextPart) {
+            logger()->info("MBM Store: Part number padre no encontrado: {$parentNumber}");
+            return;
+        }
+
+        // Determinar el orden de secuencia (si el parte original es el padre o el hijo)
+        $sequenceOrder = 1;
+        if ($this->originalPartNumber && $childNumber === $this->originalPartNumber) {
+            // El parte original es el hijo, esta es una relación "siguiente proceso"
+            $sequenceOrder = 1;
+        } elseif ($this->originalPartNumber && $parentNumber === $this->originalPartNumber) {
+            // El parte original es el padre, esta es una relación "proceso anterior"
+            $sequenceOrder = 1;
+        }
+
+        try {
+            DB::transaction(function () use ($currentPart, $nextPart, $sequenceOrder, $childNumber, $parentNumber) {
+                // Crear o actualizar la relación
+                PartNumberSequence::updateOrCreate(
+                    [
                         'current_part_number_id' => $currentPart->id,
-                        'next_part_number_id' => $nextPart->id,
-                        'sequence_order' => $index + 1,
+                        'next_part_number_id' => $nextPart->id
+                    ],
+                    [
+                        'sequence_order' => $sequenceOrder,
                         'lead_time_hours' => null,
                         'is_active' => true,
                         'last_synced_at' => $this->syncTimestamp,
                         'updated_at' => $this->syncTimestamp,
-                    ];
-                }
-
-                if (empty($upsertData)) {
-                    logger()->info("MBM Sync: No hay relaciones válidas para sincronizar: {$childNumber}");
-
-                    // Marcar todas las relaciones existentes como inactivas (el part ya no tiene relaciones en DB2)
-                    PartNumberSequence::where('current_part_number_id', $currentPart->id)
-                        ->where('is_active', true)
-                        ->update([
-                            'is_active' => false,
-                            'updated_at' => $this->syncTimestamp
-                        ]);
-
-                    return;
-                }
-
-                // UPSERT MASIVO: Crear o actualizar registros existentes
-                PartNumberSequence::upsert(
-                    $upsertData,
-                    ['current_part_number_id', 'next_part_number_id'], // Unique keys
-                    ['sequence_order', 'lead_time_hours', 'is_active', 'last_synced_at', 'updated_at'] // Campos a actualizar
+                    ]
                 );
 
-                // Marcar como INACTIVOS los registros que ya no existen en DB2
-                // (los que no fueron tocados en este sync)
-                $deactivatedCount = PartNumberSequence::where('current_part_number_id', $currentPart->id)
-                    ->where('is_active', true)
-                    ->where(function ($query) use ($activeNextPartIds) {
-                        $query->whereNotIn('next_part_number_id', $activeNextPartIds)
-                            ->orWhere('last_synced_at', '<', $this->syncTimestamp)
-                            ->orWhereNull('last_synced_at');
-                    })
-                    ->update([
-                        'is_active' => false,
-                        'updated_at' => $this->syncTimestamp
-                    ]);
-
-                $stats = [
-                    'part_number' => $childNumber,
-                    'relaciones_sincronizadas' => count($upsertData),
-                    'relaciones_desactivadas' => $deactivatedCount,
-                ];
-
-                logger()->info("MBM Sync completado", $stats);
+                logger()->debug("MBM Store: Relación establecida", [
+                    'child' => $childNumber,
+                    'parent' => $parentNumber,
+                    'sequence_order' => $sequenceOrder
+                ]);
             });
+
         } catch (\Exception $e) {
-            logger()->error("MBM Sync: Error sincronizando {$childNumber}: " . $e->getMessage(), [
-                'exception' => $e,
-                'part_number' => $childNumber
+            logger()->error("MBM Store: Error estableciendo relación", [
+                'error' => $e->getMessage(),
+                'child' => $childNumber,
+                'parent' => $parentNumber
             ]);
-            throw $e;
         }
     }
 }

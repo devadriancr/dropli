@@ -10,7 +10,7 @@ class GetPartNumberNextProcessJob implements ShouldQueue
 {
     use Queueable;
 
-    public $timeout = 3600; // 1 hora
+    public $timeout = 3600;
 
     public function handle(): void
     {
@@ -19,9 +19,9 @@ class GetPartNumberNextProcessJob implements ShouldQueue
 
         $totalParts = 0;
 
-        // Procesar en chunks para evitar problemas de memoria con tablas grandes
         PartNumber::query()
             ->select('number')
+            ->where('is_obsolete', false) // Solo partes no obsoletos
             ->orderBy('number', 'asc')
             ->chunk(100, function ($partNumbers) use (&$totalParts) {
                 foreach ($partNumbers as $partNumber) {
