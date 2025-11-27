@@ -264,7 +264,7 @@
                         if (@json($realTime)) {
                             setInterval(() => {
                                 @this.dispatchSelf('refresh-production-records');
-                            }, 5000); // Actualizar cada 5 segundos
+                            }, 10000); // Actualizar cada 5 segundos
                         }
                     }
                 }

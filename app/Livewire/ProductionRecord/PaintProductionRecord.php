@@ -19,6 +19,9 @@ class PaintProductionRecord extends Component
 
     public $columnsState = [];
 
+    public $start;
+    public $end;
+
     public function mount($realTime = false)
     {
         $this->realTime = $realTime;
@@ -36,7 +39,13 @@ class PaintProductionRecord extends Component
             return;
         }
 
-        // Generar los encabezados de hora basados en el turno (anclados a la fecha planeada)
+        $this->start = Carbon::parse("{$this->date} {$this->shift->start_time}");
+        $this->end = Carbon::parse("{$this->date} {$this->shift->end_time}");
+
+        if ($this->start->gt($this->end)) {
+            $this->end->addDay();
+        }
+
         $this->generateTimeHeaders();
         $this->computeColumnStates();
 
@@ -63,42 +72,19 @@ class PaintProductionRecord extends Component
 
     protected function generateTimeHeaders()
     {
-        // Anclar fechas a la fecha planeada para evitar confusiones con turnos que crucen medianoche
-        $start = Carbon::parse("{$this->date} {$this->shift->start_time}");
-        $end = Carbon::parse("{$this->date} {$this->shift->end_time}");
-
-        // Si el turno cruza medianoche, sumar 1 día al end
-        if ($start->gt($end)) {
-            $end = $end->copy()->addDay();
-        }
-
         $this->timeHeaders = [];
-        $current = $start->copy();
+        $current = $this->start->copy();
 
-        while ($current->lt($end)) {
-            // Usamos formato H:00 para alinear con las keys usadas en el resto del código
+        while ($current->lt($this->end)) {
             $this->timeHeaders[] = $current->format('H:00');
             $current->addHour();
         }
     }
 
-    /**
-     * Determina el estado de cada columna con la ventana amarilla de 2.5 horas (150 minutos).
-     * - amarillo: dt <= now && dt >= now - 150min  (incluyente)
-     * - verde: dt < now - 150min  (aunque sea 1 minuto antes)
-     * - futuro: dt > now
-     */
     protected function computeColumnStates()
     {
-        // Reconstruir datetimes anclados a la fecha de turno
-        $start = Carbon::parse("{$this->date} {$this->shift->start_time}");
-        $end = Carbon::parse("{$this->date} {$this->shift->end_time}");
-        if ($start->gt($end)) {
-            $end = $end->copy()->addDay();
-        }
-
         $headerDateTimes = [];
-        $current = $start->copy();
+        $current = $this->start->copy();
         foreach ($this->timeHeaders as $header) {
             $headerDateTimes[$header] = $current->copy();
             $current->addHour();
@@ -159,7 +145,7 @@ class PaintProductionRecord extends Component
                     $data = ProductionRecord::query()
                         ->where('part_number_id', $previousProcess->id)
                         ->where('record_type', 'entry')
-                        ->whereDate('created_at', $this->date)
+                        ->whereBetween('created_at', [$this->start, $this->end])
                         ->get();
 
                     $records = array_merge($records, $data->all());
@@ -179,7 +165,7 @@ class PaintProductionRecord extends Component
             $exitRecords = ProductionRecord::query()
                 ->where('part_number_id', $plan->part_number_id)
                 ->where('record_type', 'exit')
-                ->whereDate('created_at', $this->date)
+                ->whereBetween('created_at', [$this->start, $this->end])
                 ->get();
 
             foreach ($exitRecords as $record) {
@@ -190,6 +176,38 @@ class PaintProductionRecord extends Component
                     $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
                     $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
                 }
+            }
+        }
+
+        // TAMBIÉN AGREGAR REGISTROS SIN PRODUCTION_PLAN (igual que en el PDF)
+        $additionalProductionRecords = ProductionRecord::with(['partNumber'])
+            ->where('record_type', 'entry')
+            ->whereBetween('created_at', [$this->start, $this->end])
+            ->whereDoesntHave('productionPlan')
+            ->get();
+
+        foreach ($additionalProductionRecords as $record) {
+            $partNumber = $record->partNumber->number;
+
+            if (!isset($groupedPlans[$partNumber])) {
+                $groupedPlans[$partNumber] = [
+                    'line_name' => $record->partNumber->workCenter->area->name ?? '-',
+                    'part_number' => $partNumber,
+                    'standard_pack' => $record->partNumber->standardPack->name ?? '-',
+                    'standard_pack_quantity' => $record->partNumber->standard_pack_quantity ?? null,
+                    'model' => $record->partNumber->projects->pluck('model')->implode(';'),
+                    'planned_quantity' => 0,
+                    'produced_quantity' => 0,
+                    'entries' => array_fill_keys($this->timeHeaders, 0),
+                    'exits' => array_fill_keys($this->timeHeaders, 0),
+                    'total_exits' => 0,
+                ];
+            }
+
+            $createdAt = Carbon::parse($record->created_at);
+            $hourKey = $createdAt->format('H:00');
+            if (in_array($hourKey, $this->timeHeaders)) {
+                $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
             }
         }
 

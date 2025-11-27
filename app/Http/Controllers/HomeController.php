@@ -107,7 +107,7 @@ class HomeController extends Controller
                             'part_number' => $nextPart->number,
                             'total_quantity' => $totalQuantity,
                             'pieces_per_hook' => $piecesPerHook,
-                            'total_hooks' => $totalQuantity / $piecesPerHook
+                            'total_hooks' => ceil($totalQuantity / $piecesPerHook),
                         ];
                         break; // Salir del bucle una vez encontrado un plan de producción válido
                     }
@@ -127,7 +127,7 @@ class HomeController extends Controller
 
         // JPH Promedio por Turno
         $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
-            ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60), 2)
+            ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60))
             : 0;
 
         // Man-hours per piece per shift - $manHoursPerPiecePerShift
@@ -253,7 +253,7 @@ class HomeController extends Controller
                             'part_number' => $nextPart->number,
                             'total_quantity' => $totalQuantity,
                             'pieces_per_hook' => $piecesPerHook,
-                            'total_hooks' => $totalQuantity / $piecesPerHook
+                            'total_hooks' => ceil($totalQuantity / $piecesPerHook)
                         ];
                         break;
                     }
@@ -261,15 +261,18 @@ class HomeController extends Controller
             }
         }
 
+        // Total de ganchos usado por turno
         $totalHooksUsedPerShift = array_sum(array_column($hooksByPartNumber, 'total_hooks'));
 
+        // Tasa de Ganchos por Turno
         $cycleTimeSeconds = 16;
         $hangingRatePerShift = ($effectiveProductionTimePerShift > 0 && $totalHooksUsedPerShift !== null)
             ? round(((($cycleTimeSeconds / 60) * $totalHooksUsedPerShift) / $effectiveProductionTimePerShift) * 100, 2)
             : 0;
 
-        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
-            ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60), 2)
+        // JPH Promedio por Turno
+        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $effectiveProductionTimePerShift > 0)
+            ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60))
             : 0;
 
         // ===== TABLA DE PRODUCCIÓN =====
@@ -327,7 +330,7 @@ class HomeController extends Controller
                     $data = ProductionRecord::query()
                         ->where('part_number_id', $previousProcess->id)
                         ->where('record_type', 'entry')
-                        ->whereDate('created_at', $date)
+                        ->whereBetween('created_at', [$start, $end])
                         ->get();
 
                     foreach ($data as $record) {
@@ -344,7 +347,7 @@ class HomeController extends Controller
             $exitRecords = ProductionRecord::query()
                 ->where('part_number_id', $plan->part_number_id)
                 ->where('record_type', 'exit')
-                ->whereDate('created_at', $date)
+                ->whereBetween('created_at', [$start, $end])
                 ->get();
 
             foreach ($exitRecords as $record) {
@@ -354,6 +357,40 @@ class HomeController extends Controller
                     $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
                     $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
                 }
+            }
+        }
+
+        // También necesitamos incluir registros que no tengan production_plan
+        // AGREGAR esta sección para capturar todos los registros
+        $additionalProductionRecords = ProductionRecord::with(['partNumber'])
+            ->where('record_type', 'entry')
+            ->whereBetween('created_at', [$start, $end])
+            ->whereDoesntHave('productionPlan')
+            ->get();
+
+        foreach ($additionalProductionRecords as $record) {
+            $partNumber = $record->partNumber->number;
+
+            if (!isset($groupedPlans[$partNumber])) {
+                $groupedPlans[$partNumber] = [
+                    'order_number' => $record->order_number ?? '-',
+                    'line_name' => $record->partNumber->workCenter->area->name ?? '-',
+                    'part_number' => $partNumber,
+                    'standard_pack' => $record->partNumber->standardPack->name ?? '-',
+                    'standard_pack_quantity' => $record->partNumber->standard_pack_quantity ?? null,
+                    'model' => $record->partNumber->projects->pluck('model')->implode(';'),
+                    'planned_quantity' => 0,
+                    'produced_quantity' => 0,
+                    'entries' => array_fill_keys($timeHeaders, 0),
+                    'exits' => array_fill_keys($timeHeaders, 0),
+                    'total_exits' => 0,
+                ];
+            }
+
+            $createdAt = Carbon::parse($record->created_at);
+            $hourKey = $createdAt->format('H:00');
+            if (in_array($hourKey, $timeHeaders)) {
+                $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
             }
         }
 
@@ -375,7 +412,7 @@ class HomeController extends Controller
             'totalDowntimeMinutes' => $totalDowntimeMinutes,
             'totalDowntimeCount' => $totalDowntimeCount,
             'totalScrap' => $totalScrap,
-            'totalHooksUsedPerShift' => round($totalHooksUsedPerShift, 2),
+            'totalHooksUsedPerShift' => $totalHooksUsedPerShift,
             'hangingRatePerShift' => $hangingRatePerShift,
             'averageJphPerShift' => $averageJphPerShift,
             'records' => $records,
