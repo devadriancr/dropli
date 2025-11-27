@@ -126,9 +126,18 @@ class PaintProductionRecord extends Component
         foreach ($productionPlans as $plan) {
             $partNumber = $plan->partNumber->number;
 
+            // Obtener el nombre de la línea de manera segura
+            $lineName = '-';
+            if ($plan->partNumber->previousProcesses && $plan->partNumber->previousProcesses->isNotEmpty()) {
+                $firstPreviousProcess = $plan->partNumber->previousProcesses->first();
+                if ($firstPreviousProcess->workCenter && $firstPreviousProcess->workCenter->area) {
+                    $lineName = $firstPreviousProcess->workCenter->area->name;
+                }
+            }
+
             if (!isset($groupedPlans[$partNumber])) {
                 $groupedPlans[$partNumber] = [
-                    'line_name' => $plan->partNumber->previousProcesses->first()->workCenter->area->name ?? '-',
+                    'line_name' => $lineName,
                     'part_number' => $partNumber,
                     'standard_pack' => $plan->partNumber->standardPack->name ?? '-',
                     'standard_pack_quantity' => $plan->partNumber->standard_pack_quantity ?? null,
@@ -141,6 +150,7 @@ class PaintProductionRecord extends Component
                 ];
             }
 
+            // Procesar registros de entrada (entries)
             $previousProcesses = $plan->partNumber->previousProcesses;
 
             if ($previousProcesses) {
@@ -152,9 +162,7 @@ class PaintProductionRecord extends Component
                         ->whereDate('created_at', $this->date)
                         ->get();
 
-                    if ($data->isNotEmpty()) {
-                        $records = array_merge($records, $data->all());
-                    }
+                    $records = array_merge($records, $data->all());
                 }
 
                 foreach ($records as $record) {
@@ -167,6 +175,7 @@ class PaintProductionRecord extends Component
                 }
             }
 
+            // Procesar registros de salida (exits)
             $exitRecords = ProductionRecord::query()
                 ->where('part_number_id', $plan->part_number_id)
                 ->where('record_type', 'exit')

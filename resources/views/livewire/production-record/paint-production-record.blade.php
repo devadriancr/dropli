@@ -161,7 +161,7 @@
                             <tr class="hover:bg-gray-50">
                                 <!-- Columnas fijas -->
                                 <td rowspan="2"
-                                    class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-900 border">
+                                    class="px-6 py-2 whitespace-nowrap uppercase text-xs font-medium text-gray-900 border">
                                     {{ $record['line_name'] }}
                                 </td>
                                 <td rowspan="2"
