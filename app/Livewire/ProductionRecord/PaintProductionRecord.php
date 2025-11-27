@@ -29,7 +29,7 @@ class PaintProductionRecord extends Component
     public function fetchData()
     {
         // Obtener el turno actual y fecha planeada
-        $this->shift = Shift::getShift()->first();
+        $this->shift = Shift::getShift();
         $this->date = Shift::getPlannedDate();
 
         if (!$this->shift) {

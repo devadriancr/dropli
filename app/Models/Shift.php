@@ -23,20 +23,17 @@ class Shift extends Model
     public static function getShift($dateTime = null)
     {
         $currentTime = $dateTime ? $dateTime->format('H:i:s') : now()->format('H:i:s');
-        $shifts = self::all();
+        $shifts = Shift::all();
 
         foreach ($shifts as $shift) {
             $start = $shift->start_time;
             $end = $shift->end_time;
 
-            // Si el turno NO cruza medianoche (ejemplo: 08:00 - 20:00)
             if ($start < $end) {
                 if ($currentTime >= $start && $currentTime < $end) {
                     return $shift;
                 }
-            }
-            // Si el turno SÍ cruza medianoche (ejemplo: 20:00 - 08:00)
-            else {
+            } else {
                 if ($currentTime >= $start || $currentTime < $end) {
                     return $shift;
                 }
@@ -49,7 +46,7 @@ class Shift extends Model
     public static function getPlannedDate($dateTime = null)
     {
         $now = $dateTime ?: now();
-        $shift = self::getShift($now);
+        $shift = Shift::getShift($now);
 
         if (!$shift) {
             return $now->toDateString();
