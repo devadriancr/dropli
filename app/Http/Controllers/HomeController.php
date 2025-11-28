@@ -133,12 +133,12 @@ class HomeController extends Controller
         // Man-hours per piece per shift - $manHoursPerPiecePerShift
 
         // Grafica
-        $productionPlans = ProductionPlan::with(['partNumber'])
+        $productionPlanChart = ProductionPlan::with(['partNumber'])
             ->where('planned_date', $date)
             ->where('shift_id', $shift->id)
             ->get();
 
-        $chartData = $productionPlans->groupBy('partNumber.number')->map(function ($plans) {
+        $chartData = $productionPlanChart->groupBy('partNumber.number')->map(function ($plans) {
             return [
                 'part_number' => $plans->first()->partNumber->number,
                 'part_name' => $plans->first()->partNumber->name,

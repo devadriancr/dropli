@@ -142,7 +142,7 @@ class ProductionRecordController extends Controller
             return $redirect->with('warning', 'No hay procesos siguientes configurados para este número de parte.');
         }
 
-        $shift = Shift::getShift()->first();
+        $shift = Shift::getShift();
         $today = Shift::getPlannedDate();
         $productionPlan = null;
 
@@ -248,7 +248,7 @@ class ProductionRecordController extends Controller
         }
 
         if ($isEntry) {
-            $shift = Shift::getShift()->first();
+            $shift = Shift::getShift();
             $today = Shift::getPlannedDate();
             $productionPlan = null;
 
@@ -280,7 +280,7 @@ class ProductionRecordController extends Controller
             //     $productionPlan->increment('produced_quantity', intval($quantity));
             // }
         } else {
-            $shift = Shift::getShift()->first();
+            $shift = Shift::getShift();
             $today = Shift::getPlannedDate();
 
             $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
@@ -359,7 +359,7 @@ class ProductionRecordController extends Controller
             return $redirect->with('warning', 'No hay procesos anterior configurado para este número de parte.');
         }
 
-        $shift = Shift::getShift()->first();
+        $shift = Shift::getShift();
         $today = Shift::getPlannedDate();
 
         $productionPlan = ProductionPlan::getProductionPlan($partNumber->id, $today, $shift->id);
