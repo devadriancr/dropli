@@ -115,26 +115,34 @@ class ProductionRecordController extends Controller
             return $redirect->with('error', 'Código de etiqueta inválido. Verifique que sea correcto.');
         }
 
-        $orderAlreadyExists = ProductionRecord::productionRecordExists($orderNumber, $sequence, $quantity, 'entry');
-        if ($orderAlreadyExists) {
-            return $redirect->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');
-        }
+        $orderPartNumber = null;
 
-        if (strlen($entryCode) >= 20 && strlen($entryCode) <= 25) {
+        if (str_contains($entryCode, ',')) {
+            $parts = explode(',', $entryCode);
+            if (count($parts) >= 3) {
+                $rawPart = trim($parts[2]);
+                $orderPartNumber = str_replace("'", "-", $rawPart);
+            }
+        } elseif (strlen($entryCode) >= 20 && strlen($entryCode) <= 25) {
             $orderPartNumber = FSO::getPartNumberByOrder($orderNumber);
         } elseif (strlen($entryCode) > 25 && str_starts_with($entryCode, '1')) {
             $orderPartNumber = HPO::getPartNumberByOrder($orderNumber);
-        } else {
-            $orderPartNumber = null;
         }
 
         if (!$orderPartNumber) {
-            return $redirect->with('error', "No se encontró información para la orden: {$orderNumber}");
+            return $redirect->with('error', "No se pudo determinar el número de parte para la orden: {$orderNumber}");
         }
 
-        $partNumber = PartNumber::where('number', $orderPartNumber)->where('is_obsolete', false)->first();
+        $partNumber = PartNumber::where('number', $orderPartNumber)
+            ->where('is_obsolete', false)
+            ->first();
         if (!$partNumber) {
-            return $redirect->with('error', "Número de parte no encontrado: {$orderPartNumber}");
+            return $redirect->with('error', "Número de parte no encontrado o está obsoleto: {$orderPartNumber}");
+        }
+
+        $orderAlreadyExists = ProductionRecord::productionRecordExists($orderNumber, $sequence, $quantity, 'entry');
+        if ($orderAlreadyExists) {
+            return $redirect->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');
         }
 
         $nextPartNumbers = $partNumber->nextProcesses->where('is_obsolete', false);
@@ -156,11 +164,6 @@ class ProductionRecordController extends Controller
         if ($productionPlan === null) {
             $productionPlan = ProductionPlan::store(null, $nextPart->id, 0, $today, $shift->id);
         }
-
-        // if ($productionPlan == null) {
-        //     return $redirect->with('warning', 'No se encontró un plan de producción para este número de parte.');
-        // }
-
         $exists = ProductionRecord::productionPlanExists($productionPlan->id, $orderNumber, $partNumber->id, $sequence, $quantity, 'entry');
         if ($exists) {
             return $redirect->with('error', 'Esta etiqueta ya ha sido escaneada anteriormente.');

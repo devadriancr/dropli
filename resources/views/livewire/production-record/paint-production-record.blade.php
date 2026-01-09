@@ -135,7 +135,7 @@
                                 class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Cant. Plan
                             </th>
-                            <!-- Nueva columna: Cant. Real -->
+                            <!-- Cant. Real -->
                             <th
                                 class="sticky top-0 px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
                                 Cant. Real
@@ -153,6 +153,12 @@
                                     {{ $header }}
                                 </th>
                             @endforeach
+
+                            <!-- Total -->
+                            <th
+                                class="sticky top-0 px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider bg-gray-100 border z-20">
+                                Total
+                            </th>
                         </tr>
                     </thead>
                     <tbody class="bg-white">
@@ -180,11 +186,12 @@
                                         -
                                     @endif
                                 </td>
+                                <!-- Cant. Plan -->
                                 <td rowspan="2"
                                     class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border text-center">
                                     {{ $record['planned_quantity'] }}
                                 </td>
-                                <!-- Nueva celda para Cant. Real -->
+                                <!-- Cant. Real -->
                                 <td rowspan="2"
                                     class="px-6 py-2 whitespace-nowrap text-xs font-medium text-gray-600 border text-center">
                                     {{ number_format($record['total_exits']) }}
@@ -210,6 +217,12 @@
                                         @endif
                                     </td>
                                 @endforeach
+
+                                <!-- Nueva celda de Total para Entrada -->
+                                <td
+                                    class="px-4 py-2 whitespace-nowrap text-sm text-center border font-medium text-blue-800">
+                                    {{ number_format($record['total_entries']) }}
+                                </td>
                             </tr>
 
                             <!-- Fila de Salida -->
@@ -233,6 +246,12 @@
                                         @endif
                                     </td>
                                 @endforeach
+
+                                <!-- Nueva celda de Total para Salida -->
+                                <td
+                                    class="px-4 py-2 whitespace-nowrap text-sm text-center border font-medium text-green-800">
+                                    {{ number_format($record['total_exits']) }}
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

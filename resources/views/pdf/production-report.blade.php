@@ -208,6 +208,22 @@
             font-family: Arial, Helvetica, sans-serif !important;
         }
 
+        /* ===== ESTILOS PARA TOTALES ===== */
+        .total-cell {
+            background-color: #f8f8f8 !important;
+            font-weight: bold !important;
+        }
+
+        .grand-total-cell {
+            background-color: #e8e8e8 !important;
+            font-weight: bold !important;
+        }
+
+        .grand-total-header {
+            background-color: #d8d8d8 !important;
+            font-weight: bold !important;
+        }
+
         /* ===== UTILIDADES ===== */
         .part-group-wrapper {
             page-break-inside: avoid;
@@ -258,6 +274,43 @@
         .card-table thead th {
             background-color: #e8e8e8;
         }
+
+        /* Ajustar ancho de columnas para acomodar TOTAL */
+        .production-table th:nth-child(1) {
+            width: 5.5%;
+        }
+
+        /* No. Order */
+        .production-table th:nth-child(2) {
+            width: 7%;
+        }
+
+        /* Estación */
+        .production-table th:nth-child(3) {
+            width: 7%;
+        }
+
+        /* Modelo */
+        .production-table th:nth-child(4) {
+            width: 7%;
+        }
+
+        /* Núm. Parte */
+        .production-table th:nth-child(5) {
+            width: 5.5%;
+        }
+
+        /* Cant. Plan */
+        .production-table th:nth-child(6) {
+            width: 5.5%;
+        }
+
+        /* Cant. Real */
+        .production-table th:nth-child(7) {
+            width: 5%;
+        }
+
+        /* Tipo */
     </style>
 
 </head>
@@ -369,16 +422,18 @@
         <table class="production-table">
             <thead>
                 <tr>
-                    <th style="width:6%;">No. Order</th>
-                    <th style="width:8%;">Estación</th>
-                    <th style="width:8%;">Modelo</th>
-                    <th style="width:8%;">Núm. Parte</th>
-                    <th style="width:6%;">Cant. Plan</th>
-                    <th style="width:6%;">Cant. Real</th>
-                    <th style="width:6%;"></th>
+                    <th>No. Order</th>
+                    <th>Estación</th>
+                    <th>Modelo</th>
+                    <th>Núm. Parte</th>
+                    <th>Cant. Plan</th>
+                    <th>Cant. Real</th>
+                    <th></th>
                     @foreach ($timeHeaders as $header)
                         <th class="hour-header">{{ $header }}</th>
                     @endforeach
+                    <!-- Nueva columna para totales -->
+                    <th class="grand-total-header">TOTAL</th>
                 </tr>
             </thead>
 
@@ -429,8 +484,58 @@
                                 </div>
                             </td>
                         @endforeach
+
+                        <!-- Columna de totales para cada fila -->
+                        <td class="total-cell">
+                            <div class="cell-stack">
+                                <span class="entry-val" style="font-weight: bold;">
+                                    {{ number_format($record['total_entries'] ?? 0) }}
+                                </span>
+                                <span class="exit-val" style="font-weight: bold;">
+                                    {{ number_format($record['total_exits'] ?? 0) }}
+                                </span>
+                            </div>
+                        </td>
                     </tr>
                 @endforeach
+
+                <!-- Fila de totales finales -->
+                <tr class="grand-total-cell">
+                    <td colspan="6" style="text-align: center; font-weight: bold;">
+                        TOTALES GENERALES
+                    </td>
+                    <td class="type-cell">
+                        <div class="type-stack">
+                            <span class="type-entry">Entrada</span>
+                            <span class="type-exit">Salida</span>
+                        </div>
+                    </td>
+
+                    @foreach ($timeHeaders as $header)
+                        <td class="grand-total-cell">
+                            <div class="cell-stack">
+                                <span class="entry-val" style="font-weight: bold;">
+                                    {{ number_format($totalEntriesByHour[$header] ?? 0) }}
+                                </span>
+                                <span class="exit-val" style="font-weight: bold;">
+                                    {{ number_format($totalExitsByHour[$header] ?? 0) }}
+                                </span>
+                            </div>
+                        </td>
+                    @endforeach
+
+                    <!-- Celda de totales generales -->
+                    <td class="grand-total-cell">
+                        <div class="cell-stack">
+                            <span class="entry-val" style="font-weight: bold;">
+                                {{ number_format($grandTotalEntries) }}
+                            </span>
+                            <span class="exit-val" style="font-weight: bold;">
+                                {{ number_format($grandTotalExits) }}
+                            </span>
+                        </div>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>

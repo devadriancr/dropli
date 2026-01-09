@@ -132,6 +132,7 @@ class PaintProductionRecord extends Component
                     'produced_quantity' => $plan->produced_quantity,
                     'entries' => array_fill_keys($this->timeHeaders, null),
                     'exits' => array_fill_keys($this->timeHeaders, null),
+                    'total_entries' => 0,
                     'total_exits' => 0,
                 ];
             }
@@ -157,6 +158,7 @@ class PaintProductionRecord extends Component
 
                     if (in_array($hourKey, $this->timeHeaders)) {
                         $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
+                        $groupedPlans[$partNumber]['total_entries'] += $record->quantity;
                     }
                 }
             }
@@ -200,6 +202,7 @@ class PaintProductionRecord extends Component
                     'produced_quantity' => 0,
                     'entries' => array_fill_keys($this->timeHeaders, 0),
                     'exits' => array_fill_keys($this->timeHeaders, 0),
+                    'total_entries' => 0,
                     'total_exits' => 0,
                 ];
             }
@@ -208,6 +211,7 @@ class PaintProductionRecord extends Component
             $hourKey = $createdAt->format('H:00');
             if (in_array($hourKey, $this->timeHeaders)) {
                 $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
+                $groupedPlans[$partNumber]['total_entries'] += $record->quantity;
             }
         }
 

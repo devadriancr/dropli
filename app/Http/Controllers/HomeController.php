@@ -361,7 +361,6 @@ class HomeController extends Controller
         }
 
         // También necesitamos incluir registros que no tengan production_plan
-        // AGREGAR esta sección para capturar todos los registros
         $additionalProductionRecords = ProductionRecord::with(['partNumber'])
             ->where('record_type', 'entry')
             ->whereBetween('created_at', [$start, $end])
@@ -394,6 +393,45 @@ class HomeController extends Controller
             }
         }
 
+        // ===== CALCULAR TOTALES POR HORA Y GENERALES =====
+        $totalEntriesByHour = [];
+        $totalExitsByHour = [];
+        $grandTotalEntries = 0;
+        $grandTotalExits = 0;
+
+        // Inicializar arrays para totales por hora
+        foreach ($timeHeaders as $header) {
+            $totalEntriesByHour[$header] = 0;
+            $totalExitsByHour[$header] = 0;
+        }
+
+        // Calcular totales por hora y generales
+        foreach ($groupedPlans as &$record) {
+            // Calcular totales por hora para esta parte
+            $recordTotalEntries = 0;
+            $recordTotalExits = 0;
+
+            foreach ($timeHeaders as $header) {
+                $entry = $record['entries'][$header] ?? 0;
+                $exit = $record['exits'][$header] ?? 0;
+
+                $recordTotalEntries += $entry;
+                $recordTotalExits += $exit;
+
+                $totalEntriesByHour[$header] += $entry;
+                $totalExitsByHour[$header] += $exit;
+            }
+
+            // Agregar totales de esta parte al registro
+            $record['total_entries'] = $recordTotalEntries;
+            $record['total_exits_hourly'] = $recordTotalExits;
+
+            // Sumar a totales generales
+            $grandTotalEntries += $recordTotalEntries;
+            $grandTotalExits += $record['total_exits'];
+        }
+
+        // Ordenar registros
         usort($groupedPlans, function ($a, $b) {
             $lineCompare = strcmp($a['line_name'], $b['line_name']);
             if ($lineCompare !== 0) {
@@ -419,6 +457,10 @@ class HomeController extends Controller
             'timeHeaders' => $timeHeaders,
             'downtimeRecords' => $downtimeRecords,
             'scrapRecords' => $scrapRecords,
+            'totalEntriesByHour' => $totalEntriesByHour,
+            'totalExitsByHour' => $totalExitsByHour,
+            'grandTotalEntries' => $grandTotalEntries,
+            'grandTotalExits' => $grandTotalExits,
         ];
 
         $pdf = PDF::loadView('pdf.production-report', $data);
