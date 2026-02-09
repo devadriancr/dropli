@@ -269,7 +269,12 @@ class ProductionRecordController extends Controller
             //     return $redirect->with('error', 'Este número de parte ya ha sido registrado anteriormente.');
             // }
 
-            ProductionRecord::store($productionPlan->id, '00000000', $partNumber->previousProcesses->where('is_obsolete', false)->first()->id, '000000', $quantity, 'entry');
+            $previous = $partNumber->previousProcesses->where('is_obsolete', false)->first();
+            if (!$previous) {
+                return $redirect->with('warning', 'No hay procesos anterior configurado para este número de parte ' . $partNumber->number . '.');
+            }
+
+            ProductionRecord::store($productionPlan->id, '00000000', $previous->id, '000000', $quantity, 'entry');
 
             event(new MaterialEntryRegistered());
 
@@ -355,11 +360,6 @@ class ProductionRecordController extends Controller
         $partNumber = PartNumber::query()->where('number', $orderPartNumber)->where('is_obsolete', false)->first();
         if (!$partNumber) {
             return $redirect->with('error', "Número de parte no encontrado: {$orderPartNumber}");
-        }
-
-        $previousPartNumber = $partNumber->previousProcesses->where('is_obsolete', false);
-        if (!$previousPartNumber) {
-            return $redirect->with('warning', 'No hay procesos anterior configurado para este número de parte.');
         }
 
         $shift = Shift::getShift();
