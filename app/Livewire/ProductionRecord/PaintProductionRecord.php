@@ -108,7 +108,10 @@ class PaintProductionRecord extends Component
     protected function processPlans($productionPlans)
     {
         $groupedPlans = [];
+        $processedPreviousProcessIds = []; // Rastrear previousProcesses ya procesados
+        $processedExitPartNumbers = []; // Rastrear part_numbers con exits ya procesados
 
+        // Primero: Procesar los planes de producción
         foreach ($productionPlans as $plan) {
             $partNumber = $plan->partNumber->number;
 
@@ -130,53 +133,84 @@ class PaintProductionRecord extends Component
                     'model' => $plan->partNumber->projects->pluck('model')->implode(';'),
                     'planned_quantity' => $plan->planned_quantity,
                     'produced_quantity' => $plan->produced_quantity,
-                    'entries' => array_fill_keys($this->timeHeaders, null),
-                    'exits' => array_fill_keys($this->timeHeaders, null),
+                    'entries' => array_fill_keys($this->timeHeaders, 0),
+                    'exits' => array_fill_keys($this->timeHeaders, 0),
                     'total_entries' => 0,
                     'total_exits' => 0,
                 ];
+            } else {
+                // Si el part_number ya existe, sumamos las cantidades planeadas y producidas
+                $groupedPlans[$partNumber]['planned_quantity'] += $plan->planned_quantity;
+                $groupedPlans[$partNumber]['produced_quantity'] += $plan->produced_quantity;
             }
 
-            // Procesar registros de entrada (entries)
+            // Procesar registros de entrada (entries) de previousProcesses
             $previousProcesses = $plan->partNumber->previousProcesses;
 
             if ($previousProcesses) {
-                $records = [];
                 foreach ($previousProcesses as $previousProcess) {
-                    $data = ProductionRecord::query()
-                        ->where('part_number_id', $previousProcess->id)
-                        ->where('record_type', 'entry')
-                        ->whereBetween('created_at', [$this->start, $this->end])
-                        ->get();
+                    $previousProcessKey = $previousProcess->id;
 
-                    $records = array_merge($records, $data->all());
-                }
+                    // Solo procesar si aún no se ha procesado este previousProcess
+                    if (!in_array($previousProcessKey, $processedPreviousProcessIds)) {
+                        $processedPreviousProcessIds[] = $previousProcessKey;
 
-                foreach ($records as $record) {
-                    $createdAt = Carbon::parse($record->created_at);
-                    $hourKey = $createdAt->format('H:00');
+                        // Crear entrada separada para el previousProcess si no existe
+                        $previousPartNumber = $previousProcess->number;
+                        if (!isset($groupedPlans[$previousPartNumber])) {
+                            $groupedPlans[$previousPartNumber] = [
+                                'line_name' => $previousProcess->workCenter->area->name ?? '-',
+                                'part_number' => $previousPartNumber,
+                                'standard_pack' => $previousProcess->standardPack->name ?? '-',
+                                'standard_pack_quantity' => $previousProcess->standard_pack_quantity ?? null,
+                                'model' => $previousProcess->projects->pluck('model')->implode(';'),
+                                'planned_quantity' => 0,
+                                'produced_quantity' => 0,
+                                'entries' => array_fill_keys($this->timeHeaders, 0),
+                                'exits' => array_fill_keys($this->timeHeaders, 0),
+                                'total_entries' => 0,
+                                'total_exits' => 0,
+                            ];
+                        }
 
-                    if (in_array($hourKey, $this->timeHeaders)) {
-                        $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
-                        $groupedPlans[$partNumber]['total_entries'] += $record->quantity;
+                        // Buscar registros de entrada del previousProcess
+                        $data = ProductionRecord::query()
+                            ->where('part_number_id', $previousProcess->id)
+                            ->where('record_type', 'entry')
+                            ->whereBetween('created_at', [$this->start, $this->end])
+                            ->get();
+
+                        foreach ($data as $record) {
+                            $createdAt = Carbon::parse($record->created_at);
+                            $hourKey = $createdAt->format('H:00');
+
+                            if (in_array($hourKey, $this->timeHeaders)) {
+                                $groupedPlans[$previousPartNumber]['entries'][$hourKey] += $record->quantity;
+                                $groupedPlans[$previousPartNumber]['total_entries'] += $record->quantity;
+                            }
+                        }
                     }
                 }
             }
 
-            // Procesar registros de salida (exits)
-            $exitRecords = ProductionRecord::query()
-                ->where('part_number_id', $plan->part_number_id)
-                ->where('record_type', 'exit')
-                ->whereBetween('created_at', [$this->start, $this->end])
-                ->get();
+            // Procesar registros de salida (exits) del plan actual - SOLO UNA VEZ POR PART_NUMBER
+            if (!in_array($plan->part_number_id, $processedExitPartNumbers)) {
+                $processedExitPartNumbers[] = $plan->part_number_id;
 
-            foreach ($exitRecords as $record) {
-                $createdAt = Carbon::parse($record->created_at);
-                $hourKey = $createdAt->format('H:00');
+                $exitRecords = ProductionRecord::query()
+                    ->where('part_number_id', $plan->part_number_id)
+                    ->where('record_type', 'exit')
+                    ->whereBetween('created_at', [$this->start, $this->end])
+                    ->get();
 
-                if (in_array($hourKey, $this->timeHeaders)) {
-                    $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
-                    $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
+                foreach ($exitRecords as $record) {
+                    $createdAt = Carbon::parse($record->created_at);
+                    $hourKey = $createdAt->format('H:00');
+
+                    if (in_array($hourKey, $this->timeHeaders)) {
+                        $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
+                        $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
+                    }
                 }
             }
         }

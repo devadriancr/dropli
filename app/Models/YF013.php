@@ -42,6 +42,29 @@ class YF013 extends Model
     {
         $now = Carbon::now();
 
+        Log::debug('Sending data to Infor', [
+            'YFWRKC' => $productionPlan->partNumber->workCenter->number ?? '',
+            'YFWRKN' => $productionPlan->partNumber->workCenter->name ?? '',
+            'YFRDTE' => $productionPlan->planned_date
+                ? Carbon::parse($productionPlan->planned_date)->format('Ymd')
+                : '',
+            'YFSHFT' => $productionPlan->shift->abbreviation ?? '',
+            'YFPPNO' => '',
+            'YFSORD' => $productionPlan->shop_order_number ?? '',
+            'YFPROD' => $productionPlan->partNumber->number ?? '',
+            'YFSTIM' => '',
+            'YFETIM' => '',
+            'YFSDT' => '',
+            'YFEDT' => '',
+            'YFQPLA' => $productionPlan->planned_quantity ?: $productionPlan->produced_quantity,
+            'YFQPRO' => $productionPlan->produced_quantity ?? 0,
+            'YFQSCR' => $accumulatedScrap ?? 0,
+            'YFSCRE' => ($accumulatedScrap ?? 0) == 0 ? '' : 'RJ',
+            'YFCRDT' => $now->format('Ymd'),
+            'YFCRTM' => $now->format('His'),
+            'YFCRUS' => '',
+        ]);
+
         return YF013::query()
             ->insert([
                 'YFWRKC' => $productionPlan->partNumber->workCenter->number ?? '',

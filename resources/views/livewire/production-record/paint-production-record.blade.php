@@ -210,8 +210,6 @@
                                         @if ($state === 'yellow') bg-yellow-50 text-yellow-800 @elseif($state === 'green') bg-green-50 text-green-800 @endif">
                                         @if ($record['entries'][$header] !== null && $record['entries'][$header] !== 0)
                                             {{ number_format($record['entries'][$header]) }}
-                                        @elseif($record['entries'][$header] === 0)
-                                            0
                                         @else
                                             -
                                         @endif
@@ -239,8 +237,6 @@
                                         @if ($state === 'yellow') bg-yellow-50 text-yellow-800 @elseif($state === 'green') bg-green-50 text-green-800 @endif">
                                         @if ($record['exits'][$header] !== null && $record['exits'][$header] !== 0)
                                             {{ number_format($record['exits'][$header]) }}
-                                        @elseif($record['exits'][$header] === 0)
-                                            0
                                         @else
                                             -
                                         @endif
@@ -283,7 +279,7 @@
                         if (@json($realTime)) {
                             setInterval(() => {
                                 @this.dispatchSelf('refresh-production-records');
-                            }, 10000); // Actualizar cada 5 segundos
+                            }, 10000); // Actualizar cada 10 segundos
                         }
                     }
                 }
