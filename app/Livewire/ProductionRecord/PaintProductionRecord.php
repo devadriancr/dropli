@@ -149,45 +149,28 @@ class PaintProductionRecord extends Component
 
             if ($previousProcesses) {
                 foreach ($previousProcesses as $previousProcess) {
-                    $previousProcessKey = $previousProcess->id;
+                    $prevId = $previousProcess->id;
 
                     // Solo procesar si aún no se ha procesado este previousProcess
-                    if (!in_array($previousProcessKey, $processedPreviousProcessIds)) {
-                        $processedPreviousProcessIds[] = $previousProcessKey;
+                    if (in_array($prevId, $processedPreviousProcessIds)) {
+                        continue;
+                    }
+                    $processedPreviousProcessIds[] = $prevId;
 
-                        // Crear entrada separada para el previousProcess si no existe
-                        $previousPartNumber = $previousProcess->number;
-                        if (!isset($groupedPlans[$previousPartNumber])) {
-                            $groupedPlans[$previousPartNumber] = [
-                                'line_name' => $previousProcess->workCenter->area->name ?? '-',
-                                'part_number' => $previousPartNumber,
-                                'standard_pack' => $previousProcess->standardPack->name ?? '-',
-                                'standard_pack_quantity' => $previousProcess->standard_pack_quantity ?? null,
-                                'model' => $previousProcess->projects->pluck('model')->implode(';'),
-                                'planned_quantity' => 0,
-                                'produced_quantity' => 0,
-                                'entries' => array_fill_keys($this->timeHeaders, 0),
-                                'exits' => array_fill_keys($this->timeHeaders, 0),
-                                'total_entries' => 0,
-                                'total_exits' => 0,
-                            ];
-                        }
+                    // Buscar registros de entrada del previousProcess
+                    $data = ProductionRecord::query()
+                        ->where('part_number_id', $previousProcess->id)
+                        ->where('record_type', 'entry')
+                        ->whereBetween('created_at', [$this->start, $this->end])
+                        ->get();
 
-                        // Buscar registros de entrada del previousProcess
-                        $data = ProductionRecord::query()
-                            ->where('part_number_id', $previousProcess->id)
-                            ->where('record_type', 'entry')
-                            ->whereBetween('created_at', [$this->start, $this->end])
-                            ->get();
+                    foreach ($data as $record) {
+                        $createdAt = Carbon::parse($record->created_at);
+                        $hourKey = $createdAt->format('H:00');
 
-                        foreach ($data as $record) {
-                            $createdAt = Carbon::parse($record->created_at);
-                            $hourKey = $createdAt->format('H:00');
-
-                            if (in_array($hourKey, $this->timeHeaders)) {
-                                $groupedPlans[$previousPartNumber]['entries'][$hourKey] += $record->quantity;
-                                $groupedPlans[$previousPartNumber]['total_entries'] += $record->quantity;
-                            }
+                        if (in_array($hourKey, $this->timeHeaders)) {
+                            $groupedPlans[$partNumber]['entries'][$hourKey] += $record->quantity;
+                            $groupedPlans[$partNumber]['total_entries'] += $record->quantity;
                         }
                     }
                 }
@@ -215,7 +198,6 @@ class PaintProductionRecord extends Component
             }
         }
 
-        // TAMBIÉN AGREGAR REGISTROS SIN PRODUCTION_PLAN (igual que en el PDF)
         $additionalProductionRecords = ProductionRecord::with(['partNumber'])
             ->where('record_type', 'entry')
             ->whereBetween('created_at', [$this->start, $this->end])
