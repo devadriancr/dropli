@@ -445,7 +445,7 @@
                         <td class="fixed-column">{{ $record['model'] ?: '-' }}</td>
                         <td class="fixed-column">{{ $record['part_number'] }}</td>
                         <td class="fixed-column">{{ $record['planned_quantity'] ?? '-' }}</td>
-                        <td class="fixed-column">{{ number_format($record['total_exits'] ?? 0) }}</td>
+                        <td class="fixed-column">{{ (isset($record['total_exits']) && $record['total_exits'] != 0) ? number_format($record['total_exits']) : '0' }}</td>
 
                         <td class="type-cell">
                             <div class="type-stack">
@@ -465,8 +465,6 @@
                                     <span class="entry-val">
                                         @if (is_numeric($entry) && $entry != 0)
                                             {{ number_format($entry) }}
-                                        @elseif ($entry === 0)
-                                            0
                                         @else
                                             -
                                         @endif
@@ -475,8 +473,6 @@
                                     <span class="exit-val">
                                         @if (is_numeric($exit) && $exit != 0)
                                             {{ number_format($exit) }}
-                                        @elseif ($exit === 0)
-                                            0
                                         @else
                                             -
                                         @endif
@@ -489,10 +485,10 @@
                         <td class="total-cell">
                             <div class="cell-stack">
                                 <span class="entry-val" style="font-weight: bold;">
-                                    {{ number_format($record['total_entries'] ?? 0) }}
+                                    {{ (isset($record['total_entries']) && $record['total_entries'] != 0) ? number_format($record['total_entries']) : '-' }}
                                 </span>
                                 <span class="exit-val" style="font-weight: bold;">
-                                    {{ number_format($record['total_exits'] ?? 0) }}
+                                    {{ (isset($record['total_exits']) && $record['total_exits'] != 0) ? number_format($record['total_exits']) : '-' }}
                                 </span>
                             </div>
                         </td>
@@ -515,10 +511,10 @@
                         <td class="grand-total-cell">
                             <div class="cell-stack">
                                 <span class="entry-val" style="font-weight: bold;">
-                                    {{ number_format($totalEntriesByHour[$header] ?? 0) }}
+                                    {{ (isset($totalEntriesByHour[$header]) && $totalEntriesByHour[$header] != 0) ? number_format($totalEntriesByHour[$header]) : '-' }}
                                 </span>
                                 <span class="exit-val" style="font-weight: bold;">
-                                    {{ number_format($totalExitsByHour[$header] ?? 0) }}
+                                    {{ (isset($totalExitsByHour[$header]) && $totalExitsByHour[$header] != 0) ? number_format($totalExitsByHour[$header]) : '-' }}
                                 </span>
                             </div>
                         </td>
@@ -527,12 +523,12 @@
                     <!-- Celda de totales generales -->
                     <td class="grand-total-cell">
                         <div class="cell-stack">
-                            <span class="entry-val" style="font-weight: bold;">
-                                {{ number_format($grandTotalEntries) }}
-                            </span>
-                            <span class="exit-val" style="font-weight: bold;">
-                                {{ number_format($grandTotalExits) }}
-                            </span>
+                                <span class="entry-val" style="font-weight: bold;">
+                                    {{ ($grandTotalEntries != 0) ? number_format($grandTotalEntries) : '-' }}
+                                </span>
+                                <span class="exit-val" style="font-weight: bold;">
+                                    {{ ($grandTotalExits != 0) ? number_format($grandTotalExits) : '-' }}
+                                </span>
                         </div>
                     </td>
                 </tr>

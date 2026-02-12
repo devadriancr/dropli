@@ -303,6 +303,8 @@ class HomeController extends Controller
 
         // Procesar registros para la tabla
         $groupedPlans = [];
+        $processedPreviousProcessIds = []; // evitar procesar entradas duplicadas de previous processes
+        $processedExitPartNumbers = []; // evitar procesar salidas múltiples para el mismo part_number
 
         foreach ($productionPlans as $plan) {
             $partNumber = $plan->partNumber->number;
@@ -321,12 +323,22 @@ class HomeController extends Controller
                     'exits' => array_fill_keys($timeHeaders, 0),
                     'total_exits' => 0,
                 ];
+            } else {
+                // Si ya existe registro para este part_number, sumar cantidades del plan
+                $groupedPlans[$partNumber]['planned_quantity'] += $plan->planned_quantity;
+                $groupedPlans[$partNumber]['produced_quantity'] += $plan->produced_quantity;
             }
 
-            // Procesar entradas
+            // Procesar entradas (previousProcesses) evitando duplicados
             $previousProcesses = $plan->partNumber->previousProcesses;
             if ($previousProcesses) {
                 foreach ($previousProcesses as $previousProcess) {
+                    $prevId = $previousProcess->id;
+                    if (in_array($prevId, $processedPreviousProcessIds)) {
+                        continue;
+                    }
+                    $processedPreviousProcessIds[] = $prevId;
+
                     $data = ProductionRecord::query()
                         ->where('part_number_id', $previousProcess->id)
                         ->where('record_type', 'entry')
@@ -343,19 +355,23 @@ class HomeController extends Controller
                 }
             }
 
-            // Procesar salidas
-            $exitRecords = ProductionRecord::query()
-                ->where('part_number_id', $plan->part_number_id)
-                ->where('record_type', 'exit')
-                ->whereBetween('created_at', [$start, $end])
-                ->get();
+            // Procesar salidas SOLO UNA VEZ por part_number para evitar duplicados
+            if (!in_array($plan->part_number_id, $processedExitPartNumbers)) {
+                $processedExitPartNumbers[] = $plan->part_number_id;
 
-            foreach ($exitRecords as $record) {
-                $createdAt = Carbon::parse($record->created_at);
-                $hourKey = $createdAt->format('H:00');
-                if (in_array($hourKey, $timeHeaders)) {
-                    $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
-                    $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
+                $exitRecords = ProductionRecord::query()
+                    ->where('part_number_id', $plan->part_number_id)
+                    ->where('record_type', 'exit')
+                    ->whereBetween('created_at', [$start, $end])
+                    ->get();
+
+                foreach ($exitRecords as $record) {
+                    $createdAt = Carbon::parse($record->created_at);
+                    $hourKey = $createdAt->format('H:00');
+                    if (in_array($hourKey, $timeHeaders)) {
+                        $groupedPlans[$partNumber]['exits'][$hourKey] += $record->quantity;
+                        $groupedPlans[$partNumber]['total_exits'] += $record->quantity;
+                    }
                 }
             }
         }
@@ -424,11 +440,11 @@ class HomeController extends Controller
 
             // Agregar totales de esta parte al registro
             $record['total_entries'] = $recordTotalEntries;
-            $record['total_exits_hourly'] = $recordTotalExits;
+            $record['total_exits'] = $recordTotalExits;
 
             // Sumar a totales generales
             $grandTotalEntries += $recordTotalEntries;
-            $grandTotalExits += $record['total_exits'];
+            $grandTotalExits += $recordTotalExits;
         }
 
         // Ordenar registros
