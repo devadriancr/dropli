@@ -115,9 +115,7 @@ class HomeController extends Controller
             }
         }
 
-        // $totalHooksUsedPerShift = array_sum($quantityByPartNumber);
         $totalHooksUsedPerShift = array_sum(array_column($hooksByPartNumber, 'total_hooks'));
-        // $totalPaintedParts = round($totalPaintedParts, 2);
 
         // Tasa de Ganchos por Turno
         $cycleTimeSeconds = 16;
@@ -126,15 +124,12 @@ class HomeController extends Controller
             : 0;
 
         // JPH Promedio por Turno
-        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $totalHooksUsedPerShift != 0)
+        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $effectiveProductionTimePerShift > 0)
             ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60))
             : 0;
 
-        // Man-hours per piece per shift - $manHoursPerPiecePerShift
-
-        // Grafica
         $productionPlanChart = ProductionPlan::with(['partNumber'])
-            ->where('planned_date', $date)
+            ->whereDate('planned_date', $date)
             ->where('shift_id', $shift->id)
             ->get();
 

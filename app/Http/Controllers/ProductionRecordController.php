@@ -16,6 +16,7 @@ use App\Models\Shift;
 use App\Models\Status;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ProductionRecordController extends Controller
@@ -79,16 +80,28 @@ class ProductionRecordController extends Controller
         ]);
 
         try {
-            // Actualizar solo la cantidad del registro de producción
+            DB::beginTransaction();
+
+            $oldQuantity = $productionRecord->quantity;
+            $newQuantity = $validated['quantity'];
+            $difference = $newQuantity - $oldQuantity;
+
             $productionRecord->update([
-                'quantity' => $validated['quantity']
+                'quantity' => $newQuantity
             ]);
 
+            if ($productionRecord->productionPlan) {
+                $productionRecord->productionPlan->increment('produced_quantity', $difference);
+            }
+
+            DB::commit();
+
             return redirect()->route('production-records.index')
-                ->with('success', 'Cantidad actualizada correctamente');
+                ->with('success', 'Cantidad actualizada y plan de producción sincronizado.');
         } catch (\Exception $e) {
+            DB::rollBack();
             return redirect()->back()
-                ->with('error', 'Error al actualizar la cantidad: ' . $e->getMessage());
+                ->with('error', 'Error al actualizar: ' . $e->getMessage());
         }
     }
 
