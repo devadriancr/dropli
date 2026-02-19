@@ -145,31 +145,27 @@ class ProductionPlanController extends Controller
     public function syncAll(Request $request)
     {
         try {
-            $now = now();
-            $startOfWeek = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+            $now = now(); // Simulación de fecha y hora actual para pruebas
 
-            $previousShift = Shift::getPreviousShift();
-            $previousPlannedDate = Shift::getPreviousPlannedDate();
+            // Fecha de inicio: Lunes de la semana actual a las 00:00:00
+            $startPlannedDate = $now->copy()->startOfWeek(Carbon::MONDAY)->format('Y-m-d');
 
-            if ($previousShift && $previousPlannedDate) {
-                $start = $previousShift->start_time;
-                $end = $previousShift->end_time;
+            // Obtenemos el turno anterior y la fecha a la que pertenece ese turno anterior
+            $previousShift = Shift::getPreviousShift($now);
+            $endPlannedDate = Shift::getPreviousPlannedDate($now);
 
-                // La fecha base es la del turno anterior
-                $baseDate = Carbon::createFromFormat('Y-m-d', $previousPlannedDate);
+            // Lógica de agrupamiento de turnos:
+            // Ordenamos los turnos cronológicamente (Diurno primero, Nocturno después)
+            $allShifts = Shift::orderBy('start_time')->pluck('id')->toArray();
 
-                // Si el turno cruza la medianoche (start > end), la fecha de fin es el día siguiente
-                if ($start > $end) {
-                    $endOfWeek = $baseDate->copy()->addDay()->setTimeFromTimeString($end);
-                } else {
-                    $endOfWeek = $baseDate->copy()->setTimeFromTimeString($end);
-                }
-            } else {
-                $endOfWeek = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
-            }
+            // Buscamos qué posición ocupa el turno anterior en la lista
+            $previousShiftIndex = array_search($previousShift->id, $allShifts);
 
-            $query = ProductionPlan::with(['partNumber.workCenter', 'shift'])
-                ->where('produced_quantity', '>', 0)
+            // Obtenemos los IDs de los turnos permitidos para el último día de la consulta
+            $allowedShiftIdsForEndDate = array_slice($allShifts, 0, $previousShiftIndex + 1);
+
+            // Consulta de ProductionPlans
+            $productionPlans = ProductionPlan::with(['partNumber.workCenter', 'shift'])
                 ->where(function ($q) {
                     $q->where('synced_to_infor', false)
                         ->orWhereNull('synced_to_infor');
@@ -177,19 +173,21 @@ class ProductionPlanController extends Controller
                 ->whereNull('synced_at')
                 ->whereHas('status', function ($q) {
                     $q->where('key', 'in_progress');
-                });
+                })
+                // Rango de fecha y turno:
+                ->where('planned_date', '>=', $startPlannedDate)
+                ->where(function ($query) use ($endPlannedDate, $allowedShiftIdsForEndDate) {
+                    // Opción A: Es de un día estrictamente anterior al día final
+                    $query->where('planned_date', '<', $endPlannedDate)
+                        // Opción B: Si es el mismo día final, el turno debe ser menor o igual al turno anterior
+                        ->orWhere(function ($q) use ($endPlannedDate, $allowedShiftIdsForEndDate) {
+                            $q->where('planned_date', '=', $endPlannedDate)
+                                ->whereIn('shift_id', $allowedShiftIdsForEndDate);
+                        });
+                })
+                ->get();
 
-            // Filtrar por fecha y turno anterior si existen
-            if ($previousShift && $previousPlannedDate) {
-                $query->where('planned_date', $previousPlannedDate)
-                      ->where('shift_id', $previousShift->id);
-            } else {
-                $query->whereBetween('planned_date', [$startOfWeek, $endOfWeek]);
-            }
-
-            $eligiblePlans = $query->get();
-
-            if ($eligiblePlans->isEmpty()) {
+            if ($productionPlans->isEmpty()) {
                 return redirect()->back()->with('info', 'No hay registros para sincronizar.');
             }
 
@@ -197,8 +195,21 @@ class ProductionPlanController extends Controller
             $errorCount = 0;
             $errors = [];
 
-            foreach ($eligiblePlans as $productionPlan) {
+            foreach ($productionPlans as $productionPlan) {
                 try {
+                    // Validar si tiene cantidad producida
+                    if ($productionPlan->produced_quantity <= 0) {
+                        // Cambiar estado sin enviar a Infor
+                        $status = Status::where('key', 'completed')->first();
+                        $productionPlan->update([
+                            'synced_to_infor' => true,
+                            'synced_at' => now(),
+                            'status_id' => $status->id ?? null
+                        ]);
+                        $successCount++;
+                        continue;
+                    }
+
                     // Obtener solo el scrap NO sincronizado para este número de parte
                     $unsyncedScrap = ScrapRecord::getUnsyncedScrap($productionPlan->part_number_id);
                     $accumulatedScrap = $unsyncedScrap->sum('quantity');
@@ -231,28 +242,26 @@ class ProductionPlanController extends Controller
                         $errorCount++;
                         $errors[] = "Error al sincronizar orden: {$productionPlan->shop_order_number}";
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     $errorCount++;
                     $errors[] = "Error con orden {$productionPlan->shop_order_number}: " . $e->getMessage();
-                    Log::error("Error sincronizando plan de producción {$productionPlan->id}: " . $e->getMessage());
+                   Log::error("Error sincronizando plan de producción {$productionPlan->id}: " . $e->getMessage());
                 }
             }
 
             $message = "Se sincronizaron {$successCount} registros correctamente.";
             if ($errorCount > 0) {
                 $message .= " {$errorCount} registros tuvieron errores.";
-
-                // Log de errores detallados
                 foreach ($errors as $error) {
-                    Log::error("Error en syncAll: " . $error);
+                   Log::error("Error en syncAll: " . $error);
                 }
             }
 
-            // YF013::executeInforProcess();
+            YF013::executeInforProcess();
 
             return redirect()->back()->with('success', $message);
-        } catch (Exception $e) {
-            Log::error("Error en syncAll: " . $e->getMessage());
+        } catch (\Exception $e) {
+           Log::error("Error general en syncAll: " . $e->getMessage());
             return redirect()->back()->with('error', 'Error al sincronizar los registros: ' . $e->getMessage());
         }
     }

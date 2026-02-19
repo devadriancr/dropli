@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -91,19 +92,26 @@ class Shift extends Model
     public static function getPreviousPlannedDate($dateTime = null)
     {
         $now = $dateTime ?: now();
-        $shift = Shift::getPreviousShift($now);
 
-        if (!$shift) {
-            return $now->copy()->subDay()->toDateString();
+        // Obtenemos la fecha planificada del momento actual
+        $currentPlannedDate = Carbon::parse(Shift::getPlannedDate($now));
+
+        $currentShift = Shift::getShift($now);
+
+        if (!$currentShift) {
+            return $currentPlannedDate->toDateString();
         }
 
-        $start = $shift->start_time;
-        $end = $shift->end_time;
+        $shifts = Shift::orderBy('start_time')->get();
 
-        if ($start > $end) {
-            return $now->copy()->subDay()->toDateString();
+        // Si el turno actual es el primero del día (ej. Diurno),
+        // el turno anterior pertenece al día de ayer.
+        if ($currentShift->id == $shifts->first()->id) {
+            return $currentPlannedDate->subDay()->toDateString();
         }
 
-        return $now->toDateString();
+        // Si es cualquier otro turno (ej. Nocturno),
+        // el turno anterior pertenece a la misma fecha de producción actual.
+        return $currentPlannedDate->toDateString();
     }
 }
