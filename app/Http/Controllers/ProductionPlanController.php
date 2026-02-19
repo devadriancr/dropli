@@ -147,24 +147,50 @@ class ProductionPlanController extends Controller
         try {
             $now = now();
             $startOfWeek = $now->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
-            $endOfWeek = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
 
-            // Obtener planes de producción que cumplan con los criterios
-            $eligiblePlans = ProductionPlan::with(['partNumber.workCenter', 'shift'])
-                ->whereBetween('planned_date', [$startOfWeek, $endOfWeek])
-                ->where('produced_quantity', '>', 0) // Solo los que tienen cantidad producida
-                ->where(function ($query) {
-                    $query->where('synced_to_infor', false)
+            $previousShift = Shift::getPreviousShift();
+            $previousPlannedDate = Shift::getPreviousPlannedDate();
+
+            if ($previousShift && $previousPlannedDate) {
+                $start = $previousShift->start_time;
+                $end = $previousShift->end_time;
+
+                // La fecha base es la del turno anterior
+                $baseDate = Carbon::createFromFormat('Y-m-d', $previousPlannedDate);
+
+                // Si el turno cruza la medianoche (start > end), la fecha de fin es el día siguiente
+                if ($start > $end) {
+                    $endOfWeek = $baseDate->copy()->addDay()->setTimeFromTimeString($end);
+                } else {
+                    $endOfWeek = $baseDate->copy()->setTimeFromTimeString($end);
+                }
+            } else {
+                $endOfWeek = $now->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+            }
+
+            $query = ProductionPlan::with(['partNumber.workCenter', 'shift'])
+                ->where('produced_quantity', '>', 0)
+                ->where(function ($q) {
+                    $q->where('synced_to_infor', false)
                         ->orWhereNull('synced_to_infor');
                 })
-                ->whereNull('synced_at') // Que no hayan sido sincronizados antes
+                ->whereNull('synced_at')
                 ->whereHas('status', function ($q) {
-                    $q->where('key', 'in_progress'); // Solo los que están en proceso
-                })
-                ->get();
+                    $q->where('key', 'in_progress');
+                });
+
+            // Filtrar por fecha y turno anterior si existen
+            if ($previousShift && $previousPlannedDate) {
+                $query->where('planned_date', $previousPlannedDate)
+                      ->where('shift_id', $previousShift->id);
+            } else {
+                $query->whereBetween('planned_date', [$startOfWeek, $endOfWeek]);
+            }
+
+            $eligiblePlans = $query->get();
 
             if ($eligiblePlans->isEmpty()) {
-                return redirect()->back()->with('info', 'No hay registros elegibles para sincronizar.');
+                return redirect()->back()->with('info', 'No hay registros para sincronizar.');
             }
 
             $successCount = 0;

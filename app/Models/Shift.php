@@ -62,4 +62,48 @@ class Shift extends Model
 
         return $now->toDateString();
     }
+
+    public static function getPreviousShift($dateTime = null)
+    {
+        $currentShift = Shift::getShift($dateTime);
+
+        if (!$currentShift) {
+            return null;
+        }
+
+        $shifts = Shift::orderBy('start_time')->get();
+        $index = $shifts->search(function ($shift) use ($currentShift) {
+            return $shift->id == $currentShift->id;
+        });
+
+        if ($index === false) {
+            return null;
+        }
+
+        $previousIndex = $index - 1;
+        if ($previousIndex < 0) {
+            $previousIndex = $shifts->count() - 1;
+        }
+
+        return $shifts[$previousIndex];
+    }
+
+    public static function getPreviousPlannedDate($dateTime = null)
+    {
+        $now = $dateTime ?: now();
+        $shift = Shift::getPreviousShift($now);
+
+        if (!$shift) {
+            return $now->copy()->subDay()->toDateString();
+        }
+
+        $start = $shift->start_time;
+        $end = $shift->end_time;
+
+        if ($start > $end) {
+            return $now->copy()->subDay()->toDateString();
+        }
+
+        return $now->toDateString();
+    }
 }
