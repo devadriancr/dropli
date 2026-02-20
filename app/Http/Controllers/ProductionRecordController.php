@@ -17,6 +17,7 @@ use App\Models\Status;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ProductionRecordController extends Controller
@@ -84,14 +85,30 @@ class ProductionRecordController extends Controller
 
             $oldQuantity = $productionRecord->quantity;
             $newQuantity = $validated['quantity'];
-            $difference = $newQuantity - $oldQuantity;
 
             $productionRecord->update([
                 'quantity' => $newQuantity
             ]);
 
-            if ($productionRecord->productionPlan) {
-                $productionRecord->productionPlan->increment('produced_quantity', $difference);
+            Log::debug("Production record updated", [
+                'production_record_id' => $productionRecord->id,
+                'production_plan_id' => $productionRecord->production_plan_id,
+                'record_type' => $productionRecord->record_type,
+                'planned_quantity' => $productionRecord->productionPlan ? $productionRecord->productionPlan->planned_quantity : null,
+                'old_quantity' => $oldQuantity,
+                'new_quantity' => $newQuantity,
+            ]);
+
+            if ($productionRecord->record_type === 'exit' && $productionRecord->productionPlan) {
+                $delta = $newQuantity - $oldQuantity;
+                if ($delta > 0) {
+                    $productionRecord->productionPlan->increment('produced_quantity', $delta);
+                } elseif ($delta < 0) {
+                    $decrement = min(abs($delta), (int) $productionRecord->productionPlan->produced_quantity);
+                    if ($decrement > 0) {
+                        $productionRecord->productionPlan->decrement('produced_quantity', $decrement);
+                    }
+                }
             }
 
             DB::commit();
