@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Log;
 
 class YF013 extends Model
 {
-    protected $connection = 'infor-proto';
-    protected $table = 'LX834FU02.YF013';
+    protected $connection = 'infor-live';
+    protected $table = 'LX834FU01.YF013';
 
     protected $fillable = [
         'YFWRKC',
@@ -104,7 +104,7 @@ class YF013 extends Model
                 Log::info("Conexión a Infor establecida correctamente en " . date('Y-m-d H:i:s'));
             }
 
-            $query = "CALL LX834OU02.YSF013C";
+            $query = "CALL LX834OU.YSF013C";
             $result = odbc_exec($conn, $query);
 
             if ($result) {

@@ -80,6 +80,6 @@ class ProcessProductionRecords implements ShouldQueue
 
         Log::info($message);
 
-        // YF013::executeInforProcess();
+        YF013::executeInforProcess();
     }
 }
