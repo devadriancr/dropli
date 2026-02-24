@@ -84,7 +84,7 @@ class ProductionRecordController extends Controller
             DB::beginTransaction();
 
             $oldQuantity = $productionRecord->quantity;
-            $newQuantity = $validated['quantity'];
+            $newQuantity = (int) $validated['quantity'];
 
             $productionRecord->update([
                 'quantity' => $newQuantity
@@ -138,7 +138,7 @@ class ProductionRecordController extends Controller
         $entryCode = $request->input('entryCode');
         $orderNumber = $request->input('orderNumber');
         $sequence = $request->input('sequence');
-        $quantity = $request->input('quantity');
+        $quantity = (int) $request->input('quantity');
         $redirect = redirect()->route('production-records.entry-scan');
 
         if (strlen($entryCode) < 14) {
@@ -168,6 +168,10 @@ class ProductionRecordController extends Controller
             ->first();
         if (!$partNumber) {
             return $redirect->with('error', "Número de parte no encontrado o está obsoleto: {$orderPartNumber}");
+        }
+
+        if ($quantity > $partNumber->standard_pack_quantity) {
+            return $redirect->with('error', "La cantidad debe ser menor o igual al standard pack ({$partNumber->standard_pack_quantity}).");
         }
 
         $orderAlreadyExists = ProductionRecord::productionRecordExists($orderNumber, $sequence, $quantity, 'entry');
@@ -260,7 +264,7 @@ class ProductionRecordController extends Controller
         ]);
 
         $partNumberInput = $request->input('partNumber');
-        $quantity = $request->input('quantity');
+        $quantity = (int) $request->input('quantity');
 
         $origin = session('part_number_entry_origin');
 
@@ -321,7 +325,7 @@ class ProductionRecordController extends Controller
         $exitCode = $request->input('exitCode');
         $orderNumber = $request->input('orderNumber');
         $sequence = $request->input('sequence');
-        $quantity = $request->input('quantity');
+        $quantity = (int) $request->input('quantity');
 
         $redirect = redirect()->route('production-records.exit-scan');
 
@@ -345,6 +349,10 @@ class ProductionRecordController extends Controller
         $partNumber = PartNumber::query()->where('number', $orderPartNumber)->where('is_obsolete', false)->first();
         if (!$partNumber) {
             return $redirect->with('error', "Número de parte no encontrado: {$orderPartNumber}");
+        }
+
+        if ($quantity > $partNumber->standard_pack_quantity) {
+            return $redirect->with('error', "La cantidad debe ser menor o igual al standard pack ({$partNumber->standard_pack_quantity}).");
         }
 
         $shift = Shift::getShift();

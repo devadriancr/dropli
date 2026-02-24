@@ -17,12 +17,14 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        // Obtener todos los turnos para el select
         $shifts = Shift::all();
 
-        // Obtener fecha y turno de la request o usar valores por defecto
+        $currentShift = Shift::getShift();
+        $defaultShiftId = $currentShift ? $currentShift->id : ($shifts->first()->id ?? null);
+
+        // 3. Obtener valores de la request o usar los calculados por defecto
         $selectedDate = $request->input('date', Shift::getPlannedDate());
-        $selectedShiftId = $request->input('shift_id', Shift::getShift()->id);
+        $selectedShiftId = $request->input('shift_id', $defaultShiftId);
 
         // Validar que la fecha no sea futura
         $today = Carbon::today()->toDateString();
@@ -30,15 +32,17 @@ class HomeController extends Controller
             $selectedDate = $today;
         }
 
-        // Obtener el turno seleccionado
+        // 4. Obtener el objeto Shift real (Validación de seguridad)
         $shift = Shift::find($selectedShiftId);
         if (!$shift) {
-            $shift = Shift::getShift();
+            if ($shifts->isEmpty()) {
+                return view('home.home')->with('error', 'No hay turnos configurados en el sistema.');
+            }
+            $shift = $shifts->first();
             $selectedShiftId = $shift->id;
         }
 
         $date = $selectedDate;
-
         $workCenter = Auth::user()->workCenters->pluck('id')->toArray();
 
         $start = Carbon::parse("{$date} {$shift->start_time}");
@@ -67,9 +71,7 @@ class HomeController extends Controller
         $effectiveProductionTimePerShift = $start->diffInMinutes($end) - $totalDowntimeMinutes;
 
         // Scrap
-        $scrapRecords = ScrapRecord::whereBetween('created_at', [$start, $end])
-            ->get();
-
+        $scrapRecords = ScrapRecord::whereBetween('created_at', [$start, $end])->get();
         $totalScrap = $scrapRecords->sum('quantity');
 
         // Ganchos
@@ -83,11 +85,9 @@ class HomeController extends Controller
 
         foreach ($productionRecords as $record) {
             $partNumberId = $record->part_number_id;
-
             if (!isset($quantityByPartNumber[$partNumberId])) {
                 $quantityByPartNumber[$partNumberId] = 0;
             }
-
             $quantityByPartNumber[$partNumberId] += $record->quantity;
         }
 
@@ -96,12 +96,13 @@ class HomeController extends Controller
                 $query->where('is_obsolete', false);
             }])->find($partNumberId);
 
+            if (!$partNumber) continue;
+
             foreach ($partNumber->nextProcesses as $nextPart) {
                 $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
 
                 if ($productionPlan) {
                     $piecesPerHook = $nextPart->getCustomAttributeValue('pieces_per_hook');
-
                     if ($piecesPerHook && $piecesPerHook > 0) {
                         $hooksByPartNumber[$partNumberId] = [
                             'part_number' => $nextPart->number,
@@ -109,7 +110,7 @@ class HomeController extends Controller
                             'pieces_per_hook' => $piecesPerHook,
                             'total_hooks' => ceil($totalQuantity / $piecesPerHook),
                         ];
-                        break; // Salir del bucle una vez encontrado un plan de producción válido
+                        break;
                     }
                 }
             }
@@ -119,12 +120,12 @@ class HomeController extends Controller
 
         // Tasa de Ganchos por Turno
         $cycleTimeSeconds = 16;
-        $hangingRatePerShift = ($effectiveProductionTimePerShift > 0 && $totalHooksUsedPerShift !== null)
+        $hangingRatePerShift = ($effectiveProductionTimePerShift > 0 && $totalHooksUsedPerShift > 0)
             ? round(((($cycleTimeSeconds / 60) * $totalHooksUsedPerShift) / $effectiveProductionTimePerShift) * 100, 2)
             : 0;
 
         // JPH Promedio por Turno
-        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $effectiveProductionTimePerShift > 0)
+        $averageJphPerShift = ($totalHooksUsedPerShift > 0 && $effectiveProductionTimePerShift > 0)
             ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60))
             : 0;
 
@@ -135,8 +136,7 @@ class HomeController extends Controller
 
         $chartData = $productionPlanChart->groupBy('partNumber.number')->map(function ($plans) {
             return [
-                'part_number' => $plans->first()->partNumber->number,
-                'part_name' => $plans->first()->partNumber->name,
+                'part_number' => $plans->first()->partNumber->number ?? 'N/A',
                 'planned_quantity' => $plans->sum('planned_quantity'),
                 'produced_quantity' => $plans->sum('produced_quantity'),
             ];

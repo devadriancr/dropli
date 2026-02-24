@@ -17,3 +17,6 @@ Schedule::command('infor:project')->cron('0 0 * * *');
 
 Schedule::command('infor:part-number')->cron('0 1 */3 * *');
 Schedule::command('infor:next-process')->cron('0 2 */3 * *');
+
+Schedule::command('sync:production-records')->cron('07 8 * * *');
+Schedule::command('sync:production-records')->cron('31 20 * * *');

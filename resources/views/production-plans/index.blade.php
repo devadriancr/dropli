@@ -41,7 +41,7 @@
                 </div>
 
                 <!-- Botón de Sincronizar Todo -->
-                <div>
+                {{-- <div>
                     <form method="POST" action="{{ route('production-plans.sync-all') }}" id="syncAllForm">
                         @csrf
                         <button type="button" class="btn btn-primary rounded-3" id="btn-sync-all">
@@ -49,7 +49,7 @@
                             <span>Sincronizar Todo</span>
                         </button>
                     </form>
-                </div>
+                </div> --}}
             </div>
         </div>
 
