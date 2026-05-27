@@ -12,130 +12,90 @@ class FetchPartNumberNextProcess implements ShouldQueue
 {
     use Queueable;
 
-    public $tries = 3;
+    public $tries   = 3;
     public $timeout = 300;
     public $backoff = 60;
 
-    protected $partNumber;
+    protected array $partNumbers;
 
-    public function __construct(string $partNumber)
+    public function __construct(array $partNumbers)
     {
-        $this->partNumber = trim(Str::ascii($partNumber));
+        $this->partNumbers = array_values(
+            array_unique(
+                array_map(fn($p) => trim(Str::ascii($p)), $partNumbers)
+            )
+        );
     }
 
     public function handle(): void
     {
+        if (empty($this->partNumbers)) {
+            return;
+        }
+
         try {
-            // Buscar relaciones donde el parte actual es PADRE (BPROD)
+            $placeholders = implode(',', array_fill(0, count($this->partNumbers), '?'));
+
+            // Relaciones donde alguno del lote es PADRE
             $sqlAsParent = <<<SQL
             SELECT DISTINCT
                 TRIM(BPROD) AS parent_part,
                 TRIM(BCHLD) AS child_part
             FROM LX834F01.MBM
-            WHERE TRIM(BPROD) = ?
+            WHERE TRIM(BPROD) IN ($placeholders)
             SQL;
 
-            $parentResults = DB::connection('infor-live')->select($sqlAsParent, [$this->partNumber]);
-
-            // Buscar relaciones donde el parte actual es HIJO (BCHLD)
+            // Relaciones donde alguno del lote es HIJO
             $sqlAsChild = <<<SQL
             SELECT DISTINCT
                 TRIM(BPROD) AS parent_part,
                 TRIM(BCHLD) AS child_part
             FROM LX834F01.MBM
-            WHERE TRIM(BCHLD) = ?
+            WHERE TRIM(BCHLD) IN ($placeholders)
             SQL;
 
-            $childResults = DB::connection('infor-live')->select($sqlAsChild, [$this->partNumber]);
+            $parentResults = DB::connection('infor-live')->select($sqlAsParent, $this->partNumbers);
+            $childResults  = DB::connection('infor-live')->select($sqlAsChild,  $this->partNumbers);
 
-            // Combinar resultados
-            $allResults = array_merge($parentResults, $childResults);
-
-            // Si no hay resultados, intentar búsqueda flexible
-            if (empty($allResults)) {
-                $allResults = $this->flexibleSearch();
-            }
-
-            // Procesar y limpiar resultados
-            $processedResults = collect($allResults)
+            $allResults = collect(array_merge($parentResults, $childResults))
                 ->filter(function ($item) {
-                    $parent = $item->parent_part ?? $item->PARENT_PART ?? null;
-                    $child = $item->child_part ?? $item->CHILD_PART ?? null;
-
-                    return !empty(trim((string)$parent)) && !empty(trim((string)$child));
+                    $parent = trim((string) ($item->parent_part ?? ''));
+                    $child  = trim((string) ($item->child_part  ?? ''));
+                    return $parent !== '' && $child !== '';
                 })
-                ->unique(function ($item) {
-                    $parent = $item->parent_part ?? $item->PARENT_PART ?? null;
-                    $child = $item->child_part ?? $item->CHILD_PART ?? null;
-                    return trim((string)$parent) . '::' . trim((string)$child);
-                })
+                ->unique(fn($item) => $item->parent_part . '::' . $item->child_part)
                 ->values();
 
-            if ($processedResults->isNotEmpty()) {
-                logger()->info("MBM Fetch: Relaciones encontradas para {$this->partNumber}", [
-                    'count' => $processedResults->count(),
-                    'relations' => $processedResults->toArray()
-                ]);
-
-                StorePartNumberNextProcess::dispatch($processedResults, $this->partNumber);
-            } else {
-                logger()->warning("MBM Fetch: Sin relaciones encontradas para: {$this->partNumber}");
+            if ($allResults->isEmpty()) {
+                logger()->debug('MBM Fetch: Sin relaciones para el lote', ['count' => count($this->partNumbers)]);
+                return;
             }
+
+            logger()->info('MBM Fetch: Relaciones encontradas para lote', [
+                'parts_in_batch' => count($this->partNumbers),
+                'relations_found' => $allResults->count(),
+            ]);
+
+            StorePartNumberNextProcess::dispatch($allResults);
+
         } catch (Throwable $e) {
             $this->handleQueryError($e);
         }
     }
 
-    protected function flexibleSearch()
-    {
-        $results = [];
-
-        // Búsqueda por coincidencia parcial
-        $likeParam = $this->partNumber . '%';
-
-        $sqlLike = <<<SQL
-        SELECT DISTINCT
-            TRIM(BPROD) AS parent_part,
-            TRIM(BCHLD) AS child_part
-        FROM LX834F01.MBM
-        WHERE TRIM(BPROD) LIKE ? OR TRIM(BCHLD) LIKE ?
-        SQL;
-
-        $likeResults = DB::connection('infor-live')->select($sqlLike, [$likeParam, $likeParam]);
-        $results = array_merge($results, $likeResults);
-
-        // Búsqueda sin espacios ni guiones
-        $cleanPartNumber = str_replace([' ', '-'], '', $this->partNumber);
-        if ($cleanPartNumber !== $this->partNumber) {
-            $sqlClean = <<<SQL
-            SELECT DISTINCT
-                TRIM(BPROD) AS parent_part,
-                TRIM(BCHLD) AS child_part
-            FROM LX834F01.MBM
-            WHERE REPLACE(REPLACE(BPROD, ' ', ''), '-', '') = ?
-               OR REPLACE(REPLACE(BCHLD, ' ', ''), '-', '') = ?
-            SQL;
-
-            $cleanResults = DB::connection('infor-live')->select($sqlClean, [$cleanPartNumber, $cleanPartNumber]);
-            $results = array_merge($results, $cleanResults);
-        }
-
-        return $results;
-    }
-
     protected function handleQueryError(Throwable $e): void
     {
         if (
-            strpos($e->getMessage(), 'SQL0802') !== false ||
-            strpos($e->getMessage(), 'SQL0204') !== false
+            str_contains($e->getMessage(), 'SQL0802') ||
+            str_contains($e->getMessage(), 'SQL0204')
         ) {
-            logger()->debug("MBM Fetch: Part sin proceso siguiente válido: {$this->partNumber}");
+            logger()->debug('MBM Fetch: Error SQL esperado en lote', ['error' => $e->getMessage()]);
             return;
         }
 
-        logger()->error("MBM Fetch: Error para {$this->partNumber}", [
+        logger()->error('MBM Fetch: Error en lote', [
             'error' => $e->getMessage(),
-            'part_number' => $this->partNumber
+            'batch_size' => count($this->partNumbers),
         ]);
 
         $this->release($this->backoff);
@@ -143,9 +103,9 @@ class FetchPartNumberNextProcess implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        logger()->critical("MBM Fetch: Job fallido definitivamente para {$this->partNumber}", [
-            'error' => $exception->getMessage(),
-            'part_number' => $this->partNumber
+        logger()->critical('MBM Fetch: Job fallido definitivamente', [
+            'error'      => $exception->getMessage(),
+            'batch_size' => count($this->partNumbers),
         ]);
     }
 }

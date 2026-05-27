@@ -3,9 +3,9 @@
 namespace App\Jobs;
 
 use App\Models\PartNumber;
-use App\Models\PartNumberSequence;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -13,113 +13,78 @@ class StorePartNumberNextProcess implements ShouldQueue
 {
     use Queueable;
 
-    protected $partNumberSorted;
-    protected $originalPartNumber;
-    protected $syncTimestamp;
+    protected $relations;
 
-    public function __construct($partNumberSorted, string $originalPartNumber = null)
+    public function __construct(Collection $relations)
     {
-        $this->partNumberSorted = $partNumberSorted;
-        $this->originalPartNumber = $originalPartNumber;
-        $this->syncTimestamp = Carbon::now();
+        $this->relations = $relations;
     }
 
     public function handle(): void
     {
-        if ($this->partNumberSorted->isEmpty()) {
-            logger()->info("MBM Store: No hay datos para procesar");
+        if ($this->relations->isEmpty()) {
             return;
         }
 
-        try {
-            // Procesar cada relación individualmente
-            foreach ($this->partNumberSorted as $relation) {
-                $this->processSingleRelation($relation);
+        $now = Carbon::now();
+
+        // Recopilar todos los números de parte únicos del lote en una sola query
+        $allNumbers = $this->relations
+            ->flatMap(fn($r) => [
+                trim((string) ($r->parent_part ?? '')),
+                trim((string) ($r->child_part  ?? '')),
+            ])
+            ->filter(fn($n) => $n !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        $partMap = PartNumber::whereIn('number', $allNumbers)
+            ->select('id', 'number')
+            ->get()
+            ->keyBy('number');
+
+        $rows = [];
+
+        foreach ($this->relations as $relation) {
+            $parentNumber = trim((string) ($relation->parent_part ?? ''));
+            $childNumber  = trim((string) ($relation->child_part  ?? ''));
+
+            $currentPart = $partMap->get($childNumber);
+            $nextPart    = $partMap->get($parentNumber);
+
+            if (!$currentPart || !$nextPart) {
+                logger()->debug('MBM Store: Part no encontrado en DB local', [
+                    'child'  => $childNumber,
+                    'parent' => $parentNumber,
+                ]);
+                continue;
             }
 
-            logger()->info("MBM Store: Procesamiento completado", [
-                'total_relations' => $this->partNumberSorted->count(),
-                'original_part' => $this->originalPartNumber
-            ]);
-
-        } catch (\Exception $e) {
-            logger()->error("MBM Store: Error en procesamiento masivo", [
-                'error' => $e->getMessage(),
-                'original_part' => $this->originalPartNumber
-            ]);
-            throw $e;
+            $rows[] = [
+                'current_part_number_id' => $currentPart->id,
+                'next_part_number_id'    => $nextPart->id,
+                'sequence_order'         => 1,
+                'lead_time_hours'        => null,
+                'is_active'              => true,
+                'last_synced_at'         => $now,
+                'created_at'             => $now,
+                'updated_at'             => $now,
+            ];
         }
-    }
 
-    protected function processSingleRelation($relation): void
-    {
-        $childNumber = isset($relation->child_part)
-            ? trim($relation->child_part)
-            : trim($relation->CHILD_PART ?? '');
-
-        $parentNumber = isset($relation->parent_part)
-            ? trim($relation->parent_part)
-            : trim($relation->PARENT_PART ?? '');
-
-        if (empty($childNumber) || empty($parentNumber)) {
-            logger()->debug("MBM Store: Relación inválida - Child: {$childNumber}, Parent: {$parentNumber}");
+        if (empty($rows)) {
+            logger()->info('MBM Store: Ninguna relación válida en el lote');
             return;
         }
 
-        // Buscar los part numbers en la base de datos local
-        $currentPart = PartNumber::where('number', $childNumber)->first();
-        $nextPart = PartNumber::where('number', $parentNumber)->first();
+        // Un solo upsert para todo el lote - el índice unique_part_sequence maneja duplicados
+        DB::table('part_number_sequences')->upsert(
+            $rows,
+            ['current_part_number_id', 'next_part_number_id'],
+            ['sequence_order', 'is_active', 'last_synced_at', 'updated_at']
+        );
 
-        if (!$currentPart) {
-            logger()->info("MBM Store: Part number hijo no encontrado: {$childNumber}");
-            return;
-        }
-
-        if (!$nextPart) {
-            logger()->info("MBM Store: Part number padre no encontrado: {$parentNumber}");
-            return;
-        }
-
-        // Determinar el orden de secuencia (si el parte original es el padre o el hijo)
-        $sequenceOrder = 1;
-        if ($this->originalPartNumber && $childNumber === $this->originalPartNumber) {
-            // El parte original es el hijo, esta es una relación "siguiente proceso"
-            $sequenceOrder = 1;
-        } elseif ($this->originalPartNumber && $parentNumber === $this->originalPartNumber) {
-            // El parte original es el padre, esta es una relación "proceso anterior"
-            $sequenceOrder = 1;
-        }
-
-        try {
-            DB::transaction(function () use ($currentPart, $nextPart, $sequenceOrder, $childNumber, $parentNumber) {
-                // Crear o actualizar la relación
-                PartNumberSequence::updateOrCreate(
-                    [
-                        'current_part_number_id' => $currentPart->id,
-                        'next_part_number_id' => $nextPart->id
-                    ],
-                    [
-                        'sequence_order' => $sequenceOrder,
-                        'lead_time_hours' => null,
-                        'is_active' => true,
-                        'last_synced_at' => $this->syncTimestamp,
-                        'updated_at' => $this->syncTimestamp,
-                    ]
-                );
-
-                logger()->debug("MBM Store: Relación establecida", [
-                    'child' => $childNumber,
-                    'parent' => $parentNumber,
-                    'sequence_order' => $sequenceOrder
-                ]);
-            });
-
-        } catch (\Exception $e) {
-            logger()->error("MBM Store: Error estableciendo relación", [
-                'error' => $e->getMessage(),
-                'child' => $childNumber,
-                'parent' => $parentNumber
-            ]);
-        }
+        logger()->info('MBM Store: Lote almacenado', ['relations' => count($rows)]);
     }
 }

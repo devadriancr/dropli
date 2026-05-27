@@ -75,42 +75,39 @@ class HomeController extends Controller
         $totalScrap = $scrapRecords->sum('quantity');
 
         // Ganchos
-        $productionRecords = ProductionRecord::with(['partNumber'])
+        $quantityByPartNumber = ProductionRecord::query()
+            ->select('part_number_id')
+            ->selectRaw('SUM(quantity) as total_quantity')
             ->where('record_type', 'entry')
             ->whereBetween('created_at', [$start, $end])
-            ->get();
+            ->groupBy('part_number_id')
+            ->pluck('total_quantity', 'part_number_id');
 
-        $quantityByPartNumber = [];
         $hooksByPartNumber = [];
 
-        foreach ($productionRecords as $record) {
-            $partNumberId = $record->part_number_id;
-            if (!isset($quantityByPartNumber[$partNumberId])) {
-                $quantityByPartNumber[$partNumberId] = 0;
-            }
-            $quantityByPartNumber[$partNumberId] += $record->quantity;
-        }
-
-        foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
-            $partNumber = PartNumber::with(['nextProcesses' => function ($query) {
+        if ($quantityByPartNumber->isNotEmpty()) {
+            $partNumbers = PartNumber::with(['nextProcesses' => function ($query) {
                 $query->where('is_obsolete', false);
-            }])->find($partNumberId);
+            }])->whereIn('id', $quantityByPartNumber->keys())->get()->keyBy('id');
 
-            if (!$partNumber) continue;
+            foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
+                $partNumber = $partNumbers->get($partNumberId);
+                if (!$partNumber) continue;
 
-            foreach ($partNumber->nextProcesses as $nextPart) {
-                $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
+                foreach ($partNumber->nextProcesses as $nextPart) {
+                    $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
 
-                if ($productionPlan) {
-                    $piecesPerHook = $nextPart->getCustomAttributeValue('pieces_per_hook');
-                    if ($piecesPerHook && $piecesPerHook > 0) {
-                        $hooksByPartNumber[$partNumberId] = [
-                            'part_number' => $nextPart->number,
-                            'total_quantity' => $totalQuantity,
-                            'pieces_per_hook' => $piecesPerHook,
-                            'total_hooks' => ceil($totalQuantity / $piecesPerHook),
-                        ];
-                        break;
+                    if ($productionPlan) {
+                        $piecesPerHook = $nextPart->getCustomAttributeValue('pieces_per_hook');
+                        if ($piecesPerHook && $piecesPerHook > 0) {
+                            $hooksByPartNumber[$partNumberId] = [
+                                'part_number' => $nextPart->number,
+                                'total_quantity' => $totalQuantity,
+                                'pieces_per_hook' => $piecesPerHook,
+                                'total_hooks' => ceil($totalQuantity / $piecesPerHook),
+                            ];
+                            break;
+                        }
                     }
                 }
             }
@@ -216,41 +213,40 @@ class HomeController extends Controller
         $totalScrap = $scrapRecords->sum('quantity');
 
         // Ganchos
-        $productionRecords = ProductionRecord::with(['partNumber'])
+        $quantityByPartNumber = ProductionRecord::query()
+            ->select('part_number_id')
+            ->selectRaw('SUM(quantity) as total_quantity')
             ->where('record_type', 'entry')
             ->whereBetween('created_at', [$start, $end])
-            ->get();
+            ->groupBy('part_number_id')
+            ->pluck('total_quantity', 'part_number_id');
 
-        $quantityByPartNumber = [];
         $hooksByPartNumber = [];
 
-        foreach ($productionRecords as $record) {
-            $partNumberId = $record->part_number_id;
-            if (!isset($quantityByPartNumber[$partNumberId])) {
-                $quantityByPartNumber[$partNumberId] = 0;
-            }
-            $quantityByPartNumber[$partNumberId] += $record->quantity;
-        }
-
-        foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
-            $partNumber = PartNumber::with(['nextProcesses' => function ($query) {
+        if ($quantityByPartNumber->isNotEmpty()) {
+            $partNumbers = PartNumber::with(['nextProcesses' => function ($query) {
                 $query->where('is_obsolete', false);
-            }])->find($partNumberId);
+            }])->whereIn('id', $quantityByPartNumber->keys())->get()->keyBy('id');
 
-            foreach ($partNumber->nextProcesses as $nextPart) {
-                $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
+            foreach ($quantityByPartNumber as $partNumberId => $totalQuantity) {
+                $partNumber = $partNumbers->get($partNumberId);
+                if (!$partNumber) continue;
 
-                if ($productionPlan) {
-                    $piecesPerHook = $nextPart->getCustomAttributeValue('pieces_per_hook');
+                foreach ($partNumber->nextProcesses as $nextPart) {
+                    $productionPlan = ProductionPlan::getProductionPlan($nextPart->id, $today, $shift->id);
 
-                    if ($piecesPerHook && $piecesPerHook > 0) {
-                        $hooksByPartNumber[$partNumberId] = [
-                            'part_number' => $nextPart->number,
-                            'total_quantity' => $totalQuantity,
-                            'pieces_per_hook' => $piecesPerHook,
-                            'total_hooks' => ceil($totalQuantity / $piecesPerHook)
-                        ];
-                        break;
+                    if ($productionPlan) {
+                        $piecesPerHook = $nextPart->getCustomAttributeValue('pieces_per_hook');
+
+                        if ($piecesPerHook && $piecesPerHook > 0) {
+                            $hooksByPartNumber[$partNumberId] = [
+                                'part_number' => $nextPart->number,
+                                'total_quantity' => $totalQuantity,
+                                'pieces_per_hook' => $piecesPerHook,
+                                'total_hooks' => ceil($totalQuantity / $piecesPerHook)
+                            ];
+                            break;
+                        }
                     }
                 }
             }
@@ -261,12 +257,12 @@ class HomeController extends Controller
 
         // Tasa de Ganchos por Turno
         $cycleTimeSeconds = 16;
-        $hangingRatePerShift = ($effectiveProductionTimePerShift > 0 && $totalHooksUsedPerShift !== null)
+        $hangingRatePerShift = ($effectiveProductionTimePerShift > 0 && $totalHooksUsedPerShift > 0)
             ? round(((($cycleTimeSeconds / 60) * $totalHooksUsedPerShift) / $effectiveProductionTimePerShift) * 100, 2)
             : 0;
 
         // JPH Promedio por Turno
-        $averageJphPerShift = ($totalHooksUsedPerShift != 0 && $effectiveProductionTimePerShift > 0)
+        $averageJphPerShift = ($totalHooksUsedPerShift > 0 && $effectiveProductionTimePerShift > 0)
             ? round($totalHooksUsedPerShift / ($effectiveProductionTimePerShift / 60))
             : 0;
 
@@ -298,8 +294,39 @@ class HomeController extends Controller
 
         // Procesar registros para la tabla
         $groupedPlans = [];
-        $processedPreviousProcessIds = []; // evitar procesar entradas duplicadas de previous processes
-        $processedExitPartNumbers = []; // evitar procesar salidas múltiples para el mismo part_number
+        $processedPreviousProcessIds = [];
+        $processedExitPartNumbers = [];
+
+        $allPreviousProcessIds = [];
+        $allExitPartNumberIds = [];
+
+        foreach ($productionPlans as $plan) {
+            if ($plan->partNumber->previousProcesses) {
+                foreach ($plan->partNumber->previousProcesses as $pp) {
+                    $allPreviousProcessIds[] = $pp->id;
+                }
+            }
+            $allExitPartNumberIds[] = $plan->part_number_id;
+        }
+
+        $allPreviousProcessIds = array_unique($allPreviousProcessIds);
+        $allExitPartNumberIds = array_unique($allExitPartNumberIds);
+
+        $entryRecords = ProductionRecord::query()
+            ->select(['part_number_id', 'quantity', 'created_at'])
+            ->whereIn('part_number_id', $allPreviousProcessIds)
+            ->where('record_type', 'entry')
+            ->whereBetween('created_at', [$start, $end])
+            ->get()
+            ->groupBy('part_number_id');
+
+        $exitRecords = ProductionRecord::query()
+            ->select(['part_number_id', 'quantity', 'created_at'])
+            ->whereIn('part_number_id', $allExitPartNumberIds)
+            ->where('record_type', 'exit')
+            ->whereBetween('created_at', [$start, $end])
+            ->get()
+            ->groupBy('part_number_id');
 
         foreach ($productionPlans as $plan) {
             $partNumber = $plan->partNumber->number;
@@ -319,12 +346,10 @@ class HomeController extends Controller
                     'total_exits' => 0,
                 ];
             } else {
-                // Si ya existe registro para este part_number, sumar cantidades del plan
                 $groupedPlans[$partNumber]['planned_quantity'] += $plan->planned_quantity;
                 $groupedPlans[$partNumber]['produced_quantity'] += $plan->produced_quantity;
             }
 
-            // Procesar entradas (previousProcesses) evitando duplicados
             $previousProcesses = $plan->partNumber->previousProcesses;
             if ($previousProcesses) {
                 foreach ($previousProcesses as $previousProcess) {
@@ -334,11 +359,7 @@ class HomeController extends Controller
                     }
                     $processedPreviousProcessIds[] = $prevId;
 
-                    $data = ProductionRecord::query()
-                        ->where('part_number_id', $previousProcess->id)
-                        ->where('record_type', 'entry')
-                        ->whereBetween('created_at', [$start, $end])
-                        ->get();
+                    $data = $entryRecords->get($prevId, collect());
 
                     foreach ($data as $record) {
                         $createdAt = Carbon::parse($record->created_at);
@@ -350,17 +371,12 @@ class HomeController extends Controller
                 }
             }
 
-            // Procesar salidas SOLO UNA VEZ por part_number para evitar duplicados
             if (!in_array($plan->part_number_id, $processedExitPartNumbers)) {
                 $processedExitPartNumbers[] = $plan->part_number_id;
 
-                $exitRecords = ProductionRecord::query()
-                    ->where('part_number_id', $plan->part_number_id)
-                    ->where('record_type', 'exit')
-                    ->whereBetween('created_at', [$start, $end])
-                    ->get();
+                $planExitRecords = $exitRecords->get($plan->part_number_id, collect());
 
-                foreach ($exitRecords as $record) {
+                foreach ($planExitRecords as $record) {
                     $createdAt = Carbon::parse($record->created_at);
                     $hourKey = $createdAt->format('H:00');
                     if (in_array($hourKey, $timeHeaders)) {
@@ -372,7 +388,8 @@ class HomeController extends Controller
         }
 
         // También necesitamos incluir registros que no tengan production_plan
-        $additionalProductionRecords = ProductionRecord::with(['partNumber'])
+        $additionalProductionRecords = ProductionRecord::with(['partNumber.workCenter.area', 'partNumber.standardPack', 'partNumber.projects'])
+            ->select(['id', 'order_number', 'part_number_id', 'quantity', 'created_at'])
             ->where('record_type', 'entry')
             ->whereBetween('created_at', [$start, $end])
             ->whereDoesntHave('productionPlan')
