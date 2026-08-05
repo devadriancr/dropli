@@ -82,8 +82,10 @@ class ProcessProductionRecords implements ShouldQueue
         YF013::executeInforProcess();
 
         if (!empty($syncedDataForReport)) {
-            Notification::route('mail', 'paint-notifications@ykm.com')
-                ->notify(new ProductionSyncSummary($syncedDataForReport));
+            Notification::route('mail', [
+                'paint-notifications@ykm.com',
+                'jesus.camacho@ykm.com.mx',
+            ])->notify(new ProductionSyncSummary($syncedDataForReport));
         }
 
         Log::info("Sincronización terminada. Éxitos: $successCount, Errores: $errorCount");

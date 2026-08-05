@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l app/Jobs/GetPartNumberNextProcessJob.php)",
+      "Bash(php -l app/Jobs/FetchPartNumberNextProcess.php)",
+      "Bash(php -l app/Jobs/StorePartNumberNextProcess.php)",
+      "Bash(php -l app/Livewire/ProductionRecord/PaintProductionRecord.php)",
+      "Bash(php -l app/Events/ProductionRecord/MaterialEntryRegistered.php)",
+      "Bash(php -l app/Events/ProductionRecord/MaterialExitRegistered.php)"
+    ]
+  }
+}

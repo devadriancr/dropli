@@ -54,10 +54,6 @@ class StorePartNumberNextProcess implements ShouldQueue
             $nextPart    = $partMap->get($parentNumber);
 
             if (!$currentPart || !$nextPart) {
-                logger()->debug('MBM Store: Part no encontrado en DB local', [
-                    'child'  => $childNumber,
-                    'parent' => $parentNumber,
-                ]);
                 continue;
             }
 
@@ -74,7 +70,6 @@ class StorePartNumberNextProcess implements ShouldQueue
         }
 
         if (empty($rows)) {
-            logger()->info('MBM Store: Ninguna relación válida en el lote');
             return;
         }
 
@@ -84,7 +79,5 @@ class StorePartNumberNextProcess implements ShouldQueue
             ['current_part_number_id', 'next_part_number_id'],
             ['sequence_order', 'is_active', 'last_synced_at', 'updated_at']
         );
-
-        logger()->info('MBM Store: Lote almacenado', ['relations' => count($rows)]);
     }
 }

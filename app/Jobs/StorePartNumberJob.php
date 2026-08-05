@@ -53,7 +53,7 @@ class StorePartNumberJob implements ShouldQueue
                 'name' => $this->partName,
                 'item_class_id' => $itemClass->id,
                 'standard_pack_id' => $standardPack ? $standardPack->id : null,
-                 'standard_pack_quantity' => $this->quantityStandardPack ?? null,
+                'standard_pack_quantity' => $this->quantityStandardPack ?? null,
                 'is_obsolete' => ($this->isObsolete == "OBSOLETE") ? true : false,
             ]);
         } else {

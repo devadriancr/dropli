@@ -55,7 +55,7 @@ class PaintProductionRecord extends Component
                 'partNumber.workCenter',
                 'partNumber.standardPack',
                 'partNumber.projects',
-                'partNumber.nextProcesses',
+                'partNumber.previousProcesses.workCenter.area',
                 'productionRecords'
             ])
             ->where('shift_id', $this->shift->id)

@@ -15,11 +15,6 @@ class GetPartNumberNextProcessJob implements ShouldQueue
 
     public function handle(): void
     {
-        $startTime = now();
-        logger()->info("MBM Sync: Iniciando sincronización masiva de relaciones");
-
-        $totalParts = 0;
-
         PartNumber::query()
             ->select('part_numbers.number', 'part_numbers.id')
             ->where('is_obsolete', false)
@@ -31,17 +26,9 @@ class GetPartNumberNextProcessJob implements ShouldQueue
                     ->where('last_synced_at', '>=', now()->subHours(20));
             })
             ->orderBy('part_numbers.number', 'asc')
-            ->chunk(200, function ($partNumbers) use (&$totalParts) {
+            ->chunk(200, function ($partNumbers) {
                 $numbers = $partNumbers->pluck('number')->all();
                 FetchPartNumberNextProcess::dispatch($numbers)->onQueue('infor-sync');
-                $totalParts += count($numbers);
             });
-
-        $duration = now()->diffInSeconds($startTime);
-
-        logger()->info("MBM Sync: Sincronización masiva completada", [
-            'total_parts_dispatched' => $totalParts,
-            'duracion_segundos' => $duration
-        ]);
     }
 }

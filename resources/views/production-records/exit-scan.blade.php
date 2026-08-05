@@ -200,12 +200,6 @@
                 loadingOverlay.classList.add('flex');
             }
 
-            // Función para ocultar loading
-            function hideLoading() {
-                loadingOverlay.classList.add('hidden');
-                loadingOverlay.classList.remove('flex');
-            }
-
             // Función para mostrar loading en el botón de guardar
             function showSaveLoading() {
                 saveText.classList.add('hidden');
@@ -231,55 +225,47 @@
 
             // Función para procesar el código escaneado
             function processCode(code) {
-                showLoading(); // Mostrar loading al procesar el código
+                let orderNumber, sequence, quantity;
 
-                // Simular un pequeño delay para el procesamiento
-                setTimeout(() => {
-                    let orderNumber, sequence, quantity;
+                // Detectar el formato basado en la longitud del código
+                if (code.length === 20) {
+                    orderNumber = code.substring(0, 8);
+                    sequence = code.substring(8, 14);
+                    quantity = code.substring(14, 20);
+                } else if (code.length >= 30) {
+                    orderNumber = code.substring(0, 7);
+                    sequence = code.substring(7, 10);
+                    quantity = code.substring(20, 26);
+                } else {
+                    alert('Formato de código no reconocido. Debe tener 20 caracteres o el nuevo formato.');
+                    return;
+                }
 
-                    // Detectar el formato basado en la longitud del código
-                    if (code.length === 20) {
-                        orderNumber = code.substring(0, 8);
-                        sequence = code.substring(8, 14);
-                        quantity = code.substring(14, 20);
-                    } else if (code.length >= 30) {
-                        orderNumber = code.substring(0, 7);
-                        sequence = code.substring(7, 10);
-                        quantity = code.substring(20, 26);
-                    } else {
-                        hideLoading();
-                        alert('Formato de código no reconocido. Debe tener 20 caracteres o el nuevo formato.');
-                        return;
-                    }
+                // Convertir cantidad a número y remover ceros a la izquierda
+                const quantityNumber = parseInt(quantity, 10);
 
-                    // Convertir cantidad a número y remover ceros a la izquierda
-                    const quantityNumber = parseInt(quantity, 10);
+                // Validar que los datos extraídos sean válidos
+                if (!orderNumber || !sequence || isNaN(quantityNumber)) {
+                    alert('Error al procesar el código. Verifique el formato.');
+                    return;
+                }
 
-                    // Validar que los datos extraídos sean válidos
-                    if (!orderNumber || !sequence || isNaN(quantityNumber)) {
-                        hideLoading();
-                        alert('Error al procesar el código. Verifique el formato.');
-                        return;
-                    }
+                // Llenar la información en el modal
+                orderNumberEl.textContent = orderNumber;
+                sequenceEl.textContent = sequence;
+                quantityInput.value = quantityNumber;
 
-                    // Llenar la información en el modal
-                    orderNumberEl.textContent = orderNumber;
-                    sequenceEl.textContent = sequence;
-                    quantityInput.value = quantityNumber;
+                // Llenar campos ocultos
+                hiddenOrderNumber.value = orderNumber;
+                hiddenSequence.value = sequence;
+                hiddenexitCode.value = code;
 
-                    // Llenar campos ocultos
-                    hiddenOrderNumber.value = orderNumber;
-                    hiddenSequence.value = sequence;
-                    hiddenexitCode.value = code;
+                // Mostrar modal
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
 
-                    // Ocultar loading y mostrar modal
-                    hideLoading();
-                    modal.classList.remove('hidden');
-                    modal.classList.add('flex');
-
-                    // Focus en el input de cantidad
-                    setTimeout(() => quantityInput.focus(), 100);
-                }, 500); // Pequeño delay para que se vea el loading
+                // Focus en el input de cantidad
+                setTimeout(() => quantityInput.focus(), 100);
             }
 
             // Event listeners
@@ -342,15 +328,6 @@
             // También mostrar loading si se envía el formulario principal directamente
             document.getElementById('scanForm').addEventListener('submit', () => {
                 showLoading();
-            });
-
-            // DEBUG: Para verificar que los datos se envían correctamente
-            confirmForm.addEventListener('submit', function(e) {
-                console.log('Datos a enviar:');
-                console.log('orderNumber:', hiddenOrderNumber.value);
-                console.log('sequence:', hiddenSequence.value);
-                console.log('exitCode:', hiddenexitCode.value);
-                console.log('quantity:', quantityInput.value);
             });
         });
     </script>

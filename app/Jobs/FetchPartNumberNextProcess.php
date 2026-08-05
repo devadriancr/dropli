@@ -36,28 +36,20 @@ class FetchPartNumberNextProcess implements ShouldQueue
         try {
             $placeholders = implode(',', array_fill(0, count($this->partNumbers), '?'));
 
-            // Relaciones donde alguno del lote es PADRE
-            $sqlAsParent = <<<SQL
+            // Relaciones donde alguno del lote es PADRE u HIJO (una sola consulta, un solo escaneo)
+            $sql = <<<SQL
             SELECT DISTINCT
                 TRIM(BPROD) AS parent_part,
                 TRIM(BCHLD) AS child_part
             FROM LX834F01.MBM
             WHERE TRIM(BPROD) IN ($placeholders)
+               OR TRIM(BCHLD) IN ($placeholders)
             SQL;
 
-            // Relaciones donde alguno del lote es HIJO
-            $sqlAsChild = <<<SQL
-            SELECT DISTINCT
-                TRIM(BPROD) AS parent_part,
-                TRIM(BCHLD) AS child_part
-            FROM LX834F01.MBM
-            WHERE TRIM(BCHLD) IN ($placeholders)
-            SQL;
+            $params = array_merge($this->partNumbers, $this->partNumbers);
+            $results = DB::connection('infor-live')->select($sql, $params);
 
-            $parentResults = DB::connection('infor-live')->select($sqlAsParent, $this->partNumbers);
-            $childResults  = DB::connection('infor-live')->select($sqlAsChild,  $this->partNumbers);
-
-            $allResults = collect(array_merge($parentResults, $childResults))
+            $allResults = collect($results)
                 ->filter(function ($item) {
                     $parent = trim((string) ($item->parent_part ?? ''));
                     $child  = trim((string) ($item->child_part  ?? ''));
@@ -67,14 +59,8 @@ class FetchPartNumberNextProcess implements ShouldQueue
                 ->values();
 
             if ($allResults->isEmpty()) {
-                logger()->debug('MBM Fetch: Sin relaciones para el lote', ['count' => count($this->partNumbers)]);
                 return;
             }
-
-            logger()->info('MBM Fetch: Relaciones encontradas para lote', [
-                'parts_in_batch' => count($this->partNumbers),
-                'relations_found' => $allResults->count(),
-            ]);
 
             StorePartNumberNextProcess::dispatch($allResults);
 
@@ -89,11 +75,11 @@ class FetchPartNumberNextProcess implements ShouldQueue
             str_contains($e->getMessage(), 'SQL0802') ||
             str_contains($e->getMessage(), 'SQL0204')
         ) {
-            logger()->debug('MBM Fetch: Error SQL esperado en lote', ['error' => $e->getMessage()]);
+            logger()->debug('Error SQL esperado al sincronizar relaciones de partes en lote', ['error' => $e->getMessage()]);
             return;
         }
 
-        logger()->error('MBM Fetch: Error en lote', [
+        logger()->error('Error al sincronizar relaciones de partes en lote', [
             'error' => $e->getMessage(),
             'batch_size' => count($this->partNumbers),
         ]);
@@ -103,7 +89,7 @@ class FetchPartNumberNextProcess implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        logger()->critical('MBM Fetch: Job fallido definitivamente', [
+        logger()->critical('Job de sincronización de relaciones de partes falló definitivamente', [
             'error'      => $exception->getMessage(),
             'batch_size' => count($this->partNumbers),
         ]);
