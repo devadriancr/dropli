@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class GetProductionPlanJob implements ShouldQueue
 {
@@ -51,6 +52,7 @@ class GetProductionPlanJob implements ShouldQueue
             ->get();
 
         foreach ($productionPlans as $productionPlan) {
+            Log::info("Dispatching StoreProductionPlanJob for shop order: " . $productionPlan->shop_order_number . ", part number: " . $productionPlan->PART_NUMBER . ", planned date: " . $productionPlan->PLANNED_DATE . ", shift: " . $productionPlan->PLANNED_SHIFT . ", planned quantity: " . $productionPlan->planned_quantity);
             StoreProductionPlanJob::dispatch(
                 $productionPlan->shop_order_number,
                 $productionPlan->PART_NUMBER,

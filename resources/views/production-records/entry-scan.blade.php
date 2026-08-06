@@ -1,8 +1,24 @@
 <x-guest-layout>
     <div class="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
         <div class="w-full max-w-4xl flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-            <h1 class="text-3xl font-bold text-gray-900 text-center sm:text-left">Entrada de Material</h1>
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 text-center sm:text-left">Entrada de Material</h1>
+            </div>
             <div class="flex flex-wrap gap-2 justify-center">
+                <a href="{{ route('production-records.summary') }}"
+                    class="inline-flex items-center gap-2 px-4 py-3 text-gray-900 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                    </svg>
+                    Inicio
+                </a>
                 <a href="{{ route('production-records.part-number-entry', ['origin' => url()->current()]) }}"
                     class="inline-flex items-center gap-2 px-4 py-3 text-gray-900 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -14,7 +30,7 @@
         </div>
 
         <div class="w-full max-w-4xl bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="p-8">
+            <div class="p-6 sm:p-8">
                 <form method="POST" action="{{ route('production-records.store-entry') }}" id="scanForm">
                     @csrf
                     <label for="entryCode" class="block text-lg font-medium text-gray-700 mb-3">Escanea etiqueta</label>
@@ -28,30 +44,29 @@
                         </button>
                     </div>
 
-                    @if (session('success'))
-                        <div class="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">{{ session('success') }}</div>
-                    @endif
-                    @if (session('error'))
-                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">{{ session('error') }}</div>
-                    @endif
-                    @if (session('warning'))
-                        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg">{{ session('warning') }}</div>
-                    @endif
+                    @include('production-records.partials.flash-messages')
                 </form>
             </div>
         </div>
     </div>
 
     <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-40 hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full transform transition-all">
-            <div class="border-b border-gray-200 px-8 py-6">
-                <h3 class="text-2xl font-semibold text-gray-900">Confirmar Información</h3>
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full transform transition-all">
+            <div class="px-8 pt-8 pb-2 text-center">
+                <div class="mx-auto mb-4 w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900">Confirmar Información</h3>
             </div>
-            <div class="px-8 py-8">
+            <div class="px-8 pb-8 pt-2">
                 <form method="POST" action="{{ route('production-records.store-entry') }}" id="confirmForm">
                     @csrf
                     <div class="space-y-6 mb-8">
-                        <div class="grid grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div class="bg-gray-100 p-5 rounded-lg">
                                 <label class="block text-sm font-medium text-gray-600 mb-2">Número de Orden</label>
                                 <p class="text-2xl font-bold text-gray-900" id="orderNumber"></p>
@@ -73,7 +88,7 @@
                     <input type="hidden" name="entryCode" id="hiddenentryCode">
                     <div class="flex gap-4 pt-4">
                         <button type="button" id="cancelBtn" class="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-lg transition-colors">Cancelar</button>
-                        <button type="submit" id="saveBtn" class="flex-1 px-6 py-4 bg-gray-700 hover:bg-gray-800 text-white rounded-lg font-medium text-lg transition-colors flex items-center justify-center">
+                        <button type="submit" id="saveBtn" class="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-lg transition-colors flex items-center justify-center">
                             <span id="saveText">Guardar</span>
                             <div id="saveSpinner" class="hidden ml-2">
                                 <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>

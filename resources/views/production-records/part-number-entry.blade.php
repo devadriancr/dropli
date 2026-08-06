@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
         <!-- Header -->
-        <div class="w-full max-w-3xl flex justify-between items-center mb-2">
+        <div class="w-full max-w-3xl flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
             @php
                 $origin = session('part_number_entry_origin');
                 $isEntry = true; // Por defecto entrada
@@ -10,11 +10,29 @@
                 }
                 $title = $isEntry ? 'Entrada de Material - Captura Manual' : 'Salida de Material - Captura Manual';
                 $backRoute = $origin ?: route('production-records.entry-scan');
+                $accentBg = $isEntry ? 'bg-blue-100' : 'bg-green-100';
+                $accentText = $isEntry ? 'text-blue-600' : 'text-green-600';
+                $accentBtn = $isEntry ? 'bg-blue-600 hover:bg-blue-700' : 'bg-green-600 hover:bg-green-700';
             @endphp
 
-            <h1 class="text-3xl font-bold text-gray-900">{{ $title }}</h1>
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full {{ $accentBg }} flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 {{ $accentText }}" viewBox="0 0 20 20" fill="currentColor">
+                        @if ($isEntry)
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                                clip-rule="evenodd" />
+                        @else
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z"
+                                clip-rule="evenodd" transform="rotate(180 10 10)" />
+                        @endif
+                    </svg>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 text-center sm:text-left">{{ $title }}</h1>
+            </div>
             <a href="{{ $backRoute }}"
-                class="inline-flex items-center justify-center gap-2 w-full max-w-[200px] py-2 text-white bg-gray-700 hover:bg-gray-800 rounded-lg text-sm transition-colors">
+                class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-2.5 text-white bg-gray-700 hover:bg-gray-800 rounded-lg text-sm transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                     stroke="currentColor" class="w-5 h-5">
                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -26,7 +44,7 @@
 
         <!-- Card principal -->
         <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="p-8">
+            <div class="p-6 sm:p-8">
                 <form method="POST" action="{{ route('production-records.store-part-number') }}" id="scanForm">
                     @csrf
 
@@ -41,6 +59,7 @@
                                     <option value="">Seleccione un número de parte</option>
                                     @foreach ($partNumbers as $part)
                                         <option value="{{ $part->number }}"
+                                            data-standard-pack="{{ $part->standard_pack_quantity }}"
                                             {{ old('partNumber') == $part->number ? 'selected' : '' }}>
                                             {{ $part->number }}
                                         </option>
@@ -65,7 +84,7 @@
                     <!-- Botón de envío -->
                     <div class="mt-8">
                         <button type="submit" id="submitBtn"
-                            class="w-full px-6 py-4 text-white bg-gray-700 hover:bg-gray-800 rounded-lg font-medium text-lg transition-colors flex items-center justify-center">
+                            class="w-full px-6 py-4 text-white {{ $accentBtn }} rounded-lg font-medium text-lg transition-colors flex items-center justify-center">
                             <span id="submitText">Registrar</span>
                             <div id="submitSpinner" class="hidden ml-2">
                                 <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -73,34 +92,7 @@
                         </button>
                     </div>
 
-                    {{-- Mensajes flash --}}
-                    @if (session('success'))
-                        <div class="mt-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-base">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    @if (session('error'))
-                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-
-                    @if (session('warning'))
-                        <div
-                            class="mt-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg text-base">
-                            {{ session('warning') }}
-                        </div>
-                    @endif
-
-                    {{-- Errores de validación --}}
-                    @if ($errors->any())
-                        <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-base">
-                            @foreach ($errors->all() as $error)
-                                <div>{{ $error }}</div>
-                            @endforeach
-                        </div>
-                    @endif
+                    @include('production-records.partials.flash-messages')
                 </form>
             </div>
         </div>
@@ -127,6 +119,45 @@
         </div>
     </div>
 
+    <!-- Modal de advertencia: cantidad inusualmente alta -->
+    <div id="highQuantityModal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div class="p-8 text-center">
+                <div class="mx-auto mb-4 w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-amber-600" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
+
+                <h2 class="text-xl font-bold text-gray-900 mb-2">Cantidad Inusualmente Alta</h2>
+                <p class="text-sm text-gray-500 mb-5">
+                    Verifica que la cantidad capturada sea correcta antes de continuar.
+                </p>
+
+                <div class="text-5xl font-extrabold text-amber-600 mb-3" id="highQuantityValue">0</div>
+
+                <p class="text-sm text-gray-600 mb-8">
+                    Esta cantidad supera <span class="font-semibold">5 veces</span> el standard pack
+                    (<span id="highQuantityStandard" class="font-semibold">0</span> pzas) del número de parte
+                    seleccionado.
+                </p>
+
+                <div class="flex gap-3">
+                    <button type="button" id="highQuantityCancel"
+                        class="flex-1 px-4 py-3 rounded-lg font-medium border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="button" id="highQuantityConfirm"
+                        class="flex-1 px-4 py-3 rounded-lg font-medium bg-amber-600 text-white hover:bg-amber-700 transition-colors">
+                        Sí, registrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- CDN Resources -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -140,6 +171,17 @@
             const submitSpinner = document.getElementById('submitSpinner');
             const loadingOverlay = document.getElementById('loadingOverlay');
             const scanForm = document.getElementById('scanForm');
+            const partNumberSelect = document.getElementById('partNumber');
+            const quantityInput = document.getElementById('quantity');
+
+            // Elementos del modal de advertencia por cantidad alta
+            const highQuantityModal = document.getElementById('highQuantityModal');
+            const highQuantityValue = document.getElementById('highQuantityValue');
+            const highQuantityStandard = document.getElementById('highQuantityStandard');
+            const highQuantityCancel = document.getElementById('highQuantityCancel');
+            const highQuantityConfirm = document.getElementById('highQuantityConfirm');
+            const HIGH_QUANTITY_MULTIPLIER = 5;
+            let bypassHighQuantityCheck = false;
 
             // Función para mostrar loading
             function showLoading() {
@@ -166,6 +208,37 @@
                 submitSpinner.classList.add('hidden');
                 submitBtn.disabled = false;
             }
+
+            // Standard pack del número de parte actualmente seleccionado
+            function getSelectedStandardPack() {
+                const option = partNumberSelect.options[partNumberSelect.selectedIndex];
+                const value = option ? parseInt(option.getAttribute('data-standard-pack'), 10) : NaN;
+                return Number.isFinite(value) && value > 0 ? value : null;
+            }
+
+            function openHighQuantityModal(quantity, standardPack) {
+                highQuantityValue.textContent = quantity.toLocaleString('es-MX');
+                highQuantityStandard.textContent = standardPack.toLocaleString('es-MX');
+                highQuantityModal.classList.remove('hidden');
+                highQuantityModal.classList.add('flex');
+            }
+
+            function closeHighQuantityModal() {
+                highQuantityModal.classList.add('hidden');
+                highQuantityModal.classList.remove('flex');
+            }
+
+            highQuantityCancel.addEventListener('click', function() {
+                closeHighQuantityModal();
+                quantityInput.focus();
+                quantityInput.select();
+            });
+
+            highQuantityConfirm.addEventListener('click', function() {
+                bypassHighQuantityCheck = true;
+                closeHighQuantityModal();
+                submitBtn.click();
+            });
 
             // Inicializar Select2 para el número de parte
             $('#partNumber').select2({
@@ -198,10 +271,7 @@
             $('#quantity').on('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    // Mostrar loading antes de enviar
-                    showSubmitLoading();
-                    showLoading();
-                    $('#scanForm').submit();
+                    submitBtn.click();
                 }
             });
 
@@ -221,26 +291,18 @@
             });
 
             // Manejar el envío del formulario
-            scanForm.addEventListener('submit', function(e) {
-                // Mostrar loading en el botón y overlay general
-                showSubmitLoading();
-                showLoading();
+            $('#scanForm').on('submit', function(e) {
+                const quantity = parseInt(quantityInput.value, 10);
+                const standardPack = getSelectedStandardPack();
 
-                // Opcional: prevenir envío duplicado
-                let formSubmitted = false;
-
-                if (!formSubmitted) {
-                    formSubmitted = true;
-                    // Permitir que el formulario se envíe normalmente
-                    return true;
-                } else {
+                if (!bypassHighQuantityCheck && standardPack && Number.isFinite(quantity) &&
+                    quantity > standardPack * HIGH_QUANTITY_MULTIPLIER) {
                     e.preventDefault();
+                    openHighQuantityModal(quantity, standardPack);
                     return false;
                 }
-            });
 
-            // También manejar el evento submit con jQuery para mayor compatibilidad
-            $('#scanForm').on('submit', function() {
+                bypassHighQuantityCheck = false;
                 showSubmitLoading();
                 showLoading();
             });

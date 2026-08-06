@@ -14,6 +14,8 @@ class PaintProductionRecord extends Component
     public $records = [];
     public $timeHeaders = [];
     public $shift;
+    public $shiftId;
+    public $shifts = [];
     public $date;
     public bool $realTime = false;
 
@@ -25,17 +27,32 @@ class PaintProductionRecord extends Component
     public function mount($realTime = false)
     {
         $this->realTime = $realTime;
+        $this->shifts = Shift::all();
+
+        // Turno y fecha planeada actuales como valores por defecto
+        $currentShift = Shift::getShift();
+        $this->shiftId = $currentShift?->id;
+        $this->date = Shift::getPlannedDate();
+
+        $this->fetchData();
+    }
+
+    public function updatedDate()
+    {
+        $this->fetchData();
+    }
+
+    public function updatedShiftId()
+    {
         $this->fetchData();
     }
 
     #[On('refresh-production-records')]
     public function fetchData()
     {
-        // Obtener el turno actual y fecha planeada
-        $this->shift = Shift::getShift();
-        $this->date = Shift::getPlannedDate();
+        $this->shift = $this->shiftId ? Shift::find($this->shiftId) : null;
 
-        if (!$this->shift) {
+        if (!$this->shift || !$this->date) {
             return;
         }
 
@@ -62,6 +79,9 @@ class PaintProductionRecord extends Component
             ->whereDate('planned_date', $this->date)
             ->whereHas('partNumber.workCenter.area', function ($query) {
                 $query->where('name', 'PAINT');
+            })
+            ->whereDoesntHave('partNumber.projects', function ($query) {
+                $query->where('model', '3Y');
             })
             ->orderBy('part_number_id', 'asc')
             ->get();

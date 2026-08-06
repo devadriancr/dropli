@@ -226,6 +226,9 @@ class ProductionRecordController extends Controller
             $workCenterIds = Auth::user()->workCenters->pluck('id');
             $partNumbers = PartNumber::whereIn('work_center_id', $workCenterIds)
                 ->where('is_obsolete', false)
+                ->whereDoesntHave('projects', function ($query) {
+                    $query->where('model', '3Y');
+                })
                 ->orderBy('number')
                 ->get();
         } else {
@@ -234,6 +237,9 @@ class ProductionRecordController extends Controller
                     $query->where('name', 'PAINT');
                 })
                 ->where('is_obsolete', false)
+                ->whereDoesntHave('projects', function ($query) {
+                    $query->where('model', '3Y');
+                })
                 ->orderBy('number')
                 ->get();
         }

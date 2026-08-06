@@ -58,6 +58,9 @@ class SyncProductionRecords implements ShouldQueue
                 ->whereHas('status', function ($q) {
                     $q->where('key', 'in_progress');
                 })
+                ->whereDoesntHave('partNumber.projects', function ($q) {
+                    $q->where('model', '3Y');
+                })
                 ->where('planned_date', '>=', $startPlannedDate)
                 ->where(function ($query) use ($endPlannedDate, $allowedShiftIdsForEndDate) {
                     $query->where('planned_date', '<', $endPlannedDate)

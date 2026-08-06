@@ -6,7 +6,29 @@
       "Bash(php -l app/Jobs/StorePartNumberNextProcess.php)",
       "Bash(php -l app/Livewire/ProductionRecord/PaintProductionRecord.php)",
       "Bash(php -l app/Events/ProductionRecord/MaterialEntryRegistered.php)",
-      "Bash(php -l app/Events/ProductionRecord/MaterialExitRegistered.php)"
+      "Bash(php -l app/Events/ProductionRecord/MaterialExitRegistered.php)",
+      "Bash(php artisan *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8123/production-records-summary)",
+      "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%artisan serve%port=8123%'\\\\\" | Select-Object ProcessId,CommandLine\")",
+      "Bash(powershell -NoProfile -Command \"Stop-Process -Id 16604 -Force\")",
+      "Bash(chromium-cli --help)",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Bash(npm ls *)",
+      "Bash(where chrome.exe)",
+      "Bash(where msedge.exe)",
+      "Bash(powershell -NoProfile -Command \"Get-Command chrome -ErrorAction SilentlyContinue; Get-ItemProperty 'HKLM:\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\chrome.exe' -ErrorAction SilentlyContinue | Select -ExpandProperty '\\(default\\)'; Get-ItemProperty 'HKLM:\\\\SOFTWARE\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\App Paths\\\\msedge.exe' -ErrorAction SilentlyContinue | Select -ExpandProperty '\\(default\\)'\")",
+      "Bash(node shot.js)",
+      "Bash(node shot2.js)",
+      "Bash(node shot3.js)",
+      "Bash(node shot4.js)",
+      "Bash(powershell -NoProfile -Command 'Get-CimInstance Win32_Process -Filter \"CommandLine LIKE '\\\\''%artisan serve%port=8321%'\\\\''\" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }')",
+      "Bash(powershell -NoProfile -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%artisan serve%port=8321%'\\\\\" | Select-Object ProcessId,CommandLine\")",
+      "Bash(powershell -NoProfile -Command \"Get-Process php -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,StartTime\")",
+      "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 8321 -ErrorAction SilentlyContinue | Select-Object LocalPort,OwningProcess\")",
+      "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 8321,8323 -ErrorAction SilentlyContinue | Select LocalPort,OwningProcess\")",
+      "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 8524 -ErrorAction SilentlyContinue\")",
+      "Bash(php -l app/Http/Controllers/ProductionRecordController.php)",
+      "Bash(php -l app/Jobs/SyncProductionRecords.php)"
     ]
   }
 }
