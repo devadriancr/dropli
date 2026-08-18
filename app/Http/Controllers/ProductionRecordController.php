@@ -14,6 +14,7 @@ use App\Models\ProductionPlan;
 use App\Models\ProductionRecord;
 use App\Models\Shift;
 use App\Models\Status;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -390,5 +391,233 @@ class ProductionRecordController extends Controller
         }
 
         return $redirect->with('success', 'Etiqueta registrada correctamente');
+    }
+
+    /**
+     * Validate production plans finished and synced to Infor against the
+     * FSO (shop orders) and ITH (production transactions) tables in Infor LX.
+     *
+     * Matching rules (confirmed with the business):
+     * - SQREQ (FSO) = planned_quantity, or produced_quantity when planned_quantity is 0.
+     * - SOCNO (FSO) = MMDD of the planned date + shift abbreviation, e.g. "0813N",
+     *   EXCEPT when the plan has no shop_order_number: those are created manually
+     *   in Infor and SOCNO is just the shift abbreviation (e.g. "D"), with no SORD filter.
+     * - ITH is looked up by TREF = the known shop_order_number, or the SORD found
+     *   in FSO when the plan had no shop_order_number of its own.
+     */
+    public function inforValidation(Request $request): View
+    {
+        $validated = $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+        ]);
+
+        $startDate = $validated['start_date'] ?? null;
+        $endDate = $validated['end_date'] ?? null;
+
+        $records = null;
+        $summary = null;
+        $inforError = null;
+
+        if ($startDate && $endDate) {
+            $productionPlans = ProductionPlan::with(['partNumber.workCenter', 'shift', 'status'])
+                // ->where('produced_quantity', '>', 0)
+                // ->where('synced_to_infor', true)
+                // ->whereHas('status', function ($q) {
+                //     $q->where('key', 'completed');
+                // })
+                ->whereHas('partNumber.workCenter.area', function ($q) {
+                    $q->where('name', 'PAINT');
+                })
+                ->whereBetween('planned_date', [$startDate, $endDate])
+                ->orderBy('planned_date')
+                ->orderBy('shift_id')
+                ->get();
+
+            $fsoByOrder = collect();
+            $fsoWithoutOrder = collect();
+            $ithByKey = collect();
+
+            if ($productionPlans->isNotEmpty()) {
+                try {
+                    $startInforDate = Carbon::parse($startDate)->format('Ymd');
+                    $endInforDate = Carbon::parse($endDate)->format('Ymd');
+
+                    // DB2/AS400 folds unquoted column aliases to UPPERCASE, so we
+                    // normalize every returned row to an array with lowercase keys
+                    // instead of relying on a specific casing for the properties.
+                    $normalizeRow = fn ($row) => array_change_key_case((array) $row, CASE_LOWER);
+
+                    $fsoRows = DB::connection('infor-live')
+                        ->table('LX834F01.FSO')
+                        ->selectRaw('SORD, TRIM(SPROD) AS SPROD, SRDTE, TRIM(SOCNO) AS SOCNO, SQREQ, SQFIN')
+                        ->whereBetween('SRDTE', [$startInforDate, $endInforDate])
+                        ->get()
+                        ->map($normalizeRow);
+
+                    $ithRows = DB::connection('infor-live')
+                        ->table('LX834F01.ITH')
+                        ->selectRaw('TREF, TRIM(TPROD) AS TPROD, TTDTE, TQTY')
+                        ->whereBetween('TTDTE', [$startInforDate, $endInforDate])
+                        ->get()
+                        ->map($normalizeRow);
+
+                    // Grouped for plans WITH a known shop order number (matches SORD too).
+                    $fsoByOrder = $fsoRows->groupBy(function ($row) {
+                        return implode('|', [
+                            trim((string) $row['sord']),
+                            trim((string) $row['sprod']),
+                            (string) $row['srdte'],
+                            trim((string) $row['socno']),
+                            (int) $row['sqreq'],
+                            (int) $row['sqfin'],
+                        ]);
+                    });
+
+                    // Grouped for plans WITHOUT a shop order number (no SORD filter).
+                    $fsoWithoutOrder = $fsoRows->groupBy(function ($row) {
+                        return implode('|', [
+                            trim((string) $row['sprod']),
+                            (string) $row['srdte'],
+                            trim((string) $row['socno']),
+                            (int) $row['sqreq'],
+                            (int) $row['sqfin'],
+                        ]);
+                    });
+
+                    // Same grouping but WITHOUT the quantities, so that when a plan
+                    // doesn't match exactly we can still tell the user "it exists in
+                    // FSO, but with a different quantity" and show that quantity.
+                    $fsoByOrderNoQty = $fsoRows->groupBy(function ($row) {
+                        return implode('|', [
+                            trim((string) $row['sord']),
+                            trim((string) $row['sprod']),
+                            (string) $row['srdte'],
+                            trim((string) $row['socno']),
+                        ]);
+                    });
+
+                    $fsoWithoutOrderNoQty = $fsoRows->groupBy(function ($row) {
+                        return implode('|', [
+                            trim((string) $row['sprod']),
+                            (string) $row['srdte'],
+                            trim((string) $row['socno']),
+                        ]);
+                    });
+
+                    $ithByKey = $ithRows->groupBy(function ($row) {
+                        return implode('|', [
+                            trim((string) $row['tprod']),
+                            trim((string) $row['tref']),
+                            (string) $row['ttdte'],
+                            (int) $row['tqty'],
+                        ]);
+                    });
+                } catch (\Exception $e) {
+                    Log::error('Error al consultar FSO/ITH en Infor para el validador de producción: ' . $e->getMessage());
+                    $inforError = 'No se pudo consultar Infor (FSO/ITH). Verifica la conexión con el AS400 e intenta nuevamente.';
+                }
+            }
+
+            if (!$inforError) {
+                $records = $productionPlans->map(function ($plan) use ($fsoByOrder, $fsoWithoutOrder, $fsoByOrderNoQty, $fsoWithoutOrderNoQty, $ithByKey) {
+                    $workCenter = $plan->partNumber->workCenter ?? null;
+                    $partNumber = trim($plan->partNumber->number ?? '');
+                    $shiftAbbr = trim($plan->shift->abbreviation ?? '');
+                    $orderNumber = trim((string) ($plan->shop_order_number ?? ''));
+                    $hasOrderNumber = $orderNumber !== '';
+                    $plannedQuantity = (int) $plan->planned_quantity;
+                    $producedQuantity = (int) $plan->produced_quantity;
+                    $sqreq = $plannedQuantity > 0 ? $plannedQuantity : $producedQuantity;
+                    $plannedDateYmd = Carbon::parse($plan->planned_date)->format('Ymd');
+                    $socno = $hasOrderNumber
+                        ? Carbon::parse($plan->planned_date)->format('md') . $shiftAbbr
+                        : $shiftAbbr;
+
+                    if ($hasOrderNumber) {
+                        $fsoKey = implode('|', [$orderNumber, $partNumber, $plannedDateYmd, $socno, $sqreq, $producedQuantity]);
+                        $fsoMatches = $fsoByOrder->get($fsoKey, collect());
+                    } else {
+                        $fsoKey = implode('|', [$partNumber, $plannedDateYmd, $socno, $sqreq, $producedQuantity]);
+                        $fsoMatches = $fsoWithoutOrder->get($fsoKey, collect());
+                    }
+                    $fsoCount = $fsoMatches->count();
+                    $fsoOrders = $fsoMatches->pluck('sord')->map(fn ($v) => trim((string) $v))->unique()->values();
+
+                    // When there's no exact match, check if the order/part/date/shift
+                    // exists in FSO with a different quantity, so we can surface it.
+                    $fsoRegisteredQuantities = collect();
+                    if ($fsoCount === 0) {
+                        if ($hasOrderNumber) {
+                            $fsoKeyNoQty = implode('|', [$orderNumber, $partNumber, $plannedDateYmd, $socno]);
+                            $fsoCloseMatches = $fsoByOrderNoQty->get($fsoKeyNoQty, collect());
+                        } else {
+                            $fsoKeyNoQty = implode('|', [$partNumber, $plannedDateYmd, $socno]);
+                            $fsoCloseMatches = $fsoWithoutOrderNoQty->get($fsoKeyNoQty, collect());
+                        }
+                        $fsoRegisteredQuantities = $fsoCloseMatches->pluck('sqfin')->map(fn ($v) => (int) $v)->unique()->values();
+                    }
+
+                    // ITH is looked up by the known order number, or by the order
+                    // discovered in FSO when the plan didn't have one of its own.
+                    $tref = $hasOrderNumber ? $orderNumber : $fsoOrders->first();
+
+                    $ithCount = null;
+                    $ithOrders = collect();
+                    if ($tref !== null) {
+                        $ithKey = implode('|', [$partNumber, trim((string) $tref), $plannedDateYmd, $producedQuantity]);
+                        $ithMatches = $ithByKey->get($ithKey, collect());
+                        $ithCount = $ithMatches->count();
+                        $ithOrders = $ithMatches->pluck('tref')->map(fn ($v) => trim((string) $v))->unique()->values();
+                    }
+
+                    $fsoStatus = $fsoCount === 0 ? 'missing' : ($fsoCount === 1 ? 'ok' : 'duplicate');
+                    $ithStatus = $tref === null
+                        ? 'not_checked'
+                        : ($ithCount === 0 ? 'missing' : ($ithCount === 1 ? 'ok' : 'duplicate'));
+                    $overallStatus = ($fsoStatus === 'ok' && $ithStatus === 'ok') ? 'ok' : 'issues';
+
+                    return [
+                        'id' => $plan->id,
+                        'work_center_name' => $workCenter->name ?? null,
+                        'work_center_number' => $workCenter->number ?? null,
+                        'part_name' => $plan->partNumber->name ?? null,
+                        'part_number' => $partNumber,
+                        'order_number' => $hasOrderNumber ? $orderNumber : null,
+                        'planned_date' => $plan->planned_date,
+                        'shift' => $shiftAbbr,
+                        'planned_quantity' => $plannedQuantity,
+                        'produced_quantity' => $producedQuantity,
+                        'status_label' => $plan->status->label ?? null,
+                        'is_completed' => (bool) $plan->is_completed,
+                        'synced_to_infor' => (bool) $plan->synced_to_infor,
+                        'synced_at' => $plan->synced_at,
+                        'fso_status' => $fsoStatus,
+                        'fso_count' => $fsoCount,
+                        'fso_orders' => $fsoOrders->implode(', '),
+                        'fso_registered_quantities' => $fsoRegisteredQuantities->implode(', '),
+                        'ith_status' => $ithStatus,
+                        'ith_count' => $ithCount,
+                        'ith_orders' => $ithOrders->implode(', '),
+                        'overall_status' => $overallStatus,
+                    ];
+                });
+
+                $summary = [
+                    'total' => $records->count(),
+                    'ok' => $records->filter(fn ($r) => $r['fso_status'] === 'ok' && $r['ith_status'] === 'ok')->count(),
+                    'fso_issues' => $records->filter(fn ($r) => $r['fso_status'] !== 'ok')->count(),
+                    'ith_issues' => $records->filter(fn ($r) => $r['ith_status'] !== 'ok')->count(),
+                ];
+            }
+        }
+
+        return view('production-records.infor-validation', [
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'records' => $records,
+            'summary' => $summary,
+            'inforError' => $inforError,
+        ]);
     }
 }

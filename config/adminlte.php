@@ -451,6 +451,12 @@ return [
             'can' => 'view production records'
         ],
         [
+            'text' => 'Validador de Infor',
+            'route' => 'production-records.infor-validation',
+            'icon' => 'fas fa-fw fa-satellite-dish',
+            'can' => 'view production records'
+        ],
+        [
             'text' => 'Registros de Paro',
             'route' => 'downtime-records.index',
             'icon' => 'fas fa-fw fa-history',

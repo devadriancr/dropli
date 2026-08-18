@@ -28,7 +28,16 @@
       "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 8321,8323 -ErrorAction SilentlyContinue | Select LocalPort,OwningProcess\")",
       "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 8524 -ErrorAction SilentlyContinue\")",
       "Bash(php -l app/Http/Controllers/ProductionRecordController.php)",
-      "Bash(php -l app/Jobs/SyncProductionRecords.php)"
+      "Bash(php -l app/Jobs/SyncProductionRecords.php)",
+      "Bash(git log *)",
+      "Bash(python3 -)",
+      "Bash(ls -la \"C:\\\\Users\\\\jesus.camacho\\\\Desktop\\\\Validator\\\\v4\" 2>&1 | head -50)",
+      "Read(//c/Users/jesus.camacho/Desktop/Validator/v4/**)",
+      "Bash(php -l routes/web.php)",
+      "Bash(php -l config/adminlte.php)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

@@ -37,6 +37,8 @@ Route::middleware([
     Route::get('/production-records/pdf', [App\Http\Controllers\HomeController::class, 'productionRecordsPdf'])->name('home.production-records-pdf');
 
     Route::post('/production-plans/sync-all', [App\Http\Controllers\ProductionPlanController::class, 'syncAll'])->name('production-plans.sync-all');
+
+    Route::get('/production-records/infor-validation', [App\Http\Controllers\ProductionRecordController::class, 'inforValidation'])->name('production-records.infor-validation');
 });
 
 Route::prefix('guest')->group(function () {
